@@ -41,34 +41,34 @@
 </template>
 
 <script setup>
-// 1. 导入依赖（去重 + 补全）
+// 1. 导入所有必需依赖
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { useUserStore } from '@/stores/modules/user'
 import { ElMessage } from 'element-plus'
 
-// 2. 初始化仓库和路由
-const userStore = useUserStore()
+// 2. 初始化路由和Pinia用户仓库
 const router = useRouter()
+const userStore = useUserStore()
 
-// 3. 登录表单数据
+// 3. 登录表单数据（账号/密码）
 const form = reactive({
   username: "",
   password: ""
 })
 
-// 4. 错误提示（用户名/密码）
+// 4. 表单错误提示（账号/密码为空）
 const error = reactive({
   username: "",
   password: ""
 })
 
-// 5. 提示消失的动画状态
+// 5. 错误提示消失的动画状态
 const isUsernameTipFade = ref(false)
 const isPasswordTipFade = ref(false)
 
-// 6. 登录加载状态
+// 6. 登录按钮加载状态
 const loading = ref(false)
 
 // 7. 重置错误提示
@@ -79,7 +79,7 @@ const resetError = () => {
   isPasswordTipFade.value = false
 }
 
-// 8. 提示自动消失方法
+// 8. 错误提示自动消失（2秒后渐隐）
 const autoHideTip = (type) => {
   setTimeout(() => {
     if (type === 'username') {
@@ -92,108 +92,66 @@ const autoHideTip = (type) => {
   }, 2000)
 }
 
-// 9. 核心登录逻辑（完整适配后端所有字段）
+// 9. 核心登录逻辑：登录后跳对应角色首页
 const login = async () => {
+  // 重置之前的错误提示
   resetError()
-
-  // 第一步：空值校验
+  
+  // 空值校验
   if (!form.username) {
-    error.username = "账号不能为空"
+    error.username = "请输入账号"
     autoHideTip('username')
     return
   }
   if (!form.password) {
-    error.password = "密码不能为空"
+    error.password = "请输入密码"
     autoHideTip('password')
     return
   }
 
+  // 设置加载状态
   loading.value = true
 
   try {
-    // 第二步：调用登录接口
-    const res = await axios.post('/api/employee/login', form)
+    // 第二步：调用真实后端登录接口（修改为指定地址）
+    const res = await axios.post('/api/employee/login', form) 
     const resData = res.data
-    
-    // 调试：打印后端返回的所有数据（方便你核对字段）
-    console.log('✅ 后端返回完整数据：', JSON.stringify(resData, null, 2))
 
-    // 第三步：判断接口返回是否成功
+    // 调试：打印返回数据（确认后端返回的字段）
+    console.log('✅ 登录成功，后端返回数据：', JSON.stringify(resData, null, 2))
+
+    // 第三步：处理登录成功逻辑
     if (resData.code === 200) {
-      // 1. 提取后端返回的核心数据（全覆盖你提到的字段）
+      // 提取用户信息（后端返回的data对象）
       const userInfo = resData.data || {}
-      const token = resData.token || ''
+      
+      // 存储完整用户信息到Pinia（透传所有后端字段）
+      userStore.setUser(userInfo)
 
-      // 2. 存储 Token 到 Pinia（供后续接口请求使用）
-      if (token) {
-        userStore.setToken(token)
-        // 可选：把token存入localStorage（双重保障）
-        localStorage.setItem('token', token)
-      }
+      // 提示登录成功
+      ElMessage.success(`登录成功！欢迎回来，${userInfo.name || userInfo.username}`)
 
-      // 3. 存储所有用户信息到 Pinia（后端返回的字段全存，后续想用就用）
-      userStore.setUser({
-        // 核心身份字段
-        username: userInfo.username || '',    // 用户名（如zzc）
-        isAdmin: userInfo.isAdmin || 0,       // 角色：0=普通管理员，1=超级管理员
-        id: userInfo.id || 0,                 // 用户ID
-        status: userInfo.status || 0,         // 账号状态
-        
-        // 个人信息字段
-        name: userInfo.name || '',            // 真实姓名
-        phone: userInfo.phone || '',          // 手机号
-        sex: userInfo.sex || 0,               // 性别：0/1
-        id_card: userInfo.id_card || '',      // 身份证号
-        headImg: userInfo.headImg || '',      // 头像地址
-        openId: userInfo.openId || '',        // 第三方ID
-        
-        // 业务相关字段
-        orchardId: userInfo.orchardId || 0,   // 果园ID
-        createTime: userInfo.createTime || '',// 创建时间
-        updateTime: userInfo.updateTime || '',// 更新时间
-        createUser: userInfo.createUser || 0, // 创建人
-        updateUser: userInfo.updateUser || 0  // 更新人
-      })
-
-      // 4. 提示登录成功
-      ElMessage.success('登录成功！欢迎回来，' + (userInfo.username || '管理员'))
-
-      // 5. 根据角色跳转（优先用后端的isAdmin，兜底用1）
-      const isAdmin = userInfo.isAdmin ?? 1
-      // 先跳转到布局页面（让布局页读取Pinia数据），而非直接跳功能页
-      router.push('/superindex').catch(err => {
-        ElMessage.error('页面跳转失败：' + err.message)
-        console.error('跳转错误：', err)
-        // 兜底跳转：如果布局页跳失败，直接跳功能页
-        router.push(isAdmin === 1 ? '/superadminindex' : '/adminindex')
-      })
+      // 核心：根据后端返回的 isAdmin 判断角色（1=超级管理员，其他=普通管理员）
+      const targetPath = userInfo.isAdmin === 1 
+        ? '/superadminindex'  // 超级管理员 → 超级管理员首页
+        : '/adminindex'       // 普通管理员 → 普通管理员首页
+      
+      // 跳转页面
+      await router.push(targetPath)
 
     } else {
-      // 后端返回失败（如账号密码错误）
       ElMessage.error(resData.msg || '登录失败，请检查账号密码')
     }
 
   } catch (err) {
-    // 网络错误/接口报错处理
+    // 异常处理（网络错误/接口报错）
     console.error('❌ 登录请求失败：', err)
-    // 分场景提示错误
-    if (err.response) {
-      // 后端返回错误（如401/500）
-      ElMessage.error('登录失败：' + (err.response.data?.msg || '账号或密码错误'))
-    } else if (err.request) {
-      // 网络错误（没连到后端）
-      ElMessage.error('网络错误，请检查服务器连接')
-    } else {
-      // 其他错误
-      ElMessage.error('登录失败：' + err.message)
-    }
+    ElMessage.error('登录失败，网络异常或服务器错误')
   } finally {
-    // 无论成功失败，都停止加载
     loading.value = false
   }
 }
 </script>
-
 
 <style scoped>
 /* 整体布局 */
@@ -243,13 +201,13 @@ const login = async () => {
 /* 忘记密码链接样式 */
 .forget-pwd {
   font-size: 12px;
-  color: #42b983; /* 和登录按钮同色系 */
+  color: #42b983;
   text-decoration: none;
   cursor: pointer;
 }
 .forget-pwd:hover {
-  color: #359469; /* hover加深颜色 */
-  text-decoration: underline; /* 下划线提示可点击 */
+  color: #359469;
+  text-decoration: underline;
 }
 
 .form-item input {
@@ -261,11 +219,10 @@ const login = async () => {
   outline: none;
   font-size: 14px;
   box-sizing: border-box;
-  /* 红边框保留，不消失 */
   transition: border-color 0.2s;
 }
 
-/* 错误边框（保留，不消失） */
+/* 错误边框 */
 .input-error {
   border-color: #f56c6c !important;
 }
@@ -279,7 +236,6 @@ const login = async () => {
   padding: 4px 8px;
   border-radius: 2px;
   border-left: 2px solid #f56c6c;
-  /* 消失动画过渡 */
   transition: opacity 0.5s ease, height 0.5s ease, margin 0.5s ease;
   opacity: 1;
   height: auto;

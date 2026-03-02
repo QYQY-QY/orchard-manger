@@ -9,10 +9,10 @@ export const useUserStore = defineStore(
         const user = ref({
             // 原有字段（兼容）
             nickname: '管理员',
-            user_pic: 'https://via.placeholder.com/40x40?text=头像',
+            user_pic: 'https://picsum.photos/40/40',
             username: '',
             // 后端返回的新字段
-            isAdmin: 0,
+            isAdmin: undefined,
             headImg: '',
             name: '',
             phone: '',
@@ -28,19 +28,31 @@ export const useUserStore = defineStore(
             updateUser: 0
         })
 
-        // 设置Token
+        // 设置Token（如果后端返回token，保留此方法）
         const setToken = (newToken) => {
             token.value = newToken
         }
 
-        // 设置用户信息（合并新旧数据）
+        // 设置用户信息（合并新旧数据 + 类型转换）
         const setUser = (newUser) => {
+            // 类型转换：后端返回的数字字段可能是字符串，转成Number
+            const formatUser = {
+                ...newUser,
+                isAdmin: newUser.isAdmin !== undefined ? Number(newUser.isAdmin) : undefined,
+                sex: newUser.sex !== undefined ? Number(newUser.sex) : 0,
+                status: newUser.status !== undefined ? Number(newUser.status) : 0,
+                id: newUser.id !== undefined ? Number(newUser.id) : 0,
+                orchardId: newUser.orchardId !== undefined ? Number(newUser.orchardId) : 0,
+                createUser: newUser.createUser !== undefined ? Number(newUser.createUser) : 0,
+                updateUser: newUser.updateUser !== undefined ? Number(newUser.updateUser) : 0,
+            }
+
             user.value = {
                 ...user.value,
-                ...newUser,
+                ...formatUser,
                 // 兼容原有字段
-                nickname: newUser.username || newUser.name || user.value.nickname,
-                user_pic: newUser.headImg || user.value.user_pic
+                nickname: formatUser.username || formatUser.name || user.value.nickname,
+                user_pic: formatUser.headImg || user.value.user_pic
             }
         }
 
@@ -49,9 +61,9 @@ export const useUserStore = defineStore(
             token.value = ''
             user.value = {
                 nickname: '管理员',
-                user_pic: 'https://via.placeholder.com/40x40?text=头像',
+                user_pic: 'https://picsum.photos/40/40',
                 username: '',
-                isAdmin: 0,
+                isAdmin: undefined,
                 headImg: '',
                 name: '',
                 phone: '',

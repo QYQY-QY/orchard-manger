@@ -4,7 +4,6 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
-
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -16,15 +15,17 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
-  // 新增：前后端联调的代理配置（解决跨域+HTTPS证书问题）
+  // 仅保留/完善跨域代理配置，不修改其他原有逻辑
   server: {
     proxy: {
-      // 用 /api 前缀代理后端接口
+      // 匹配所有以 /api 开头的请求，转发到后端
       '/api': {
-        target: 'https://120.27.205.171:3388', // 你的后端接口地址
-        changeOrigin: true, // 开启跨域伪装（核心解决跨域）
-        secure: false, // 忽略HTTPS证书错误（解决证书拦截）
-        rewrite: (path) => path.replace(/^\/api/, '') // 去掉/api前缀，匹配真实接口路径
+        target: 'https://120.27.205.171:3388', // 你的后端接口地址（协议+IP+端口）
+        changeOrigin: true, // 核心：开启跨域代理（伪装请求来源）
+        secure: false, // 关键：忽略HTTPS自签名证书错误
+        rewrite: (path) => path.replace(/^\/api/, ''), // 移除/api前缀，适配后端真实接口路径
+        // 可选：增加超时时间，避免请求超时
+        timeout: 5000
       }
     }
   }
