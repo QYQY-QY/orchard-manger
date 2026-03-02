@@ -1,0 +1,31 @@
+import { fileURLToPath, URL } from 'node:url'
+
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import vueDevTools from 'vite-plugin-vue-devtools'
+
+
+// https://vite.dev/config/
+export default defineConfig({
+  plugins: [
+    vue(),
+    vueDevTools(),
+  ],
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url))
+    },
+  },
+  // 新增：前后端联调的代理配置（解决跨域+HTTPS证书问题）
+  server: {
+    proxy: {
+      // 用 /api 前缀代理后端接口
+      '/api': {
+        target: 'https://120.27.205.171:3388', // 你的后端接口地址
+        changeOrigin: true, // 开启跨域伪装（核心解决跨域）
+        secure: false, // 忽略HTTPS证书错误（解决证书拦截）
+        rewrite: (path) => path.replace(/^\/api/, '') // 去掉/api前缀，匹配真实接口路径
+      }
+    }
+  }
+})
