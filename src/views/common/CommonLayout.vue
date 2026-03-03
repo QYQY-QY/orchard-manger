@@ -14,6 +14,7 @@
         unique-opened
       >
         <!-- 根据真实角色显示不同菜单 -->
+         
         <!-- 普通管理员 (admin) 菜单 -->
         <template v-if="realRole === 'admin'">
           <el-menu-item index="/adminindex">
@@ -27,9 +28,9 @@
               <el-icon><Management /></el-icon>
               <span>果园管理</span>
             </template>
-            <el-menu-item index="/orchard/detail">
+            <el-menu-item index="/adminArea">
               <el-icon><User /></el-icon>
-              <span>果园详情</span>
+              <span>区域划分</span>
             </el-menu-item>
             <el-menu-item index="/orchard/tree">
               <el-icon><Crop /></el-icon>
@@ -37,21 +38,28 @@
             </el-menu-item>
           </el-sub-menu>
 
-          <el-menu-item index="/task">
+          <el-menu-item index="/adminMission">
             <el-icon><Promotion /></el-icon>
             <span>任务管理</span>
           </el-menu-item>
 
-          <el-menu-item index="/account">
+          <el-menu-item index="/adminAccount">
             <el-icon><Promotion /></el-icon>
             <span>账号管理</span>
           </el-menu-item>
 
-          <el-menu-item index="/recruitment">
+          <el-menu-item index="/adminrecruitment">
             <el-icon><Promotion /></el-icon>
             <span>人员招聘</span>
           </el-menu-item>
+
+          <el-menu-item index="/adminai">
+            <el-icon><Promotion /></el-icon>
+            <span>AI助手</span>
+          </el-menu-item>
         </template>
+
+        
 
         <!-- 超级管理员 (superAdmin) 菜单 -->
         <template v-else-if="realRole === 'superAdmin'">
@@ -149,13 +157,15 @@
 
       <!-- 主体内容区域（插槽：子页面内容渲染在这里） -->
       <el-main>
+        <!-- 白色插槽内容容器（和之前完全一致） -->
         <div class="main-placeholder">
           <slot /> 
         </div>
+        <!-- 底部版权文字：放到灰色背景上，和白色内容分离 -->
+        <div class="footer-text">
+          果园管理系统 ©2026 Created by 大数据工作室
+        </div>
       </el-main>
-
-      <!-- 底部栏 -->
-      <el-footer>果园管理系统 ©2026 Created by 大数据工作室</el-footer>
     </el-container>
   </el-container>
 </template>
@@ -163,7 +173,7 @@
 <script setup>
 // 1. 导入核心依赖
 import { useUserStore } from '@/stores/modules/user'
-import { computed, watch } from 'vue'
+import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 
 // 2. 初始化路由和用户仓库
@@ -210,15 +220,6 @@ const activeMenuPath = computed(() => {
   return route.path
 })
 
-// 监听路由变化，强制更新菜单高亮
-// watch(
-//   () => route.path,
-//   () => {
-//     activeMenuPath.value = route.path
-//   },
-//   { immediate: true }
-// )
-
 // 9. 导入所有用到的图标
 import {
   Management,
@@ -250,20 +251,22 @@ const handleCommand = (command) => {
 <style lang="scss" scoped>
 .layout-container {
   height: 100vh;
+  overflow-x: hidden; /* 彻底禁止整个页面左右滚动 */
 
   .el-aside {
     background-color: #232323;
+    overflow-x: hidden; /* 禁止侧边栏左右滚动 */
 
     &__logo {
       height: 120px;
       background: url('@/assets/logo.png') no-repeat center / 120px auto;
-      /* 无logo时显示背景色 */
       background-color: #1f1f1f;
     }
 
     .el-menu {
       border-right: none;
       height: calc(100vh - 120px);
+      overflow-x: hidden; /* 禁止菜单左右滚动 */
       &-item.is-active {
         background-color: #409eff !important;
         color: #fff !important;
@@ -286,6 +289,7 @@ const handleCommand = (command) => {
     padding: 0 20px;
     height: 60px;
     border-bottom: 1px solid #eee;
+    overflow-x: hidden; /* 禁止顶部栏左右滚动 */
 
     .el-dropdown__box {
       display: flex;
@@ -302,24 +306,35 @@ const handleCommand = (command) => {
   .el-main {
     background-color: #f5f5f5;
     padding: 20px;
+    overflow-x: hidden; /* 禁止主内容区左右滚动 */
+    display: flex;
+    flex-direction: column; /* 垂直排列，让白色内容在上，版权在下 */
+    gap: 10px; /* 白色内容和版权之间的间距 */
+    box-sizing: border-box;
 
+    /* 白色插槽内容容器 */
     .main-placeholder {
       width: 100%;
-      min-height: calc(100vh - 180px);
+      min-height: calc(100vh - 220px); /* 最小高度，保证内容区足够大 */
       background-color: #fff;
       border-radius: 4px;
       padding: 20px;
       box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+      box-sizing: border-box;
+      overflow-x: hidden; /* 禁止内容区左右滚动 */
+      flex-shrink: 0;
     }
-  }
 
-  .el-footer {
-    text-align: center;
-    font-size: 14px;
-    color: #666;
-    padding: 10px 0;
-    background-color: #fff;
-    border-top: 1px solid #eee;
+    /* 灰色背景上的版权文字 */
+    .footer-text {
+      width: 100%;
+      text-align: center;
+      font-size: 14px;
+      color: #666;
+      padding: 10px 0 20px; /* 上下间距，贴到最底部 */
+      box-sizing: border-box;
+      margin-top: auto; /* 自动顶到最底部，不管内容多少 */
+    }
   }
 }
 </style>

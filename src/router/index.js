@@ -38,10 +38,17 @@ const router = createRouter({
       name: 'AdminAccount',
       component: () => import('../views/admin/Account.vue')
     },
+    //人员招聘
     {
       path: '/adminrecruitment',
       name: 'AdminRecruitment',
       component: () => import('../views/admin/Recruitment.vue')
+    },
+    //ai聊天
+    {
+      path: '/adminai',
+      name: 'AdminAi',
+      component: () => import('../views/admin/AI.vue')
     },
 
 
