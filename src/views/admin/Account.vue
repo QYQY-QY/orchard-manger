@@ -37,10 +37,11 @@
         <el-table
           :data="filteredTableData"
           style="width: 100%"
-          :header-cell-style="{ backgroundColor: '#f5f7fa', color: '#333' }"
+          :header-cell-style="{ backgroundColor: '#ffffff', color: '#333' }"
           :cell-style="{ color: '#666' }"
-          border
           stripe
+          :show-header-overflow="false"
+          :show-column-overflow="false"
         >
           <el-table-column prop="id" label="账号ID" width="120" />
           <el-table-column prop="type" label="用户类型" width="120">
@@ -473,17 +474,18 @@ const beforeAvatarUpload = (file) => {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  background-color: #ffffff; /* 纯白背景 */
 }
 
-/* 顶部筛选与按钮区 */
+/* 顶部筛选与按钮区 - 移除边框，添加阴影 */
 .top-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px;
-  border: 1px solid #e5e7eb;
+  padding: 20px;
   border-radius: 8px;
   background-color: #fff;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05); /* 柔和阴影 */
 }
 
 .filter-group {
@@ -498,28 +500,41 @@ const beforeAvatarUpload = (file) => {
   font-weight: 500;
 }
 
-/* 表格容器 */
+/* 表格容器 - 移除边框，添加阴影 */
 .table-container {
   flex: 1;
-  border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 16px;
   background-color: #fff;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05); /* 柔和阴影 */
   overflow: auto;
 }
 
-/* 详情弹窗样式（名片式） */
+/* 表格样式调整 - 移除边框和斑马纹背景 */
+:deep(.el-table) {
+  --el-table-header-text-color: #303133;
+  --el-table-row-hover-bg-color: #ffffff;
+  --el-table-row-stripe-bg-color: #ffffff;
+  --el-table-border-color: transparent; /* 隐藏表格边框 */
+}
+
+:deep(.el-table th),
+:deep(.el-table td) {
+  border: none !important; /* 移除单元格边框 */
+}
+
+/* 详情弹窗样式（名片式）- 移除边框，优化阴影 */
 .detail-dialog .el-dialog__body {
-  padding: 0 !important;
+  padding: 20px !important;
 }
 
 .account-card {
   display: flex;
   align-items: center;
   padding: 20px;
-  border: 1px solid #e5e7eb;
   border-radius: 8px;
-  background-color: #f9fafb;
+  background-color: #ffffff;
+  box-shadow: 0 1px 8px 0 rgba(0, 0, 0, 0.04); /* 更柔和的阴影 */
 }
 
 .avatar-section {
@@ -535,7 +550,7 @@ const beforeAvatarUpload = (file) => {
   border-radius: 8px;
   object-fit: cover;
   margin-bottom: 10px;
-  border: 1px solid #eee;
+  box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.1); /* 头像阴影 */
 }
 
 .info-section {
@@ -572,11 +587,23 @@ const beforeAvatarUpload = (file) => {
   width: 100px;
   height: 100px;
   border-radius: 8px;
+  box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.1); /* 头像阴影 */
 }
 
 .upload-tip {
   margin-top: 10px;
   font-size: 12px;
   color: #999;
+}
+
+/* 统一按钮和组件样式 */
+:deep(.el-button) {
+  border-radius: 4px;
+}
+
+:deep(.el-select),
+:deep(.el-input) {
+  --el-input-border-color: #e5e7eb;
+  --el-input-hover-border-color: #409eff;
 }
 </style>

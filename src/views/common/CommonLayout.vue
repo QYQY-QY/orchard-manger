@@ -23,21 +23,12 @@
           </el-menu-item>
 
           <!-- 果园管理（普通管理员版） -->
-          <el-sub-menu index="/orchard">
-            <template #title>
-              <el-icon><Management /></el-icon>
-              <span>果园管理</span>
-            </template>
-            <el-menu-item index="/adminArea">
+          
+            <el-menu-item index="/adminarea">
               <el-icon><User /></el-icon>
               <span>区域划分</span>
             </el-menu-item>
-            <el-menu-item index="/orchard/tree">
-              <el-icon><Crop /></el-icon>
-              <span>果树详情</span>
-            </el-menu-item>
-          </el-sub-menu>
-
+            
           <el-menu-item index="/adminMission">
             <el-icon><Promotion /></el-icon>
             <span>任务管理</span>

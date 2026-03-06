@@ -44,7 +44,7 @@
 // 1. 导入所有必需依赖
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import axios from 'axios'
+import service from '@/utils/request' 
 import { useUserStore } from '@/stores/modules/user'
 import { ElMessage } from 'element-plus'
 
@@ -54,6 +54,7 @@ const userStore = useUserStore()
 
 // 3. 登录表单数据（账号/密码）
 const form = reactive({
+  code: null,
   username: "",
   password: ""
 })
@@ -93,11 +94,9 @@ const autoHideTip = (type) => {
 }
 
 // 9. 核心登录逻辑：登录后跳对应角色首页
+// 9. 核心登录逻辑：改用拦截器封装的service
 const login = async () => {
-  // 重置之前的错误提示
   resetError()
-  
-  // 空值校验
   if (!form.username) {
     error.username = "请输入账号"
     autoHideTip('username')
@@ -109,44 +108,34 @@ const login = async () => {
     return
   }
 
-  // 设置加载状态
   loading.value = true
 
   try {
-    // 第二步：调用真实后端登录接口（修改为指定地址）
-    const res = await axios.post('/api/employee/login', form) 
-    const resData = res.data
+    // 核心修改：用service.post替代axios.post
+    // 拦截器会自动处理空数据、code≠200的情况，这里直接拿到resData=data
+    const userInfo = await service.post('/api/employee/login', form) 
 
-    // 调试：打印返回数据（确认后端返回的字段）
-    console.log('✅ 登录成功，后端返回数据：', JSON.stringify(resData, null, 2))
+    // 能走到这里，说明：
+    // 1. 后端返回了 {code:200, data: Employee对象}
+    // 2. 拦截器已经过滤了空数据、业务错误
+    //数据jsoN
+    console.log('✅ 登录成功，用户信息：', userInfo)
 
-    // 第三步：处理登录成功逻辑
-    if (resData.code === 200) {
-      // 提取用户信息（后端返回的data对象）
-      const userInfo = resData.data || {}
-      
-      // 存储完整用户信息到Pinia（透传所有后端字段）
-      userStore.setUser(userInfo)
+    // 存储用户信息到Pinia
+    const userStore = useUserStore()
+    userStore.setUser(userInfo)
 
-      // 提示登录成功
-      ElMessage.success(`登录成功！欢迎回来，${userInfo.name || userInfo.username}`)
-
-      // 核心：根据后端返回的 isAdmin 判断角色（1=超级管理员，其他=普通管理员）
-      const targetPath = userInfo.isAdmin === 1 
-        ? '/superadminindex'  // 超级管理员 → 超级管理员首页
-        : '/adminindex'       // 普通管理员 → 普通管理员首页
-      
-      // 跳转页面
-      await router.push(targetPath)
-
-    } else {
-      ElMessage.error(resData.msg || '登录失败，请检查账号密码')
-    }
+    // 提示+跳转
+    ElMessage.success(`登录成功！欢迎回来，${userInfo.name || userInfo.username}`)
+    const targetPath = userInfo.isAdmin === 1 
+      ? '/superadminindex'  
+      : '/adminindex'
+    await router.push(targetPath)
 
   } catch (err) {
-    // 异常处理（网络错误/接口报错）
-    console.error('❌ 登录请求失败：', err)
-    ElMessage.error('登录失败，网络异常或服务器错误')
+    // 所有错误（空数据、code≠200、网络错误）都会走到这里
+    console.error('❌ 登录失败：', err)
+    // 拦截器已经自动弹了错误提示，这里无需重复弹
   } finally {
     loading.value = false
   }
