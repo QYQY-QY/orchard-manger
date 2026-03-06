@@ -1,7 +1,7 @@
 <template>
   <CommonLayout>
     <div class="task-page">
-      <!-- 筛选区域 - 增加任务类型筛选 -->
+      <!-- 筛选区域 - 适配接口的筛选参数 -->
       <div class="filter-bar">
         <div class="filter-group">
           <div class="filter-item">
@@ -12,21 +12,33 @@
               class="filter-select"
             >
               <el-option label="全部类型" value="" />
-              <el-option label="日常任务" value="daily" />
-              <el-option label="紧急任务" value="urgent" />
+              <el-option label="日常任务" value="0" />
+              <el-option label="紧急任务" value="1" />
             </el-select>
           </div>
           <div class="filter-item">
             <label class="filter-label">任务状态：</label>
             <el-select 
-              v-model="filterParams.taskStatus" 
+              v-model="filterParams.status" 
               placeholder="请选择任务状态"
               class="filter-select"
             >
               <el-option label="全部状态" value="" />
-              <el-option label="未完成" value="unfinished" />
-              <el-option label="进行中" value="processing" />
-              <el-option label="已完成" value="finished" />
+              <el-option label="未完成" value="0" />
+              <el-option label="进行中" value="1" />
+              <el-option label="已完成" value="2" />
+            </el-select>
+          </div>
+          <div class="filter-item">
+            <label class="filter-label">任务范围：</label>
+            <el-select 
+              v-model="filterParams.taskScope" 
+              placeholder="请选择任务范围"
+              class="filter-select"
+            >
+              <el-option label="全部范围" value="" />
+              <el-option label="全园" value="0" />
+              <el-option label="分区" value="1" />
             </el-select>
           </div>
           <el-button type="primary" @click="handleFilter" class="filter-btn">筛选</el-button>
@@ -35,28 +47,34 @@
         <el-button type="primary" class="publish-btn" @click="showPublishDialog = true">发布任务</el-button>
       </div>
 
-      <!-- 任务列表 - 新增任务类型列 + 删除按钮 -->
+      <!-- 任务列表 - 匹配接口返回字段 -->
       <div class="task-list-wrapper">
         <el-table :data="filteredTaskList" stripe style="width: 100%">
-          <el-table-column prop="content" label="任务内容" min-width="200px" />
-          <el-table-column prop="area" label="任务区域" width="150px" />
+          <el-table-column prop="taskTitle" label="任务标题" min-width="150px" />
+          <el-table-column prop="taskInfo" label="任务内容" min-width="200px" />
+          <el-table-column prop="orchardName" label="所属果园" width="150px" />
           <el-table-column label="任务类型" width="120px">
             <template #default="{ row }">
-              <el-tag :type="row.taskType === 'urgent' ? 'danger' : 'info'">
-                {{ row.taskType === 'daily' ? '日常任务' : '紧急任务' }}
+              <el-tag :type="row.taskType === 1 ? 'danger' : 'info'">
+                {{ row.taskType === 0 ? '日常任务' : '紧急任务' }}
               </el-tag>
             </template>
           </el-table-column>
           <el-table-column prop="status" label="任务状态" width="120px">
             <template #default="{ row }">
               <el-tag 
-                :type="row.status === '已完成' ? 'success' : (row.status === '进行中' ? 'primary' : 'warning')"
+                :type="row.status === 2 ? 'success' : (row.status === 1 ? 'primary' : 'warning')"
               >
-                {{ row.status }}
+                {{ row.status === 0 ? '未完成' : (row.status === 1 ? '进行中' : '已完成') }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="assignee" label="任务负责人" width="120px" />
+          <el-table-column prop="deadline" label="截止时间" width="180px">
+            <template #default="{ row }">
+              {{ formatIsoTime(row.deadline) }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="username" label="发布人" width="120px" />
           <el-table-column label="操作" width="180px">
             <template #default="{ row }">
               <el-button link type="primary" @click="handleViewDetail(row)">
@@ -70,44 +88,103 @@
         </el-table>
       </div>
 
-      <!-- 发布任务弹框 - 新增任务类型选择 -->
-      <el-dialog v-model="showPublishDialog" title="发布新任务" width="500px">
-        <el-form :model="publishForm" label-width="80px">
-          <el-form-item label="任务类型" prop="taskType">
-            <el-select v-model="publishForm.taskType" placeholder="请选择任务类型">
-              <el-option label="日常任务" value="daily" />
-              <el-option label="紧急任务" value="urgent" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="任务内容" prop="content">
+      <!-- 发布任务弹框 - 匹配接口参数 -->
+      <el-dialog v-model="showPublishDialog" title="发布新任务" width="700px">
+        <el-form :model="publishForm" label-width="100px" ref="publishFormRef" :rules="publishRules">
+          <el-form-item label="任务标题" prop="taskTitle">
             <el-input 
-              v-model="publishForm.content" 
-              placeholder="请输入任务内容"
-              maxlength="100"
-              show-word-limit
-            />
-          </el-form-item>
-          <el-form-item label="任务区域" prop="area">
-            <el-input 
-              v-model="publishForm.area" 
-              placeholder="请输入任务区域"
+              v-model="publishForm.taskTitle" 
+              placeholder="请输入任务标题"
               maxlength="50"
               show-word-limit
             />
           </el-form-item>
-          <el-form-item label="负责人" prop="assignee">
+          <el-form-item label="任务内容" prop="taskInfo">
             <el-input 
-              v-model="publishForm.assignee" 
-              placeholder="请输入负责人姓名"
-              maxlength="20"
+              v-model="publishForm.taskInfo" 
+              type="textarea"
+              placeholder="请输入任务内容"
+              rows="3"
+              maxlength="200"
               show-word-limit
+            />
+          </el-form-item>
+          <el-form-item label="任务类型" prop="taskType">
+            <el-select v-model="publishForm.taskType" placeholder="请选择任务类型">
+              <el-option label="日常任务" value="0" />
+              <el-option label="紧急任务" value="1" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="任务范围" prop="taskScope">
+            <el-select v-model="publishForm.taskScope" placeholder="请选择任务范围">
+              <el-option label="全园" value="0" />
+              <el-option label="分区" value="1" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="截止时间" prop="deadline">
+            <el-date-picker
+              v-model="publishForm.deadline"
+              type="datetime"
+              placeholder="请选择截止时间"
+              format="YYYY-MM-DD HH:mm:ss"
+              value-format="YYYY-MM-DDTHH:mm:ss.000Z"
+            />
+          </el-form-item>
+          <el-form-item label="完成时间" prop="completionTime">
+            <el-date-picker
+              v-model="publishForm.completionTime"
+              type="datetime"
+              placeholder="请选择完成时间（可选）"
+              format="YYYY-MM-DD HH:mm:ss"
+              value-format="YYYY-MM-DDTHH:mm:ss.000Z"
+            />
+          </el-form-item>
+          <el-form-item label="任务负责人ID" prop="empIds">
+            <el-input 
+              v-model="publishForm.empIds" 
+              placeholder="请输入负责人ID（多个用逗号分隔）"
+              maxlength="100"
+              show-word-limit
+            />
+          </el-form-item>
+          <el-form-item label="任务组ID" prop="empgroupId">
+            <el-input 
+              v-model="publishForm.empgroupId" 
+              placeholder="请输入任务组ID"
+              type="number"
+              min="0"
             />
           </el-form-item>
           <el-form-item label="任务状态" prop="status">
             <el-select v-model="publishForm.status" placeholder="请选择初始状态">
-              <el-option label="未完成" value="未完成" />
-              <el-option label="进行中" value="进行中" />
+              <el-option label="未完成" value="0" />
+              <el-option label="进行中" value="1" />
             </el-select>
+          </el-form-item>
+          <el-form-item label="任务图片URL" prop="imgsURL">
+            <el-input 
+              v-model="publishForm.imgsURL" 
+              type="textarea"
+              placeholder="请输入图片URL（多个用逗号分隔）"
+              rows="2"
+              maxlength="500"
+              show-word-limit
+            />
+          </el-form-item>
+          <!-- 果园ID/发布人等从用户信息自动填充，不可编辑 -->
+          <el-form-item label="所属果园ID">
+            <el-input 
+              v-model="publishForm.orchardId" 
+              disabled
+              placeholder="自动填充当前用户果园ID"
+            />
+          </el-form-item>
+          <el-form-item label="发布人">
+            <el-input 
+              v-model="publishForm.username" 
+              disabled
+              placeholder="自动填充当前用户名"
+            />
           </el-form-item>
         </el-form>
         <template #footer>
@@ -116,7 +193,7 @@
         </template>
       </el-dialog>
 
-      <!-- 任务详情弹框 -->
+      <!-- 任务详情弹框 - 匹配接口返回字段 -->
       <el-dialog 
         v-model="showDetailDialog" 
         title="任务详情" 
@@ -124,44 +201,45 @@
         center
       >
         <div class="task-detail">
-          <!-- 基本信息 -->
           <div class="detail-base-info">
             <el-descriptions :column="2" border style="margin-bottom: 20px">
-              <el-descriptions-item label="任务内容">{{ currentTask.content }}</el-descriptions-item>
-              <el-descriptions-item label="任务区域">{{ currentTask.area }}</el-descriptions-item>
+              <el-descriptions-item label="任务ID">{{ currentTask.id || '-' }}</el-descriptions-item>
+              <el-descriptions-item label="任务标题">{{ currentTask.taskTitle || '-' }}</el-descriptions-item>
+              <el-descriptions-item label="任务内容">{{ currentTask.taskInfo || '-' }}</el-descriptions-item>
+              <el-descriptions-item label="所属果园">{{ currentTask.orchardName || '-' }}</el-descriptions-item>
               <el-descriptions-item label="任务类型">
-                <el-tag :type="currentTask.taskType === 'urgent' ? 'danger' : 'info'">
-                  {{ currentTask.taskType === 'daily' ? '日常任务' : '紧急任务' }}
+                <el-tag :type="currentTask.taskType === 1 ? 'danger' : 'info'">
+                  {{ currentTask.taskType === 0 ? '日常任务' : '紧急任务' }}
                 </el-tag>
               </el-descriptions-item>
               <el-descriptions-item label="任务状态">
                 <el-tag 
-                  :type="currentTask.status === '已完成' ? 'success' : (currentTask.status === '进行中' ? 'primary' : 'warning')"
+                  :type="currentTask.status === 2 ? 'success' : (currentTask.status === 1 ? 'primary' : 'warning')"
                 >
-                  {{ currentTask.status }}
+                  {{ currentTask.status === 0 ? '未完成' : (currentTask.status === 1 ? '进行中' : '已完成') }}
                 </el-tag>
               </el-descriptions-item>
-              <el-descriptions-item label="任务负责人">{{ currentTask.assignee }}</el-descriptions-item>
-              <el-descriptions-item label="任务发布时间">{{ currentTask.publishTime }}</el-descriptions-item>
-              <el-descriptions-item label="任务完成时间">
-                {{ currentTask.completeTime || '暂未完成' }}
-              </el-descriptions-item>
-              <el-descriptions-item label="备注信息">{{ currentTask.remark || '无' }}</el-descriptions-item>
+              <el-descriptions-item label="发布人">{{ currentTask.username || '-' }}</el-descriptions-item>
+              <el-descriptions-item label="发布时间">{{ formatIsoTime(currentTask.postTime) }}</el-descriptions-item>
+              <el-descriptions-item label="截止时间">{{ formatIsoTime(currentTask.deadline) }}</el-descriptions-item>
+              <el-descriptions-item label="完成时间">{{ formatIsoTime(currentTask.completionTime) || '暂未完成' }}</el-descriptions-item>
+              <el-descriptions-item label="任务范围">{{ currentTask.taskScope === 0 ? '全园' : '分区' }}</el-descriptions-item>
+              <el-descriptions-item label="创建时间">{{ formatIsoTime(currentTask.createTime) }}</el-descriptions-item>
             </el-descriptions>
           </div>
 
           <!-- 上传图片展示 -->
-          <div class="detail-images" v-if="currentTask.images && currentTask.images.length > 0">
+          <div class="detail-images" v-if="currentTask.imgsURL && currentTask.imgsURL.length > 0">
             <h4 style="margin-bottom: 10px; color: #333">任务相关图片：</h4>
             <div class="image-grid">
               <div 
                 class="image-item" 
-                v-for="(img, index) in currentTask.images" 
+                v-for="(img, index) in currentTask.imgsURL" 
                 :key="index"
               >
                 <el-image 
                   :src="img" 
-                  :preview-src-list="currentTask.images"
+                  :preview-src-list="currentTask.imgsURL"
                   fit="cover"
                   style="width: 200px; height: 150px; border-radius: 4px"
                 >
@@ -192,125 +270,120 @@ import { ref, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import CommonLayout from '@/views/common/CommonLayout.vue'
 import { useUserStore } from '@/stores/modules/user'
+import axios from 'axios' // 新增：导入axios发请求
 
 const userStore = useUserStore()
-const userName = computed(() => userStore.user.name || userStore.user.username)
-const roleName = computed(() => '普通管理员')
+// 从用户仓库提取核心信息（优先复用）
+const creatorId = computed(() => userStore.user?.id || 0) // 创建者ID
+const username = computed(() => userStore.user?.name || userStore.user?.username || '') // 发布人名称
+const orchardId = computed(() => userStore.user?.orchardId || 0) // 果园ID
 
-// 筛选参数
-const filterParams = ref({
-  taskType: '', // 任务类型筛选：''-全部, daily-日常, urgent-紧急
-  taskStatus: '' // 任务状态筛选：''-全部, unfinished-未完成, processing-进行中, finished-已完成
+// 表单校验规则
+const publishRules = ref({
+  taskTitle: [{ required: true, message: '请输入任务标题', trigger: 'blur' }],
+  taskInfo: [{ required: true, message: '请输入任务内容', trigger: 'blur' }],
+  taskType: [{ required: true, message: '请选择任务类型', trigger: 'change' }],
+  taskScope: [{ required: true, message: '请选择任务范围', trigger: 'change' }],
+  deadline: [{ required: true, message: '请选择截止时间', trigger: 'change' }],
+  empIds: [{ required: true, message: '请输入负责人ID', trigger: 'blur' }],
+  status: [{ required: true, message: '请选择任务状态', trigger: 'change' }],
 })
 
-// 发布弹框控制
+// 筛选参数（匹配/api/task/query接口）
+const filterParams = ref({
+  taskType: '', // 0-日常,1-紧急
+  status: '', // 0-未完成,1-进行中,2-已完成
+  taskScope: '', // 0-全园,1-分区
+  orchardId: orchardId.value, // 自动填充果园ID
+  creatorId: creatorId.value, // 自动填充创建者ID
+})
+
+// 发布弹框控制 + 表单初始化（优先填充用户信息）
 const showPublishDialog = ref(false)
+const publishFormRef = ref(null)
 const publishForm = ref({
-  taskType: '', // 新增任务类型字段
-  content: '',
-  area: '',
-  assignee: '',
-  status: '未完成'
+  taskTitle: '',
+  taskInfo: '',
+  taskType: '',
+  taskScope: '',
+  deadline: '',
+  completionTime: '',
+  empIds: '',
+  empgroupId: 0,
+  imgsURL: '',
+  orchardId: orchardId.value, // 自动填充果园ID
+  username: username.value, // 自动填充发布人
+  creatorId: creatorId.value, // 自动填充创建者ID
+  postTime: new Date().toISOString(), // 自动生成发布时间（ISO格式）
+  status: '0', // 默认未完成
 })
 
 // 详情弹框控制
 const showDetailDialog = ref(false)
-const currentTask = ref({}) // 当前选中的任务详情
+const currentTask = ref({}) 
 
 // 原始任务列表数据
 const taskList = ref([])
 
-// 筛选后的任务列表（计算属性）
+// 筛选后的任务列表
 const filteredTaskList = computed(() => {
   let list = [...taskList.value]
   
   // 任务类型筛选
   if (filterParams.value.taskType) {
-    list = list.filter(item => item.taskType === filterParams.value.taskType)
+    list = list.filter(item => item.taskType === Number(filterParams.value.taskType))
   }
   
-  // 任务状态筛选（映射状态值）
-  if (filterParams.value.taskStatus) {
-    const statusMap = {
-      'unfinished': '未完成',
-      'processing': '进行中',
-      'finished': '已完成'
-    }
-    const targetStatus = statusMap[filterParams.value.taskStatus]
-    list = list.filter(item => item.status === targetStatus)
+  // 任务状态筛选
+  if (filterParams.value.status) {
+    list = list.filter(item => item.status === Number(filterParams.value.status))
+  }
+  
+  // 任务范围筛选
+  if (filterParams.value.taskScope) {
+    list = list.filter(item => item.taskScope === Number(filterParams.value.taskScope))
   }
   
   return list
 })
 
-// 模拟从后端获取任务列表
-const fetchTaskList = async () => {
-  // 这里替换为你的真实接口请求
-  // const res = await api.getTaskList(filterParams.value)
-  // taskList.value = res.data
-
-  // 模拟数据
-  taskList.value = [
-    {
-      id: 1,
-      content: '检查果树生长情况',
-      area: '东区果园',
-      status: '已完成',
-      assignee: '张三',
-      publishTime: '2026-03-01 09:00:00',
-      completeTime: '2026-03-01 16:30:00',
-      taskType: 'daily',
-      remark: '重点检查苹果树的病虫害情况',
-      images: [
-        'https://picsum.photos/800/600?random=1',
-        'https://picsum.photos/800/600?random=2'
-      ]
-    },
-    {
-      id: 2,
-      content: '施肥作业',
-      area: '西区果园',
-      status: '进行中',
-      assignee: '李四',
-      publishTime: '2026-03-02 10:15:00',
-      completeTime: '',
-      taskType: 'daily',
-      remark: '使用有机肥，按照每亩50公斤的标准施肥',
-      images: [
-        'https://picsum.photos/800/600?random=3'
-      ]
-    },
-    {
-      id: 3,
-      content: '修剪树枝',
-      area: '北区果园',
-      status: '未完成',
-      assignee: '王五',
-      publishTime: '2026-03-01 08:30:00',
-      completeTime: '',
-      taskType: 'urgent',
-      remark: '及时修剪病枝、枯枝，防止病害扩散',
-      images: []
-    },
-    {
-      id: 4,
-      content: '喷洒农药',
-      area: '南区果园',
-      status: '进行中',
-      assignee: '赵六',
-      publishTime: '2026-03-01 14:00:00',
-      completeTime: '',
-      taskType: 'urgent',
-      remark: '针对蚜虫虫害进行专项防治',
-      images: [
-        'https://picsum.photos/800/600?random=4'
-      ]
-    }
-  ]
+// 格式化ISO时间为易读格式
+const formatIsoTime = (isoTime) => {
+  if (!isoTime) return '-'
+  const date = new Date(isoTime)
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  })
 }
 
-// 筛选
+// 调用/api/task/query获取任务列表（替换模拟数据）
+const fetchTaskList = async () => {
+  try {
+    const response = await axios.post('/api/task/query', filterParams.value)
+    if (response.data && response.data.code === 200) {
+      // 处理返回数据（imgsURL转数组）
+      taskList.value = (response.data.data || []).map(item => ({
+        ...item,
+        imgsURL: item.imgsURL ? (Array.isArray(item.imgsURL) ? item.imgsURL : item.imgsURL.split(',')) : []
+      }))
+      ElMessage.success('任务列表加载成功')
+    } else {
+      ElMessage.error(`获取任务列表失败：${response.data?.msg || '未知错误'}`)
+    }
+  } catch (error) {
+    console.error('获取任务列表失败：', error)
+    ElMessage.error(`获取任务列表失败（${error.response?.status || '网络错误'}）`)
+  }
+}
+
+// 筛选（重新拉取列表）
 const handleFilter = () => {
+  fetchTaskList()
   ElMessage.success('筛选完成')
 }
 
@@ -318,8 +391,12 @@ const handleFilter = () => {
 const resetFilter = () => {
   filterParams.value = {
     taskType: '',
-    taskStatus: ''
+    status: '',
+    taskScope: '',
+    orchardId: orchardId.value,
+    creatorId: creatorId.value,
   }
+  fetchTaskList()
   ElMessage.info('筛选条件已重置')
 }
 
@@ -329,10 +406,9 @@ const handleViewDetail = (row) => {
   showDetailDialog.value = true
 }
 
-// 删除任务
+// 删除任务（示例：如需真实删除需补充后端接口）
 const handleDeleteTask = async (taskId) => {
   try {
-    // 显示确认弹窗
     await ElMessageBox.confirm(
       '此操作将永久删除该任务, 是否继续?',
       '提示',
@@ -343,10 +419,9 @@ const handleDeleteTask = async (taskId) => {
       }
     )
     
-    // 这里替换为真实的删除接口请求
-    // await api.deleteTask(taskId)
+    // 如需真实删除，补充删除接口调用
+    // await axios.delete(`/api/task/delete/${taskId}`)
     
-    // 前端删除数据
     taskList.value = taskList.value.filter(item => item.id !== taskId)
     ElMessage.success('任务删除成功!')
   } catch (error) {
@@ -354,59 +429,80 @@ const handleDeleteTask = async (taskId) => {
   }
 }
 
-// 发布任务
+// 发布任务：调用/api/task/add接口
 const handlePublish = async () => {
-  if (!publishForm.value.taskType || !publishForm.value.content || !publishForm.value.area || !publishForm.value.assignee) {
-    ElMessage.warning('请填写完整任务信息')
-    return
-  }
+  try {
+    // 表单校验
+    await publishFormRef.value.validate()
 
-  // 这里替换为你的真实接口请求
-  // await api.publishTask(publishForm.value)
-  ElMessage.success('任务发布成功')
-  showPublishDialog.value = false
-  
-  // 生成新任务数据（模拟）
-  const newTask = {
-    id: taskList.value.length + 1,
-    content: publishForm.value.content,
-    area: publishForm.value.area,
-    status: publishForm.value.status,
-    assignee: publishForm.value.assignee,
-    publishTime: new Date().toLocaleString('zh-CN'),
-    completeTime: '',
-    taskType: publishForm.value.taskType,
-    remark: '',
-    images: []
-  }
-  
-  // 添加到列表
-  taskList.value.push(newTask)
-  
-  // 重置表单
-  publishForm.value = {
-    taskType: '',
-    content: '',
-    area: '',
-    assignee: '',
-    status: '未完成'
+    // 处理参数：imgsURL转数组
+    const submitData = {
+      ...publishForm.value,
+      // 字符串转数组（多个URL用逗号分隔）
+      imgsURL: publishForm.value.imgsURL ? publishForm.value.imgsURL.split(',') : [],
+      // 数字类型转换
+      taskType: Number(publishForm.value.taskType),
+      taskScope: Number(publishForm.value.taskScope),
+      status: Number(publishForm.value.status),
+      empgroupId: Number(publishForm.value.empgroupId),
+      creatorId: Number(publishForm.value.creatorId),
+      orchardId: Number(publishForm.value.orchardId),
+    }
+
+    // 调用发布任务接口
+    const response = await axios.post('/api/task/add', submitData)
+    if (response.data && response.data.code === 200) {
+      ElMessage.success('任务发布成功！')
+      showPublishDialog.value = false
+      
+      // 重置表单
+      publishForm.value = {
+        taskTitle: '',
+        taskInfo: '',
+        taskType: '',
+        taskScope: '',
+        deadline: '',
+        completionTime: '',
+        empIds: '',
+        empgroupId: 0,
+        imgsURL: '',
+        orchardId: orchardId.value,
+        username: username.value,
+        creatorId: creatorId.value,
+        postTime: new Date().toISOString(),
+        status: '0',
+      }
+      publishFormRef.value.resetFields()
+      
+      // 重新拉取任务列表
+      fetchTaskList()
+    } else {
+      ElMessage.error(`发布失败：${response.data?.msg || '未知错误'}`)
+    }
+  } catch (error) {
+    console.error('发布任务失败：', error)
+    if (error.name === 'ValidationError') {
+      ElMessage.warning('请填写完整并正确的任务信息')
+    } else {
+      ElMessage.error(`发布失败（${error.response?.status || '网络错误'}）`)
+    }
   }
 }
 
+// 初始化加载任务列表
 onMounted(() => {
   fetchTaskList()
 })
 </script>
 
 <style scoped>
-/* 移除所有灰色背景，改为纯白色 */
+/* 保留原有样式，仅适配新字段展示 */
 .task-page {
   padding: 20px;
-  background-color: #ffffff; /* 原#f5f7fa 改为纯白 */
+  background-color: #ffffff;
   min-height: calc(100vh - 120px);
 }
 
-/* 筛选区域样式 */
 .filter-bar {
   background: #fff;
   padding: 20px;
@@ -448,7 +544,6 @@ onMounted(() => {
   color: #606266;
 }
 
-/* 任务列表样式 */
 .task-list-wrapper {
   background: #fff;
   border-radius: 8px;
@@ -458,15 +553,14 @@ onMounted(() => {
 
 :deep(.el-table) {
   --el-table-header-text-color: #303133;
-  --el-table-row-hover-bg-color: #ffffff; /* 移除hover灰色背景 */
-  --el-table-row-stripe-bg-color: #ffffff; /* 移除斑马纹灰色背景 */
+  --el-table-row-hover-bg-color: #ffffff;
+  --el-table-row-stripe-bg-color: #ffffff;
 }
 
 :deep(.el-tag) {
   padding: 2px 8px;
 }
 
-/* 详情弹框样式 */
 .task-detail {
   padding: 10px 0;
 }
@@ -486,7 +580,7 @@ onMounted(() => {
   border: 1px solid #eee;
   padding: 5px;
   border-radius: 6px;
-  background: #ffffff; /* 原#f9f9f9 改为纯白 */
+  background: #ffffff;
 }
 
 :deep(.image-error) {
@@ -495,7 +589,7 @@ onMounted(() => {
   justify-content: center;
   width: 100%;
   height: 100%;
-  background: #ffffff; /* 原#f5f5f5 改为纯白 */
+  background: #ffffff;
   color: #999;
   border: 1px dashed #ddd;
 }

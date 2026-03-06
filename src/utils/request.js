@@ -6,7 +6,7 @@ import router from '@/router'
 // 创建axios实例（统一配置基础路径、超时等）
 const service = axios.create({
     baseURL: import.meta.env.VITE_API_BASE_URL || '', // 可选：通过.env文件配置接口前缀
-    timeout: 10000, // 超时时间：10秒
+    timeout: 30000, // 超时时间：10秒
     headers: {
         'Content-Type': 'application/json;charset=utf-8' // 统一请求头
     }
@@ -33,6 +33,7 @@ service.interceptors.response.use(
     (response) => {
         const res = response.data
         const requestUrl = response.config.url
+
 
         // 打印响应信息（开发环境调试用）—— 保留
         console.log(`📥 响应：${requestUrl}`, res)

@@ -54,7 +54,7 @@ const userStore = useUserStore()
 
 // 3. 登录表单数据（账号/密码）
 const form = reactive({
-  code: null,
+  // code: null,
   username: "",
   password: ""
 })

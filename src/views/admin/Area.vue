@@ -11,9 +11,9 @@
           <div 
             class="zone-item" 
             v-for="zone in zoneList" 
-            :key="zone.areaId"
-            :class="{ active: activeAreaId === zone.areaId }"
-            @click="selectZone(zone.areaId)"
+            :key="zone.id"
+            :class="{ active: activeAreaId === zone.id }"
+            @click="selectZone(zone.id)"
           >
             <div class="zone-name">区域{{ zone.number }}：{{ zone.name }}</div>
             <div class="zone-remark">{{ zone.description || '无备注' }}</div>
@@ -41,7 +41,7 @@
           <div class="zone-info">
             <h3>区域{{ activeZone.number }}：{{ activeZone.name }}</h3>
             <p class="zone-desc">
-              负责人：{{ activeZone.manager || '未设置' }} | 品种：{{ activeZone.type }} | 果树总数：{{ activeZone.fruitCount }}
+              负责人：{{ activeZone.manager || '未设置' }} | 品种：{{ activeZone.type }} | 果树总数：{{ activeZone.size }}
             </p>
             <!-- 详情/编辑按钮 -->
             <div class="zone-info-actions">
@@ -212,8 +212,8 @@
             placeholder="请输入果园ID" 
             type="number"
             min="1"
-            :disabled="userStore.user.orchardId > 0"
-            :value="userStore.user.orchardId || zoneForm.orchardId"
+            :disabled="userStore.user?.orchardId > 0"
+            :value="userStore.user?.orchardId || zoneForm.orchardId"
           />
         </el-form-item>
       </el-form>
@@ -244,7 +244,7 @@
           style="margin-bottom: 20px"
         >
           <el-descriptions-item label="区域ID">
-            {{ currentZone.areaId }}
+            {{ currentZone.id }}
           </el-descriptions-item>
           <el-descriptions-item label="区域名称">
             {{ currentZone.name }}
@@ -256,7 +256,7 @@
             {{ currentZone.type }}
           </el-descriptions-item>
           <el-descriptions-item label="果树总数">
-            {{ currentZone.fruitCount }}
+            {{ currentZone.size }}
           </el-descriptions-item>
           <el-descriptions-item label="管理员ID">
             {{ currentZone.empId }}
@@ -432,24 +432,25 @@ import axios from 'axios'
 // 正确导入Pinia用户仓库
 import { useUserStore } from '@/stores/modules/user.js'
 
-// 初始化用户仓库（关键修复）
+// 初始化用户仓库
 const userStore = useUserStore()
 
-// 区域列表数据（适配新字段）
+// 区域列表数据
 const zoneList = ref([])
-// 当前激活的区域ID（改为areaId）
+// 当前激活的区域ID
 const activeAreaId = ref('')
 
 // 添加区域相关
 const showAddZoneDialog = ref(false)
 const zoneFormRef = ref(null)
 const zoneForm = reactive({
-  name: '', // 区域名称
-  description: '', // 区域描述
-  manager: '', // 负责人（非必填）
-  type: '', // 果树品种
-  fruitCount: '', // 果树数量
-  orchardId: userStore.user.orchardId || '' // 从用户仓库获取果园ID，默认填充
+  name: '',
+  description: '',
+  manager: '',
+  type: '',
+  fruitCount: '',
+  // 强制转为数字类型，避免字符串传参
+  orchardId: userStore.user?.orchardId ? Number(userStore.user.orchardId) : ''
 })
 
 // 详情/编辑相关
@@ -470,7 +471,7 @@ const editForm = reactive({
 const showTreeDetailDialog = ref(false)
 const currentTree = reactive({})
 
-// 表单校验规则（适配新字段）
+// 表单校验规则
 const zoneRules = reactive({
   name: [
     { required: true, message: '请输入区域名称', trigger: 'blur' }
@@ -501,15 +502,14 @@ const zoneRules = reactive({
   ]
 })
 
-// 当前激活的区域（加兜底，避免undefined）
+// 当前激活的区域
 const activeZone = computed(() => {
-  return zoneList.value.find(zone => zone.areaId === activeAreaId.value) || { trees: [], number: '', name: '', type: '', fruitCount: 0 }
+  return zoneList.value.find(zone => zone.id === activeAreaId.value) || { trees: [], number: '', name: '', type: '', size: 0 }
 })
 
-// 排序后的果树列表（按创建时间，这里假设ID含时间戳，或直接按数组索引）
+// 排序后的果树列表
 const sortedTreeList = computed(() => {
-  // 实际项目中可根据果树的创建时间字段排序，这里先按数组顺序，删除后索引自动更新
-  return [...activeZone.trees]
+  return [...(activeZone.trees || [])]
 })
 
 // 格式化成熟度显示
@@ -532,19 +532,51 @@ const getRipeDegreeTagType = (degree) => {
   return 'warning'
 }
 
-// 初始化：获取所有区域列表
+// 初始化：获取所有区域列表（核心修复：参数类型+错误日志）
 const getZoneList = async () => {
   try {
-    // 请替换为实际的区域列表接口
-    const response = await axios.get('/api/area/list', {
-      params: { empId: userStore.user.id } // 管理员ID是user.id
+    // 1. 校验并转换果园ID为数字
+    const currentOrchardId = userStore.user?.orchardId ? Number(userStore.user.orchardId) : 0
+    console.log('获取区域列表 - 果园ID：', currentOrchardId, '类型：', typeof currentOrchardId)
+    
+    if (currentOrchardId <= 0) {
+      ElMessage.warning('当前用户未绑定有效果园ID（需大于0），请先配置')
+      zoneList.value = []
+      return
+    }
+
+    // 2. 发送请求（确保参数是数字类型）
+    const response = await axios.get('/api/area/selectByOrchardId', {
+      params: { 
+        orchardId: currentOrchardId  // 强制数字类型
+      },
+      // 显式指定请求头，避免后端解析异常
+      headers: {
+        'Content-Type': 'application/json'
+      }
     })
-    if (response.data.code === 200) {
-      zoneList.value = response.data.data
+
+    // 3. 处理响应
+    if (response.data && response.data.code === 200) {
+      zoneList.value = (response.data.data || []).map((zone, index) => ({
+        ...zone,
+        number: index + 1,
+        trees: []
+      }))
+      ElMessage.success('区域列表加载成功')
+    } else {
+      ElMessage.error(`获取区域列表失败：${response.data?.msg || '后端返回非200状态码'}`)
+      zoneList.value = []
     }
   } catch (error) {
-    console.error('获取区域列表失败：', error)
-    // 接口失败不影响页面渲染
+    // 4. 详细错误日志，方便排查
+    console.error('获取区域列表失败详情：', {
+      url: error.config?.url,
+      params: error.config?.params,
+      status: error.response?.status,
+      responseData: error.response?.data
+    })
+    ElMessage.error(`获取区域列表失败（${error.response?.status || '网络错误'}）：${error.response?.data?.msg || '请检查参数或后端接口'}`)
     zoneList.value = []
   }
 }
@@ -553,14 +585,13 @@ const getZoneList = async () => {
 const getTreeList = async (areaId) => {
   try {
     const response = await axios.get(`/api/fruitTree/area/${areaId}`)
-    if (response.data.code === 200) {
-      // 找到对应区域并更新果树列表
-      const index = zoneList.value.findIndex(zone => zone.areaId === areaId)
+    if (response.data && response.data.code === 200) {
+      const index = zoneList.value.findIndex(zone => zone.id === areaId)
       if (index > -1) {
-        zoneList.value[index].trees = response.data.data
+        zoneList.value[index].trees = response.data.data || []
       }
     } else {
-      ElMessage.error('获取果树列表失败：' + response.data.msg)
+      ElMessage.error('获取果树列表失败：' + (response.data?.msg || '未知错误'))
     }
   } catch (error) {
     console.error('获取果树列表失败：', error)
@@ -571,7 +602,6 @@ const getTreeList = async (areaId) => {
 // 选择区域
 const selectZone = (areaId) => {
   activeAreaId.value = areaId
-  // 切换区域时获取该区域的果树列表
   getTreeList(areaId)
 }
 
@@ -588,7 +618,7 @@ const showEditZoneDialog = (zone) => {
   editForm.description = zone.description || ''
   editForm.manager = zone.manager || ''
   editForm.type = zone.type
-  editForm.fruitCount = zone.fruitCount
+  editForm.fruitCount = zone.size || ''
   editForm.orchardId = zone.orchardId
   showEditDialog.value = true
 }
@@ -596,12 +626,14 @@ const showEditZoneDialog = (zone) => {
 // 取消编辑
 const cancelEditZone = () => {
   showEditDialog.value = false
-  editForm.name = ''
-  editForm.description = ''
-  editForm.manager = ''
-  editForm.type = ''
-  editForm.fruitCount = ''
-  editForm.orchardId = ''
+  Object.assign(editForm, {
+    name: '',
+    description: '',
+    manager: '',
+    type: '',
+    fruitCount: '',
+    orchardId: ''
+  })
   editFormRef.value?.resetFields()
 }
 
@@ -610,22 +642,20 @@ const confirmEditZone = async () => {
   try {
     await editFormRef.value.validate()
 
-    // 构造修改参数
     const submitData = {
-      areaId: currentZone.areaId,
+      id: currentZone.id,
       description: editForm.description,
-      empId: userStore.user.id || 0, // 管理员ID：user.id（兜底0）
-      fruitCount: Number(editForm.fruitCount),
+      empId: userStore.user?.id ? Number(userStore.user.id) : 0,
+      size: Number(editForm.fruitCount),
       name: editForm.name,
-      orchardId: currentZone.orchardId, // 果园ID不可修改
+      orchardId: currentZone.orchardId,
       type: editForm.type
     }
 
-    // 调用后端编辑接口（请替换为实际接口）
+    // 注释掉的接口调用需根据实际后端接口开启
     // const response = await axios.put('/api/area/edit', submitData)
     // if (response.data.code === 200) {
-      // 更新前端数据
-      const index = zoneList.value.findIndex(zone => zone.areaId === currentZone.areaId)
+      const index = zoneList.value.findIndex(zone => zone.id === currentZone.id)
       if (index > -1) {
         zoneList.value[index] = {
           ...zoneList.value[index],
@@ -633,15 +663,14 @@ const confirmEditZone = async () => {
           description: editForm.description,
           manager: editForm.manager,
           type: editForm.type,
-          fruitCount: Number(editForm.fruitCount)
+          size: Number(editForm.fruitCount)
         }
-        // 重新获取果树列表
-        getTreeList(currentZone.areaId)
+        getTreeList(currentZone.id)
       }
 
       ElMessage.success('区域信息修改成功！')
       showEditDialog.value = false
-      activeAreaId.value = currentZone.areaId
+      activeAreaId.value = currentZone.id
     // } else {
     //   ElMessage.error('修改失败：' + response.data.msg)
     // }
@@ -659,63 +688,49 @@ const cancelAddZone = () => {
 
 // 重置添加区域表单
 const resetAddZoneForm = () => {
-  zoneForm.name = ''
-  zoneForm.description = ''
-  zoneForm.manager = ''
-  zoneForm.type = ''
-  zoneForm.fruitCount = ''
-  zoneForm.orchardId = userStore.user.orchardId || '' // 重置后仍保留果园ID
+  const currentOrchardId = userStore.user?.orchardId ? Number(userStore.user.orchardId) : ''
+  Object.assign(zoneForm, {
+    name: '',
+    description: '',
+    manager: '',
+    type: '',
+    fruitCount: '',
+    orchardId: currentOrchardId
+  })
   zoneFormRef.value?.resetFields()
 }
 
-// 确认添加区域
-// 确认添加区域
+// 确认添加区域（修复：添加成功后强制传数字ID重新获取列表）
 const confirmAddZone = async () => {
   try {
     await zoneFormRef.value.validate()
 
-    // 构造提交参数（适配后端格式）
     const submitData = {
       description: zoneForm.description,
-      empId: userStore.user.id || 0, // 管理员ID：user.id（兜底0）
-      fruitCount: Number(zoneForm.fruitCount), // 数字格式
-      name: zoneForm.name, // 字符串
-      orchardId: Number(zoneForm.orchardId), // 数字格式
-      type: zoneForm.type // 字符串
+      empId: userStore.user?.id ? Number(userStore.user.id) : 0,
+      fruitCount: Number(zoneForm.fruitCount),
+      name: zoneForm.name,
+      orchardId: Number(zoneForm.orchardId), // 强制数字
+      type: zoneForm.type
     }
 
-    // 调用后端添加区域接口
     const response = await axios.post('/api/area', submitData)
     
-    // 核心修改：适配后端 R<Long> 的返回格式
-    // 后端返回格式：{code:200, msg:"成功", data: 123}（data是areaId）
-    if (response.data && response.data.code === 200 && response.data.data) {
-      // 构建新区域对象
-      const newZone = {
-        areaId: response.data.data, // 从data字段取Long类型的areaId
-        number: zoneList.value.length + 1, // 前端显示的区域编号
-        name: zoneForm.name,
-        description: zoneForm.description,
-        manager: zoneForm.manager,
-        empId: userStore.user.id || 0,
-        fruitCount: Number(zoneForm.fruitCount),
-        orchardId: Number(zoneForm.orchardId),
-        type: zoneForm.type,
-        trees: [] // 初始为空，选中时获取
-      }
-
-      // 添加到前端列表
-      zoneList.value.push(newZone)
-
-      ElMessage.success(`区域${newZone.number}：${newZone.name} 添加成功！`)
+    if (response.data && response.data.code === 200) {
+      ElMessage.success('区域添加成功！')
       showAddZoneDialog.value = false
       resetAddZoneForm()
-      activeAreaId.value = newZone.areaId
+      
+      // 修复：添加成功后，强制用数字类型的果园ID重新获取列表
+      await getZoneList()
+      
+      if (zoneList.value.length > 0) {
+        activeAreaId.value = zoneList.value[zoneList.value.length - 1].id
+        getTreeList(activeAreaId.value)
+      }
     } else {
-      // 打印后端返回的完整数据，方便调试
       console.log('后端返回数据：', response.data)
-      // 适配后端的错误提示（如“找不到当前的种类”）
-      ElMessage.error('添加失败：' + (response.data?.msg || '未返回区域ID'))
+      ElMessage.error('添加失败：' + (response.data?.msg || '未知错误'))
     }
   } catch (error) {
     console.error('添加区域失败：', error)
@@ -729,7 +744,7 @@ const showTreeDetail = (tree) => {
   showTreeDetailDialog.value = true
 }
 
-// 删除果树（暂不实现具体逻辑）
+// 删除果树
 const handleDeleteTree = (treeId) => {
   ElMessageBox.confirm(
     '确定要删除该果树吗？删除后编号会自动重新排序',
@@ -740,10 +755,8 @@ const handleDeleteTree = (treeId) => {
       type: 'warning'
     }
   ).then(async () => {
-    // 暂存当前区域索引
-    const zoneIndex = zoneList.value.findIndex(zone => zone.areaId === activeAreaId.value)
+    const zoneIndex = zoneList.value.findIndex(zone => zone.id === activeAreaId.value)
     if (zoneIndex > -1) {
-      // 前端先删除（实际项目中需调用后端删除接口）
       zoneList.value[zoneIndex].trees = zoneList.value[zoneIndex].trees.filter(tree => tree.id !== treeId)
       ElMessage.success('果树删除成功！')
     }
@@ -752,13 +765,15 @@ const handleDeleteTree = (treeId) => {
   })
 }
 
-// 初始化（加错误捕获，避免接口报错导致页面空白）
+// 初始化
 onMounted(() => {
   try {
+    console.log('初始化 - 用户信息：', userStore.user)
+    console.log('初始化 - 果园ID（原始）：', userStore.user?.orchardId, '类型：', typeof userStore.user?.orchardId)
     getZoneList()
   } catch (error) {
     console.error('初始化失败：', error)
-    zoneList.value = [] // 兜底，保证页面能渲染
+    zoneList.value = []
   }
 })
 </script>
