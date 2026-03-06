@@ -39,10 +39,21 @@
             <span>账号管理</span>
           </el-menu-item>
 
-          <el-menu-item index="/adminrecruitment">
+          <el-sub-menu index="/superadmin-orchardmanage">
+            <template #title>
+            <el-icon><UserFilled /></el-icon>
+            <span>招聘管理</span>
+          </template>
+
+            <el-menu-item index="/adminrecruitment">
             <el-icon><Promotion /></el-icon>
             <span>人员招聘</span>
           </el-menu-item>
+          <el-menu-item index="/adminreview">
+            <el-icon><Promotion /></el-icon>
+            <span>招聘审核</span>
+          </el-menu-item>
+          </el-sub-menu>
 
           <el-menu-item index="/adminai">
             <el-icon><Promotion /></el-icon>

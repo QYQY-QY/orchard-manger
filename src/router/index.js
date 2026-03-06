@@ -44,6 +44,12 @@ const router = createRouter({
       name: 'AdminRecruitment',
       component: () => import('../views/admin/Recruitment.vue')
     },
+    //人员招聘审核
+    {
+      path: '/adminreview',
+      name: 'AdminReview',
+      component: () => import('../views/admin/RecritReview.vue')
+    },
     //ai聊天
     {
       path: '/adminai',
