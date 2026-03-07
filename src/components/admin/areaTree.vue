@@ -9,14 +9,16 @@
     <div class="tree-list-container" v-if="activeAreaId">
       <div class="zone-info">
         <div>
-          <h3>区域{{ activeZone.number }}：{{ activeZone.name }}</h3>
+          <!-- 优先使用fullZoneInfo的编号和名称，兜底用activeZone -->
+          <h3>区域{{ fullZoneInfo.number || activeZone.number }}：{{ fullZoneInfo.name || activeZone.name }}</h3>
           <p class="zone-desc">
-            负责人：{{ activeZone.manager || '未设置' }} | 品种：{{ activeZone.type }} | 果树总数：{{ activeZone.size }}
+            <!-- 负责人：优先fullZoneInfo.manager，其次activeZone.manager，兜底"未设置" -->
+            负责人：{{ fullZoneInfo.manager || activeZone.manager || '未设置' }} | 
+            <!-- 品种：优先fullZoneInfo.type，其次activeZone.type，兜底"-" -->
+            品种：{{ fullZoneInfo.type || activeZone.type || '-' }} | 
+            <!-- 核心优化：果树总数优先用实际列表长度，其次用表单/区域的数值 -->
+            果树总数：{{ sortedTreeList.length || fullZoneInfo.size || fullZoneInfo.fruitCount || activeZone.size || 0 }}
           </p>
-        </div>
-        <!-- 详情按钮 -->
-        <div class="zone-info-actions">
-          <el-button size="small" @click="handleZoneDetail(activeZone)">查看详情</el-button>
         </div>
       </div>
       
@@ -66,20 +68,30 @@
         </el-table-column>
         <el-table-column 
           label="二维码" 
-          width="100"
+          width="120"
         >
           <template #default="scope">
             <div class="qrcode-container" v-if="scope.row.img">
+              <!-- 二维码点击事件：查看大图+下载 -->
               <el-image 
                 :src="`/api/minio/preview/${scope.row.img}`"
                 fit="contain"
                 class="qrcode-img"
-                preview-src-list="[]"
+                @click="handleQRCodeClick(scope.row.img)"
+                preview-src-list="[`/api/minio/preview/${scope.row.img}`]"
               >
                 <template #error>
                   <div class="image-slot">图片加载失败</div>
                 </template>
               </el-image>
+              <!-- 下载按钮 -->
+              <el-button 
+                size="mini" 
+                icon="el-icon-download" 
+                class="qrcode-download-btn"
+                @click.stop="downloadQRCode(scope.row.img, scope.row.id)"
+                type="text"
+              ></el-button>
             </div>
             <span class="no-qrcode" v-else>-</span>
           </template>
@@ -138,7 +150,8 @@
             {{ currentTree.id }}
           </el-descriptions-item>
           <el-descriptions-item label="果树品种">
-            {{ currentTree.type || activeZone.type || '-' }}
+            <!-- 果树详情中也优先使用区域的品种信息 -->
+            {{ currentTree.type || fullZoneInfo.type || activeZone.type || '-' }}
           </el-descriptions-item>
           <el-descriptions-item label="成熟度">
             <el-tag :type="getRipeDegreeTagType(currentTree.ripeDegree)">
@@ -157,13 +170,23 @@
             {{ currentTree.ripeNum || 0 }}
           </el-descriptions-item>
           <el-descriptions-item label="二维码">
-            <div v-if="currentTree.img" style="display: flex; align-items: center">
+            <div v-if="currentTree.img" style="display: flex; align-items: center; gap: 10px">
               <el-image 
                 :src="`/api/minio/preview/${currentTree.img}`"
                 style="width: 80px; height: 80px"
                 fit="contain"
+                @click="handleQRCodeClick(currentTree.img)"
+                preview-src-list="[`/api/minio/preview/${currentTree.img}`]"
               />
-              <span style="margin-left: 10px">点击查看大图</span>
+              <div>
+                <el-button 
+                  size="mini" 
+                  type="primary"
+                  @click.stop="downloadQRCode(currentTree.img, currentTree.id)"
+                >
+                  下载二维码
+                </el-button>
+              </div>
             </div>
             <span v-else>-</span>
           </el-descriptions-item>
@@ -178,7 +201,7 @@
 
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox, ElImageViewer } from 'element-plus'
 import axios from 'axios'
 
 // 定义props
@@ -198,18 +221,36 @@ const props = defineProps({
     type: Array,
     required: true,
     default: () => []
+  },
+  // 父组件传递的完整区域表单数据
+  fullZoneInfo: {
+    type: Object,
+    required: false,
+    default: () => ({
+      id: '',
+      name: '',
+      description: '',
+      manager: '',
+      type: '',
+      fruitCount: '',
+      size: 0, // 新增：适配父组件的size字段
+      orchardId: '',
+      number: ''
+    })
   }
 })
 
 // 定义emit事件
 const emit = defineEmits([
   'tree-delete',    // 删除果树
-  'zone-detail',    // 查看区域详情（透传）
   'tree-list-update' // 通知更新果树列表
 ])
 
 // 新增：批量生成二维码加载状态
 const generateQRLoading = ref(false)
+// 二维码预览相关
+const showQRViewer = ref(false)
+const qrViewerUrl = ref('')
 
 // 果树详情相关
 const showTreeDetailDialog = ref(false)
@@ -276,13 +317,7 @@ const handleDeleteTree = (treeId) => {
   })
 }
 
-// 查看区域详情（透传）
-const handleZoneDetail = (zone) => {
-  emit('zone-detail', zone)
-}
-
-// 核心修改：批量生成二维码（适配后端@RequestParam传递Long类型ID集合）
-// 核心修改：批量生成二维码（适配后端@RequestBody List<Long> ids）
+// 批量生成二维码（适配新后端接口）
 const batchGenerateQRCode = async () => {
   // 1. 提取果树ID，转为Long类型（Number在JS中兼容Long）
   const treeIds = sortedTreeList.value.map(tree => Number(tree.id))
@@ -296,17 +331,16 @@ const batchGenerateQRCode = async () => {
   try {
     generateQRLoading.value = true // 开启加载状态
 
-    // 3. 调用接口：POST请求 + JSON请求体（适配@RequestBody List<Long> ids）
-    // 关键修改：将ID数组作为请求体传递，不再使用URL查询参数
-    const response = await axios.post('/api/fruitTree/createTreeQRList', treeIds, {
+    // 3. 调用批量生成二维码接口
+    const generateResponse = await axios.post('/api/fruitTree/createTreeQRList', treeIds, {
       headers: {
-        'Content-Type': 'application/json' // 确保是JSON格式
+        'Content-Type': 'application/json'
       }
     })
 
-    // 5. 处理接口返回结果（逻辑完全不变）
-    if (response.data && response.data.code === 0) {
-      const qrImgList = response.data.data || [] // 后端返回的图片路径数组
+    // 4. 处理生成接口返回结果
+    if (generateResponse.data && generateResponse.data.code === 200) { 
+      const qrImgList = generateResponse.data.data || [] 
       
       // 校验：二维码数量与果树数量匹配
       if (qrImgList.length !== treeIds.length) {
@@ -314,20 +348,27 @@ const batchGenerateQRCode = async () => {
         return
       }
 
-      // 6. 给每个果树分配对应的二维码路径
-      const updatedTreeList = sortedTreeList.value.map((tree, index) => ({
+      // 5. 调用查询接口确认二维码（可选，确保数据一致性）
+      await axios.post('/api/fruitTree/selectQR', treeIds, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      // 6. 构建新的果树列表（关联二维码URL）
+      const newTreeList = sortedTreeList.value.map((tree, index) => ({
         ...tree,
-        img: qrImgList[index] // 绑定二维码路径
+        img: qrImgList[index] // 直接使用后端返回的完整URL
       }))
 
-      // 7. 通知父组件更新果树列表，让二维码显示在表格中
-      emit('tree-list-update', props.activeAreaId, updatedTreeList)
+      // 7. 通知父组件更新列表（持久化二维码数据）
+      emit('tree-list-update', props.activeAreaId, newTreeList)
+
       ElMessage.success('批量生成二维码成功！')
     } else {
-      ElMessage.error(`生成失败：${response.data?.msg || '接口返回异常'}`)
+      ElMessage.error(`生成失败：${generateResponse.data?.msg || '接口返回异常'}`)
     }
   } catch (error) {
-    // 详细日志便于排查问题
     console.error('批量生成二维码失败：', error)
     if (error.response) {
       console.error('后端返回错误详情：', error.response.data)
@@ -335,16 +376,41 @@ const batchGenerateQRCode = async () => {
     }
     ElMessage.error(`生成失败：${error.response?.data?.msg || error.message || '网络异常，请稍后重试'}`)
   } finally {
-    generateQRLoading.value = false // 关闭加载状态
+    generateQRLoading.value = false
   }
 }
 
-// 监听激活区域变化，重新加载果树列表
+// 二维码点击事件：查看大图
+const handleQRCodeClick = (imgUrl) => {
+  qrViewerUrl.value = `/api/minio/preview/${imgUrl}`
+  showQRViewer.value = true
+}
+
+// 下载二维码
+const downloadQRCode = async (imgUrl, treeId) => {
+  try {
+    // 创建下载链接
+    const link = document.createElement('a')
+    link.href = `/api/minio/preview/${imgUrl}`
+    link.download = `果树${treeId}_二维码.png` // 设置下载文件名
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    ElMessage.success('二维码下载成功！')
+  } catch (error) {
+    console.error('二维码下载失败：', error)
+    ElMessage.error('二维码下载失败，请稍后重试！')
+  }
+}
+
+// 优化：监听activeAreaId变化，仅清空详情弹窗（移除无意义的emit）
 watch(
   () => props.activeAreaId,
-  async (newVal) => {
-    if (newVal) {
-      emit('tree-list-update', newVal)
+  (newVal) => {
+    if (!newVal) {
+      showTreeDetailDialog.value = false // 切换区域时关闭详情弹窗
+      Object.assign(currentTree, {}) // 清空当前果树详情
+      showQRViewer.value = false // 关闭二维码预览
     }
   },
   { immediate: true }
@@ -413,12 +479,29 @@ watch(
   align-items: center;
   justify-content: center;
   height: 100%;
+  position: relative;
 }
 
 .qrcode-img {
   width: 60px;
   height: 60px;
   border-radius: 4px;
+  cursor: pointer;
+}
+
+.qrcode-download-btn {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: rgba(0,0,0,0.5);
+  color: white;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
 }
 
 .no-qrcode {

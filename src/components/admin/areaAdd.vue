@@ -249,7 +249,7 @@
 
 <script setup>
 import { Plus } from '@element-plus/icons-vue'
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import axios from 'axios'
 import { useUserStore } from '@/stores/modules/user.js'
@@ -272,7 +272,8 @@ const props = defineProps({
 const emit = defineEmits([
   'zone-select',    // 选择区域
   'zone-update',    // 区域数据更新（添加/编辑/删除）
-  'zone-detail'     // 查看区域详情（透传）
+  'zone-detail',    // 查看区域详情（透传）
+  'zone-info-change'// 区域详情同步
 ])
 
 // 初始化用户仓库
@@ -335,9 +336,34 @@ const zoneRules = reactive({
   ]
 })
 
+// 核心修复1：统一数据格式，封装传递函数
+const emitZoneInfo = (zone) => {
+  if (!zone) return
+  // 统一字段映射：把表单的fruitCount映射为size，补充所有areaTree需要的字段
+  const zoneInfo = {
+    id: zone.id || '',
+    name: zone.name || '',
+    description: zone.description || '',
+    manager: zone.manager || '',
+    type: zone.type || '',
+    fruitCount: zone.fruitCount || zone.size || '', // 兼容表单和列表字段
+    size: zone.size || zone.fruitCount || 0, // 果树总数（areaTree优先用size）
+    orchardId: zone.orchardId || '',
+    number: zone.number || '', // 区域编号
+    trees: zone.trees || [] // 果树列表
+  }
+  emit('zone-info-change', zoneInfo)
+}
+
 // 选择区域
 const handleZoneSelect = (areaId) => {
   emit('zone-select', areaId)
+  
+  // 找到选中的区域并传递完整数据
+  const selectedZone = props.zoneList.find(zone => zone.id === areaId)
+  if (selectedZone) {
+    emitZoneInfo(selectedZone) // 调用封装函数
+  }
 }
 
 // 查看区域详情
@@ -345,6 +371,7 @@ const handleZoneDetail = (zone) => {
   Object.assign(currentZone, JSON.parse(JSON.stringify(zone)))
   showDetailDialog.value = true
   emit('zone-detail', zone)
+  emitZoneInfo(zone) // 新增：查看详情时也同步数据
 }
 
 // 显示编辑弹窗
@@ -386,7 +413,8 @@ const confirmEditZone = async () => {
       size: Number(editForm.fruitCount),
       name: editForm.name,
       orchardId: currentZone.orchardId,
-      type: editForm.type
+      type: editForm.type,
+      manager: editForm.manager // 新增：传递负责人
     }
 
     // 模拟接口调用（实际项目解开注释）
@@ -394,17 +422,20 @@ const confirmEditZone = async () => {
     // if (response.data.code === 200) {
       ElMessage.success('区域信息修改成功！')
       showEditDialog.value = false
+      
+      // 传递编辑后的完整数据
+      const updatedZone = {
+        ...currentZone,
+        ...submitData,
+        fruitCount: editForm.fruitCount,
+        number: props.zoneList.find(z => z.id === currentZone.id)?.number || ''
+      }
+      emitZoneInfo(updatedZone)
+      
       // 通知父组件更新数据
       emit('zone-update', {
         type: 'edit',
-        data: {
-          id: currentZone.id,
-          name: editForm.name,
-          description: editForm.description,
-          manager: editForm.manager,
-          type: editForm.type,
-          size: Number(editForm.fruitCount)
-        }
+        data: updatedZone
       })
     // } else {
     //   ElMessage.error('修改失败：' + response.data.msg)
@@ -443,10 +474,11 @@ const confirmAddZone = async () => {
     const submitData = {
       description: zoneForm.description,
       empId: userStore.user?.id ? Number(userStore.user.id) : 0,
-      fruitCount: Number(zoneForm.fruitCount),
+      size: Number(zoneForm.fruitCount), // 统一用size字段
       name: zoneForm.name,
       orchardId: Number(zoneForm.orchardId),
-      type: zoneForm.type
+      type: zoneForm.type,
+      manager: zoneForm.manager // 传递负责人
     }
 
     const response = await axios.post('/api/area', submitData)
@@ -455,6 +487,16 @@ const confirmAddZone = async () => {
       ElMessage.success('区域添加成功！')
       showAddZoneDialog.value = false
       resetAddZoneForm()
+      
+      // 传递新增的完整数据（包含接口返回的ID）
+      const newZone = {
+        ...submitData,
+        id: response.data.data?.id || '', // 补充接口返回的ID
+        number: props.zoneList.length + 1, // 补充区域编号
+        trees: []
+      }
+      emitZoneInfo(newZone)
+      
       // 通知父组件更新数据
       emit('zone-update', { type: 'add' })
     } else {
@@ -485,6 +527,8 @@ const handleZoneDelete = (zoneId) => {
         ElMessage.success('区域删除成功！')
         // 通知父组件更新数据
         emit('zone-update', { type: 'delete', id: zoneId })
+        // 新增：删除后清空同步数据
+        emitZoneInfo({})
       // } else {
       //   ElMessage.error('删除失败：' + response.data.msg)
       // }
@@ -497,6 +541,32 @@ const handleZoneDelete = (zoneId) => {
   })
 }
 
+// 核心修复2：监听activeAreaId变化，自动同步当前选中区域数据
+watch(
+  () => props.activeAreaId,
+  (newVal) => {
+    if (newVal) {
+      const selectedZone = props.zoneList.find(zone => zone.id === newVal)
+      emitZoneInfo(selectedZone)
+    } else {
+      emitZoneInfo({}) // 无选中区域时清空
+    }
+  },
+  { immediate: true } // 初始化时立即执行
+)
+
+// 核心修复3：监听zoneList变化，确保数据同步
+watch(
+  () => props.zoneList,
+  (newList) => {
+    if (props.activeAreaId && newList.length) {
+      const selectedZone = newList.find(zone => zone.id === props.activeAreaId)
+      emitZoneInfo(selectedZone)
+    }
+  },
+  { deep: true } // 深度监听数组变化
+)
+
 // 监听用户果园ID变化重置表单
 watch(
   () => userStore.user?.orchardId,
@@ -505,6 +575,14 @@ watch(
   },
   { immediate: true }
 )
+
+// 初始化时同步当前选中区域数据
+onMounted(() => {
+  if (props.activeAreaId) {
+    const selectedZone = props.zoneList.find(zone => zone.id === props.activeAreaId)
+    emitZoneInfo(selectedZone)
+  }
+})
 </script>
 
 <style scoped>
