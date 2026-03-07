@@ -10,17 +10,15 @@
         @zone-select="handleZoneSelect"
         @zone-update="handleZoneUpdate"
         @zone-detail="showZoneDetail"
-        @zone-info-change="handleZoneInfoChange"
       />
       <!-- 第二个组件：果树列表（areaTree.vue） -->
       <AreaTree 
         :active-area-id="activeAreaId"
         :active-zone="activeZone"
         :tree-list="activeZone.trees"
-        :full-zone-info="currentZoneForm" 
         @tree-delete="handleTreeDelete"
         @zone-detail="showZoneDetail"
-        @tree-list-update="handTreeUpdate" 
+        @tree-list-update="getTreeList"
       />
     </div>
   </CommonLayout>
@@ -33,7 +31,7 @@ import { default as AreaAdd } from '@/components/admin/areaAdd.vue'
 import { default as AreaTree } from '@/components/admin/areaTree.vue'
 
 // 2. 引入Vue相关API
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import axios from 'axios'
 import { useUserStore } from '@/stores/modules/user.js'
@@ -42,19 +40,6 @@ import { useUserStore } from '@/stores/modules/user.js'
 const loading = ref(false); // 加载状态
 const zoneList = ref([]);   // 区域列表数据
 const activeAreaId = ref(''); // 当前选中的区域ID
-
-// 核心修复1：改用 reactive 定义（对象响应式更稳定）
-const currentZoneForm = reactive({
-  id: '',
-  name: '',
-  description: '',
-  manager: '',
-  type: '',
-  fruitCount: '',
-  size: 0, // 新增：和areaTree的size字段对齐
-  orchardId: '',
-  number: ''
-});
 
 // 筛选初始化数据（保留，如需筛选功能可使用）
 const initFilterData = reactive({
@@ -65,25 +50,7 @@ const initFilterData = reactive({
 
 // 当前激活的区域（计算属性）
 const activeZone = computed(() => {
-  const foundZone = zoneList.value.find(zone => zone.id === activeAreaId.value)
-  // 核心修复2：合并currentZoneForm的最新数据（优先级更高）
-  const baseZone = foundZone || { 
-    id: '',
-    trees: [], 
-    number: '', 
-    name: '', 
-    type: '', 
-    size: 0,
-    manager: '' // 补充默认值
-  };
-  // 优先用currentZoneForm的最新数据，兜底用zoneList中的数据
-  return {
-    ...baseZone,
-    manager: currentZoneForm.manager || baseZone.manager,
-    type: currentZoneForm.type || baseZone.type,
-    size: currentZoneForm.size || currentZoneForm.fruitCount || baseZone.size,
-    number: currentZoneForm.number || baseZone.number
-  };
+  return zoneList.value.find(zone => zone.id === activeAreaId.value) || { trees: [], number: '', name: '', type: '', size: 0 }
 });
 
 // 初始化用户仓库
@@ -98,42 +65,6 @@ const handleSearch = (params) => {
     // 替换为真实接口逻辑
     loading.value = false;
   }, 500);
-};
-
-// 核心修复3：修改数据接收逻辑（不替换对象，只更新属性）
-const handleZoneInfoChange = (zoneFormData) => {
-  console.log('接收子组件zoneForm数据：', zoneFormData);
-  if (!zoneFormData || !zoneFormData.id) {
-    // 清空数据（如删除区域后）
-    Object.assign(currentZoneForm, {
-      id: '',
-      name: '',
-      description: '',
-      manager: '',
-      type: '',
-      fruitCount: '',
-      size: 0,
-      orchardId: '',
-      number: ''
-    });
-    return;
-  }
-
-  // 关键：逐个更新属性（保持响应式关联）
-  currentZoneForm.id = zoneFormData.id || '';
-  currentZoneForm.name = zoneFormData.name || '';
-  currentZoneForm.description = zoneFormData.description || '';
-  currentZoneForm.manager = zoneFormData.manager || '';
-  currentZoneForm.type = zoneFormData.type || '';
-  currentZoneForm.fruitCount = zoneFormData.fruitCount || zoneFormData.size || '';
-  currentZoneForm.size = Number(zoneFormData.size || zoneFormData.fruitCount || 0); // 转为数字
-  currentZoneForm.orchardId = zoneFormData.orchardId || '';
-  
-  // 修复：number字段兜底逻辑
-  const zoneInList = zoneList.value.find(zone => zone.id === zoneFormData.id);
-  currentZoneForm.number = zoneFormData.number || zoneInList?.number || '';
-
-  console.log('更新后的currentZoneForm：', currentZoneForm); // 调试日志
 };
 
 // 选择区域
@@ -161,8 +92,6 @@ const handleZoneUpdate = async (action) => {
           ...zoneList.value[editIndex],
           ...action.data
         }
-        // 核心修复4：编辑后同步更新currentZoneForm
-        handleZoneInfoChange(zoneList.value[editIndex]);
         await getTreeList(action.data.id)
       }
       break
@@ -170,8 +99,6 @@ const handleZoneUpdate = async (action) => {
       zoneList.value = zoneList.value.filter(zone => zone.id !== action.id)
       if (activeAreaId.value === action.id) {
         activeAreaId.value = ''
-        // 删除后清空当前区域表单数据
-        handleZoneInfoChange({}); // 调用统一的清空逻辑
       }
       break
   }
@@ -249,11 +176,6 @@ const handleTreeDelete = (treeId) => {
   const zoneIndex = zoneList.value.findIndex(zone => zone.id === activeAreaId.value)
   if (zoneIndex > -1) {
     zoneList.value[zoneIndex].trees = zoneList.value[zoneIndex].trees.filter(tree => tree.id !== treeId)
-    // 同步更新currentZoneForm的果树数量
-    currentZoneForm.size = zoneList.value[zoneIndex].trees.length;
-    
-    // 额外：删除后同步到后端（可选，确保持久化）
-    saveTreeListToBackend(activeAreaId.value, zoneList.value[zoneIndex].trees);
   }
 }
 
@@ -268,65 +190,11 @@ const handleEdit = (row) => {
   // 可对接编辑逻辑
 };
 
-// 新增：保存果树列表到后端（二维码持久化核心）
-const saveTreeListToBackend = async (areaId, treeList) => {
-  try {
-    await axios.post('/api/fruitTree/saveTreeList', {
-      areaId: areaId,
-      trees: treeList
-    }, {
-      headers: { 'Content-Type': 'application/json' }
-    });
-    console.log('果树列表（含二维码）已同步到后端');
-  } catch (error) {
-    console.error('保存果树列表到后端失败：', error);
-    ElMessage.warning('二维码已本地更新，但同步到服务器失败，请稍后重试');
-  }
-};
-
-// 处理子组件传来的果树列表更新（二维码生成后）
-// 保留你原来的拼写：handTreeUpdate（不修改）
-const handTreeUpdate = async (areaId, newTreeList) => { 
-  console.log('收到子组件的果树列表更新：', areaId, newTreeList) // 调试用
-  
-  // 找到当前区域在zoneList中的索引
-  const zoneIndex = zoneList.value.findIndex(zone => zone.id === areaId)
-  if (zoneIndex > -1) {
-    // 关键：替换该区域的trees数组，触发Vue响应式更新
-    zoneList.value[zoneIndex].trees = [...newTreeList]
-    // 同步更新currentZoneForm的果树数量
-    currentZoneForm.size = newTreeList.length;
-    
-    // 核心新增：将更新后的列表（含二维码）保存到后端，实现持久化
-    await saveTreeListToBackend(areaId, newTreeList);
-    
-    ElMessage.success('果树二维码已更新并保存！')
-  } else {
-    ElMessage.warning('未找到对应区域，更新失败')
-  }
-}
-
 // 删除操作（兼容原有方法名，可根据需求扩展）
 const handleDelete = (id) => {
   console.log('删除区域ID：', id);
-  // 可对接编辑逻辑
+  // 可对接删除逻辑
 };
-
-// 核心修复5：监听activeAreaId变化，自动同步currentZoneForm
-watch(
-  () => activeAreaId.value,
-  (newId) => {
-    if (newId) {
-      const zoneInList = zoneList.value.find(zone => zone.id === newId);
-      if (zoneInList) {
-        handleZoneInfoChange(zoneInList); // 复用接收逻辑
-      }
-    } else {
-      handleZoneInfoChange({}); // 清空
-    }
-  },
-  { immediate: true }
-);
 
 // 5. 生命周期：页面初始化加载数据
 onMounted(() => {
@@ -343,6 +211,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
+
 .area-container {
   padding: 20px;
   box-sizing: border-box;
@@ -352,6 +221,7 @@ onMounted(() => {
   box-sizing: border-box;
   background-color: #ffffff;
 }
+
 
 .area-container :deep(.area-filter) {
   margin-bottom: 20px;

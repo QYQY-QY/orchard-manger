@@ -1,7 +1,7 @@
 <template>
   <CommonLayout>
     <div class="task-page">
-      <!-- 筛选区域 - 适配接口的筛选参数 -->
+      <!-- 筛选区域 - 适配任务范围多选 -->
       <div class="filter-bar">
         <div class="filter-group">
           <div class="filter-item">
@@ -47,7 +47,7 @@
         <el-button type="primary" class="publish-btn" @click="showPublishDialog = true">发布任务</el-button>
       </div>
 
-      <!-- 任务列表 - 匹配接口返回字段 -->
+      <!-- 任务列表 - 保持不变 -->
       <div class="task-list-wrapper">
         <el-table :data="filteredTaskList" stripe style="width: 100%">
           <el-table-column prop="taskTitle" label="任务标题" min-width="150px" />
@@ -55,8 +55,8 @@
           <el-table-column prop="orchardName" label="所属果园" width="150px" />
           <el-table-column label="任务类型" width="120px">
             <template #default="{ row }">
-              <el-tag :type="row.taskType === 1 ? 'danger' : 'info'">
-                {{ row.taskType === 0 ? '日常任务' : '紧急任务' }}
+              <el-tag :type="row.taskType === '1' ? 'danger' : 'info'">
+                {{ row.taskType === '0' ? '日常任务' : '紧急任务' }}
               </el-tag>
             </template>
           </el-table-column>
@@ -88,7 +88,7 @@
         </el-table>
       </div>
 
-      <!-- 发布任务弹框 - 简化表单：员工选择、自动生成字段 -->
+      <!-- 发布任务弹框 - 核心改造 -->
       <el-dialog v-model="showPublishDialog" title="发布新任务" width="700px">
         <el-form :model="publishForm" label-width="100px" ref="publishFormRef" :rules="publishRules">
           <el-form-item label="任务标题" prop="taskTitle">
@@ -115,10 +115,22 @@
               <el-option label="紧急任务" value="1" />
             </el-select>
           </el-form-item>
+          <!-- 改造1：任务范围 - 全园 + 区域多选 -->
           <el-form-item label="任务范围" prop="taskScope">
-            <el-select v-model="publishForm.taskScope" placeholder="请选择任务范围">
+            <el-select 
+              v-model="publishForm.taskScope" 
+              placeholder="请选择任务范围"
+              multiple
+              collapse-tags
+              style="width: 100%"
+            >
               <el-option label="全园" value="0" />
-              <el-option label="分区" value="1" />
+             <el-option 
+                v-for="area in areaList" 
+                :key="area.id" 
+                :label="area.name" 
+                :value="area.id"
+              />
             </el-select>
           </el-form-item>
           <el-form-item label="截止时间" prop="deadline">
@@ -127,56 +139,40 @@
               type="datetime"
               placeholder="请选择截止时间"
               format="YYYY-MM-DD HH:mm:ss"
-              value-format="YYYY-MM-DDTHH:mm:ss.000Z"
+              value-format="YYYY-MM-DD HH:mm:ss" 
             />
           </el-form-item>
-          <el-form-item label="完成时间" prop="completionTime">
-            <el-date-picker
-              v-model="publishForm.completionTime"
-              type="datetime"
-              placeholder="请选择完成时间（可选）"
-              format="YYYY-MM-DD HH:mm:ss"
-              value-format="YYYY-MM-DDTHH:mm:ss.000Z"
-            />
-          </el-form-item>
-          <!-- 替换：任务负责人改为下拉选择（果园员工列表） -->
+          <!-- 改造3：任务负责人 - 多选 -->
           <el-form-item label="任务负责人" prop="empIds">
             <el-select 
               v-model="publishForm.empIds" 
               placeholder="请选择任务负责人"
               filterable
               clearable
+              multiple
+              collapse-tags
+              style="width: 100%"
             >
               <el-option 
                 v-for="emp in employeeList" 
                 :key="emp.id" 
                 :label="emp.name" 
-                :value="emp.id"
+                :value="Number(emp.id)" 
               />
             </el-select>
           </el-form-item>
-          <el-form-item label="任务图片URL" prop="imgsURL">
-            <el-input 
-              v-model="publishForm.imgsURL" 
-              type="textarea"
-              placeholder="请输入图片URL（多个用逗号分隔）"
-              rows="2"
-              maxlength="500"
-              show-word-limit
-            />
-          </el-form-item>
-          <!-- 隐藏字段：仅存储不展示 -->
+          <!-- 隐藏字段 - 自动填充 -->
           <el-form-item label="所属果园ID" v-show="false">
             <el-input v-model="publishForm.orchardId" />
           </el-form-item>
-          <el-form-item label="任务组ID" v-show="false">
-            <el-input v-model="publishForm.empgroupId" />
+          <el-form-item label="发布人ID" v-show="false">
+            <el-input v-model="publishForm.creatorId" />
+          </el-form-item>
+          <el-form-item label="发布时间" v-show="false">
+            <el-input v-model="publishForm.postTime" />
           </el-form-item>
           <el-form-item label="任务状态" v-show="false">
             <el-input v-model="publishForm.status" />
-          </el-form-item>
-          <el-form-item label="发布人" v-show="false">
-            <el-input v-model="publishForm.username" />
           </el-form-item>
         </el-form>
         <template #footer>
@@ -185,7 +181,7 @@
         </template>
       </el-dialog>
 
-      <!-- 任务详情弹框 - 匹配接口返回字段 -->
+      <!-- 任务详情弹框 - 保持不变 -->
       <el-dialog 
         v-model="showDetailDialog" 
         title="任务详情" 
@@ -200,8 +196,8 @@
               <el-descriptions-item label="任务内容">{{ currentTask.taskInfo || '-' }}</el-descriptions-item>
               <el-descriptions-item label="所属果园">{{ currentTask.orchardName || '-' }}</el-descriptions-item>
               <el-descriptions-item label="任务类型">
-                <el-tag :type="currentTask.taskType === 1 ? 'danger' : 'info'">
-                  {{ currentTask.taskType === 0 ? '日常任务' : '紧急任务' }}
+                <el-tag :type="currentTask.taskType === '1' ? 'danger' : 'info'">
+                  {{ currentTask.taskType === '0' ? '日常任务' : '紧急任务' }}
                 </el-tag>
               </el-descriptions-item>
               <el-descriptions-item label="任务状态">
@@ -220,7 +216,6 @@
             </el-descriptions>
           </div>
 
-          <!-- 上传图片展示 -->
           <div class="detail-images" v-if="currentTask.imgsURL && currentTask.imgsURL.length > 0">
             <h4 style="margin-bottom: 10px; color: #333">任务相关图片：</h4>
             <div class="image-grid">
@@ -243,7 +238,6 @@
             </div>
           </div>
 
-          <!-- 无图片提示 -->
           <div v-else class="no-image">
             <el-empty description="暂无相关图片"></el-empty>
           </div>
@@ -266,51 +260,57 @@ import axios from 'axios'
 
 const userStore = useUserStore()
 // 从用户仓库提取核心信息
-const creatorId = computed(() => userStore.user?.id || 0) 
+const creatorId = computed(() => Number(userStore.user?.id || 0)) 
 const username = computed(() => userStore.user?.name || userStore.user?.username || '') 
-const orchardId = computed(() => userStore.user?.orchardId || 0) 
+const orchardId = computed(() => Number(userStore.user?.orchardId || 0)) 
 
-// 果园员工列表（下拉选择用）
+// 新增：果园区域列表（任务范围用）
+const areaList = ref([])
+// 果园员工列表（任务负责人用）
 const employeeList = ref([])
 
-// 表单校验规则（简化：移除状态/任务组ID校验）
+// 表单校验规则 - 适配多选
 const publishRules = ref({
   taskTitle: [{ required: true, message: '请输入任务标题', trigger: 'blur' }],
   taskInfo: [{ required: true, message: '请输入任务内容', trigger: 'blur' }],
   taskType: [{ required: true, message: '请选择任务类型', trigger: 'change' }],
   taskScope: [{ required: true, message: '请选择任务范围', trigger: 'change' }],
   deadline: [{ required: true, message: '请选择截止时间', trigger: 'change' }],
-  empIds: [{ required: true, message: '请选择任务负责人', trigger: 'change' }],
+  empIds: [{ 
+    required: true, 
+    message: '请选择至少一位任务负责人', 
+    trigger: 'change',
+    type: 'array' // 适配多选数组
+  }],
 })
 
 // 筛选参数
 const filterParams = ref({
-  taskType: '',
-  status: '',
-  taskScope: '',
-  orchardId: orchardId.value,
-  creatorId: creatorId.value,
+  taskType: '', // 保持字符串格式传给后端
+  status: '',   // 保持字符串格式传给后端
+  taskScope: '',// 保持字符串格式传给后端
+  orchardId: orchardId.value, // 必传果园ID
+  creatorId: creatorId.value, // 必传创建者ID
+  username: username.value // 发布人名称
 })
 
-// 发布弹框控制 + 表单初始化（简化字段）
+// 发布弹框控制 + 表单初始化
 const showPublishDialog = ref(false)
 const publishFormRef = ref(null)
 const publishForm = ref({
   taskTitle: '',
   taskInfo: '',
-  taskType: '',
-  taskScope: '',
-  deadline: '',
-  completionTime: '',
-  empIds: '', // 存储员工ID（下拉选择值）
-  imgsURL: '',
-  // 自动填充/生成的字段（不展示）
+  taskType: '', // 字符串格式
+  taskScope: [], // 多选数组
+  deadline: '', // 无时区格式
+  empIds: [], // 多选数组
+  // 自动填充字段
   orchardId: orchardId.value,
-  username: username.value,
   creatorId: creatorId.value,
-  postTime: new Date().toISOString(),
+  postTime: '', // 无时区格式，发布时生成
   status: 0, // 固定未完成
-  empgroupId: 0, // 初始值，发布时自动生成
+  // 预留groupid存储（后端返回后赋值）
+  groupId: ''
 })
 
 // 详情弹框控制
@@ -325,7 +325,7 @@ const filteredTaskList = computed(() => {
   let list = [...taskList.value]
   
   if (filterParams.value.taskType) {
-    list = list.filter(item => item.taskType === Number(filterParams.value.taskType))
+    list = list.filter(item => item.taskType === filterParams.value.taskType)
   }
   
   if (filterParams.value.status) {
@@ -339,7 +339,7 @@ const filteredTaskList = computed(() => {
   return list
 })
 
-// 格式化ISO时间
+// 格式化时间（兼容有无时区）
 const formatIsoTime = (isoTime) => {
   if (!isoTime) return '-'
   const date = new Date(isoTime)
@@ -353,48 +353,100 @@ const formatIsoTime = (isoTime) => {
   })
 }
 
-// 获取果园员工列表（最终适配版）
+// 获取果园所有区域（修改为新接口 + 适配新返回格式）
+const fetchAreaList = async () => {
+  try {
+    const currentOrchardId = orchardId.value
+    if (!currentOrchardId || currentOrchardId <= 0) {
+      ElMessage.warning('当前用户未绑定有效果园ID（需大于0），无法获取区域列表')
+      areaList.value = []
+      return
+    }
+
+    // 调用新的GET接口 /api/area/selectByOrchardId
+    const response = await axios.get('/api/area/selectByOrchardId', {
+      params: { 
+        orchardId: currentOrchardId // 传递果园ID参数
+      }
+      // 移除多余的Content-Type请求头（GET请求不需要）
+    })
+
+    // 适配新的后端返回格式：code=200 表示成功，数据在data数组中
+    if (response.data && response.data.code === 200) {
+      // 从data中提取区域数据，映射为前端需要的格式
+      const areaData = response.data.data || []
+      areaList.value = areaData.map(item => ({
+        id: item.id, // 区域ID（字符串转数字，避免类型问题）
+        name: item.name || '未命名区域' // 区域名称
+      })).filter(item => item.id && item.name) // 过滤无效数据
+      
+      ElMessage.success(`成功加载 ${areaList.value.length} 个区域`)
+    } else {
+      ElMessage.error(`获取区域列表失败：${response.data?.msg || '未知错误'}`)
+      areaList.value = []
+    }
+  } catch (error) {
+    console.error('获取区域列表失败详情：', {
+      url: error.config?.url,
+      params: error.config?.params,
+      status: error.response?.status,
+      responseData: error.response?.data
+    })
+    
+    // 精准提示错误原因
+    if (error.response?.status === 400) {
+      ElMessage.error(`获取区域列表失败（400）：参数错误，请确认orchardId=${orchardId.value} 是否有效`)
+    } else if (error.response?.status === 404) {
+      ElMessage.error(`获取区域列表失败（404）：接口路径/api/area/selectByOrchardId 不存在，请检查后端接口`)
+    } else if (error.response?.status === 500) {
+      ElMessage.error(`获取区域列表失败（500）：后端接口报错，请查看后端日志`)
+    } else {
+      ElMessage.error(`获取区域列表失败（${error.response?.status || '网络错误'}）`)
+    }
+    areaList.value = []
+  }
+}
+
+// 获取果园员工列表（修复：使用正确的ID字段 + 增加调试日志）
 const fetchEmployeeList = async () => {
   try {
-    // 1. 从userStore获取果园ID并转为数字（兼容字符串/数字类型）
-    const currentOrchardId = Number(userStore.user.orchardId)
-    console.log('当前果园ID：', currentOrchardId, '类型：', typeof currentOrchardId)
-    
-    // 2. 校验果园ID有效性
+    const currentOrchardId = orchardId.value
     if (!currentOrchardId || currentOrchardId <= 0) {
       ElMessage.warning('当前用户未绑定有效果园ID（需大于0），无法获取员工列表')
       employeeList.value = []
       return
     }
 
-    // 3. 改用GET请求，参数拼在URL上（后端要求的方式）
     const response = await axios.get('/api/employee/getEmpNameByOrchardIds', {
-      params: { 
-        orchardId: currentOrchardId // 单个数字，参数名orchardId（后端要求）
-      },
-      headers: { 'Content-Type': 'application/json' }
+      params: { orchardId: currentOrchardId }
     })
 
-    // 4. 处理后端返回数据（兼容单个对象/数组两种情况）
-    let empData = response.data || []
-    // 如果返回单个对象，转为数组
+    // 新增：打印原始返回数据，便于调试
+    console.log('员工接口返回数据：', response.data)
+    
+    let empData = response.data?.data || []
     if (!Array.isArray(empData)) {
       empData = [empData]
     }
 
-    // 5. 提取下拉选择需要的id和name（适配后端返回字段）
-    employeeList.value = empData.map(item => ({
-      id: item.id, // 员工ID（传给后端用）
-      name: item.name || item.username // 优先name，兜底username
-    })).filter(item => item.id && item.name) // 过滤无效数据
+    // 修正核心问题：使用后端返回的id字段（而非不存在的empId）
+    const uniqueEmps = {}
+    empData.forEach(item => {
+      const empId = item.id // 改用后端实际返回的id字段
+      if (empId && item.name) {
+        uniqueEmps[empId] = {
+          id: Number(empId), // 转数字避免字符串ID的问题
+          name: item.name
+        }
+      }
+    })
+    employeeList.value = Object.values(uniqueEmps)
 
-    // 6. 友好提示
     if (employeeList.value.length === 0) {
       ElMessage.info('当前果园暂无有效员工信息')
     } else {
       ElMessage.success(`成功加载 ${employeeList.value.length} 名员工`)
     }
-
   } catch (error) {
     console.error('获取员工列表失败详情：', {
       url: error.config?.url,
@@ -402,36 +454,57 @@ const fetchEmployeeList = async () => {
       status: error.response?.status,
       responseData: error.response?.data
     })
-
-    // 精准错误提示
-    if (error.response?.status === 405) {
-      ElMessage.error('获取员工列表失败：接口仅支持GET请求（当前用了POST）')
-    } else if (error.response?.status === 404) {
-      ElMessage.error('获取员工列表失败：接口地址不存在，请检查路径')
-    } else if (error.response?.status === 500) {
-      ElMessage.error('获取员工列表失败：后端服务器错误，请联系管理员')
-    } else {
-      ElMessage.error('获取员工列表失败，请稍后重试')
-    }
+    ElMessage.error('获取员工列表失败，请稍后重试')
     employeeList.value = []
   }
 }
 
-// 获取任务列表
+// 获取任务列表（适配新的query接口）
 const fetchTaskList = async () => {
   try {
-    const response = await axios.post('/api/task/query', filterParams.value)
+    // 增加果园ID有效性校验
+    if (!orchardId.value || orchardId.value <= 0) {
+      ElMessage.warning('当前用户未绑定有效果园ID，无法获取任务列表')
+      taskList.value = []
+      return
+    }
+    
+    // 构造查询参数（确保status/taskScope/taskType为字符串传给后端）
+    const queryParams = {
+      orchardId: orchardId.value, // 必传果园ID
+      creatorId: creatorId.value, // 发布者ID
+      status: filterParams.value.status || '', // 字符串格式
+      taskScope: filterParams.value.taskScope || '', // 字符串格式
+      taskType: filterParams.value.taskType || '' // 字符串格式
+    }
+    
+    console.log('查询任务参数：', queryParams)
+    
+    const response = await axios.post('/api/task/query', queryParams)
     if (response.data && response.data.code === 200) {
+      // 处理后端返回的数据，补充前端需要的字段
       taskList.value = (response.data.data || []).map(item => ({
         ...item,
-        imgsURL: item.imgsURL ? (Array.isArray(item.imgsURL) ? item.imgsURL : item.imgsURL.split(',')) : []
+        // 补充前端表格需要的字段
+        username: username.value, // 发布人名称
+        orchardName: `果园${item.orchardId}`, // 可根据实际接口返回的果园名称替换
+        taskTitle: item.taskTitle || '',
+        taskInfo: item.taskInfo || '',
+        deadline: item.deadline || '',
+        imgsURL: item.imgsURL ? (Array.isArray(item.imgsURL) ? item.imgsURL : item.imgsURL.split(',')) : [],
+        postTime: item.createTime // 用创建时间作为发布时间
       }))
       ElMessage.success('任务列表加载成功')
     } else {
       ElMessage.error(`获取任务列表失败：${response.data?.msg || '未知错误'}`)
     }
   } catch (error) {
-    console.error('获取任务列表失败：', error)
+    console.error('获取任务列表失败：', {
+      url: error.config?.url,
+      data: error.config?.data,
+      status: error.response?.status,
+      responseData: error.response?.data
+    })
     ElMessage.error(`获取任务列表失败（${error.response?.status || '网络错误'}）`)
   }
 }
@@ -474,9 +547,6 @@ const handleDeleteTask = async (taskId) => {
       }
     )
     
-    // 真实删除接口（按需补充）
-    // await axios.delete(`/api/task/delete/${taskId}`)
-    
     taskList.value = taskList.value.filter(item => item.id !== taskId)
     ElMessage.success('任务删除成功!')
   } catch (error) {
@@ -484,30 +554,44 @@ const handleDeleteTask = async (taskId) => {
   }
 }
 
-// 生成随机任务组ID（示例：可替换为后端生成逻辑）
-const generateEmpGroupId = () => {
-  // 简单生成规则：时间戳后6位 + 随机数
-  return Number(`${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 100)}`)
-}
-
-// 发布任务（自动生成字段、简化参数）
+// 核心改造：发布任务（完全匹配后端add接口参数要求）
 const handlePublish = async () => {
   try {
+    // 先校验果园ID有效性
+    if (!orchardId.value || orchardId.value <= 0) {
+      ElMessage.error('当前用户未绑定有效果园，无法发布任务')
+      return
+    }
+    
     // 表单校验
     await publishFormRef.value.validate()
 
-    // 处理参数：自动生成任务组ID、固定状态
-    const submitData = {
-      ...publishForm.value,
-      imgsURL: publishForm.value.imgsURL ? publishForm.value.imgsURL.split(',') : [],
-      taskType: Number(publishForm.value.taskType),
-      taskScope: Number(publishForm.value.taskScope),
-      status: 0, // 固定未完成
-      empgroupId: generateEmpGroupId(), // 自动生成任务组ID
-      creatorId: Number(publishForm.value.creatorId),
-      orchardId: Number(publishForm.value.orchardId),
-      empIds: publishForm.value.empIds, // 员工ID（下拉选择的值）
+    // 确定区域ID：如果选择了全园则areaId为0，否则取第一个选中的区域ID
+    let areaId = 0
+    if (publishForm.value.taskScope.length > 0 && !publishForm.value.taskScope.includes(0)) {
+      areaId = publishForm.value.taskScope[0] || 0
     }
+
+    // 构造后端要求的完整提交数据
+    const submitData = {
+      areaId: areaId, // 区域id
+      completionTime: '', // 完成时间为空
+      creatorId: publishForm.value.creatorId, // 发布者id
+      deadline: publishForm.value.deadline ? new Date(publishForm.value.deadline).toISOString() : '', // 截止时间转ISO格式
+      empIds: publishForm.value.empIds, // 发送的人数组
+      groupContent: publishForm.value.taskTitle, // 组内容
+      groupDescription: publishForm.value.taskInfo, // 组描述
+      groupName: publishForm.value.taskTitle, // 组名
+      imgsURL: [], // 图片URL空数组
+      orchardId: publishForm.value.orchardId, // 果园id
+      postTime: new Date().toISOString(), // 发布时间转ISO格式
+      status: publishForm.value.status, // 状态（数字）
+      taskInfo: publishForm.value.taskInfo, // 任务信息
+      taskTitle: publishForm.value.taskTitle, // 任务标题
+      taskType: Number(publishForm.value.taskType) // 任务类型（数字）
+    }
+
+    console.log('发布任务提交参数：', submitData)
 
     // 调用发布任务接口
     const response = await axios.post('/api/task/add', submitData)
@@ -520,17 +604,14 @@ const handlePublish = async () => {
         taskTitle: '',
         taskInfo: '',
         taskType: '',
-        taskScope: '',
+        taskScope: [],
         deadline: '',
-        completionTime: '',
-        empIds: '',
-        imgsURL: '',
+        empIds: [],
         orchardId: orchardId.value,
-        username: username.value,
         creatorId: creatorId.value,
-        postTime: new Date().toISOString(),
+        postTime: '',
         status: 0,
-        empgroupId: 0,
+        groupId: ''
       }
       publishFormRef.value.resetFields()
       
@@ -540,7 +621,12 @@ const handlePublish = async () => {
       ElMessage.error(`发布失败：${response.data?.msg || '未知错误'}`)
     }
   } catch (error) {
-    console.error('发布任务失败：', error)
+    console.error('发布任务失败：', {
+      url: error.config?.url,
+      data: error.config?.data,
+      status: error.response?.status,
+      responseData: error.response?.data
+    })
     if (error.name === 'ValidationError') {
       ElMessage.warning('请填写完整并正确的任务信息')
     } else {
@@ -551,8 +637,9 @@ const handlePublish = async () => {
 
 // 初始化加载
 onMounted(() => {
-  fetchEmployeeList() // 先加载员工列表
-  fetchTaskList()
+  fetchAreaList() // 先加载区域列表
+  fetchEmployeeList() // 加载员工列表
+  fetchTaskList() // 加载任务列表
 })
 </script>
 
@@ -657,5 +744,10 @@ onMounted(() => {
 .no-image {
   padding: 20px 0;
   text-align: center;
+}
+
+/* 多选下拉框样式优化 */
+:deep(.el-select__tags) {
+  flex-wrap: wrap;
 }
 </style>

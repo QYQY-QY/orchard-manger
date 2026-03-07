@@ -345,12 +345,14 @@ const emitZoneInfo = (zone) => {
     name: zone.name || '',
     description: zone.description || '',
     manager: zone.manager || '',
-    type: zone.type || '',
+    type: zone.type || '', // 确保传递品种名称字符串
     fruitCount: zone.fruitCount || zone.size || '', // 兼容表单和列表字段
     size: zone.size || zone.fruitCount || 0, // 果树总数（areaTree优先用size）
     orchardId: zone.orchardId || '',
     number: zone.number || '', // 区域编号
-    trees: zone.trees || [] // 果树列表
+    trees: zone.trees || [], // 果树列表
+    empId: zone.empId || 0 // 管理员ID
+    // 移除无效的typeId字段
   }
   emit('zone-info-change', zoneInfo)
 }
@@ -380,7 +382,7 @@ const handleZoneEdit = (zone) => {
   editForm.name = zone.name
   editForm.description = zone.description || ''
   editForm.manager = zone.manager || ''
-  editForm.type = zone.type
+  editForm.type = zone.type // 确保回显品种名称
   editForm.fruitCount = zone.size || ''
   editForm.orchardId = zone.orchardId
   showEditDialog.value = true
@@ -401,51 +403,57 @@ const cancelEditZone = () => {
   editFormRef.value?.resetFields()
 }
 
-// 确认修改区域
+// 确认修改区域（适配PUT /api/area接口）
 const confirmEditZone = async () => {
   try {
     await editFormRef.value.validate()
 
     const submitData = {
-      id: currentZone.id,
+      createTime: currentZone.createTime || new Date().toISOString(),
+      createUser: currentZone.createUser || userStore.user?.id || 0,
       description: editForm.description,
       empId: userStore.user?.id ? Number(userStore.user.id) : 0,
-      size: Number(editForm.fruitCount),
+      id: currentZone.id,
       name: editForm.name,
       orchardId: currentZone.orchardId,
-      type: editForm.type,
-      manager: editForm.manager // 新增：传递负责人
+      fruitCount: Number(zoneForm.fruitCount),
+      type: editForm.type
     }
 
-    // 模拟接口调用（实际项目解开注释）
-    // const response = await axios.put('/api/area/edit', submitData)
-    // if (response.data.code === 200) {
+    const response = await axios.put('/api/area', submitData)
+    
+    // 核心修复：判断code为200
+    if (response.data && response.data.code === 200) {
       ElMessage.success('区域信息修改成功！')
       showEditDialog.value = false
       
-      // 传递编辑后的完整数据
       const updatedZone = {
         ...currentZone,
         ...submitData,
         fruitCount: editForm.fruitCount,
-        number: props.zoneList.find(z => z.id === currentZone.id)?.number || ''
+        number: props.zoneList.find(z => z.id === currentZone.id)?.number || '',
+        manager: editForm.manager,
+        type: editForm.type
       }
       emitZoneInfo(updatedZone)
-      
-      // 通知父组件更新数据
       emit('zone-update', {
         type: 'edit',
         data: updatedZone
       })
-    // } else {
-    //   ElMessage.error('修改失败：' + response.data.msg)
-    // }
+    } else {
+      ElMessage.error('修改失败：' + (response.data?.msg || '未知错误'))
+    }
   } catch (error) {
-    console.error(error)
-    ElMessage.error('修改失败，请检查表单')
+    console.error('编辑区域失败详情：', error)
+    if (error.name === 'ValidationError') {
+      ElMessage.warning('请填写完整并正确的区域信息')
+    } else if (error.response) {
+      ElMessage.error(`修改失败（${error.response.status}）：${error.response.data?.msg || '接口调用失败'}`)
+    } else {
+      ElMessage.error('修改失败，请检查网络或稍后重试')
+    }
   }
 }
-
 // 取消添加区域
 const cancelAddZone = () => {
   showAddZoneDialog.value = false
@@ -472,44 +480,52 @@ const confirmAddZone = async () => {
     await zoneFormRef.value.validate()
 
     const submitData = {
+     
+      createUser: userStore.user?.id ? Number(userStore.user.id) : 0,
       description: zoneForm.description,
       empId: userStore.user?.id ? Number(userStore.user.id) : 0,
-      size: Number(zoneForm.fruitCount), // 统一用size字段
+      id: 0,
       name: zoneForm.name,
       orchardId: Number(zoneForm.orchardId),
+      fruitCount: Number(zoneForm.fruitCount),
       type: zoneForm.type,
-      manager: zoneForm.manager // 传递负责人
+     
+      updateUser: userStore.user?.id ? Number(userStore.user.id) : 0,
+      manager: zoneForm.manager
     }
 
     const response = await axios.post('/api/area', submitData)
     
+    // 核心修复：判断code为200（后端实际返回的成功码）
     if (response.data && response.data.code === 200) {
       ElMessage.success('区域添加成功！')
       showAddZoneDialog.value = false
       resetAddZoneForm()
       
-      // 传递新增的完整数据（包含接口返回的ID）
       const newZone = {
         ...submitData,
-        id: response.data.data?.id || '', // 补充接口返回的ID
-        number: props.zoneList.length + 1, // 补充区域编号
-        trees: []
+        id: response.data.data?.id || '',
+        number: props.zoneList.length + 1,
+        trees: [],
+        type: zoneForm.type
       }
       emitZoneInfo(newZone)
-      
-      // 通知父组件更新数据
-      emit('zone-update', { type: 'add' })
+      emit('zone-update', { type: 'add', data: newZone })
     } else {
       console.log('后端返回数据：', response.data)
-      ElMessage.error('添加失败：' + (response.data?.msg || '未知错误，可以重新登录'))
+      ElMessage.error('添加失败：' + (response.data?.msg || '未知错误'))
     }
   } catch (error) {
     console.error('添加区域失败：', error)
-    ElMessage.error('添加失败，请检查表单或网络')
+    if (error.response) {
+      ElMessage.error(`添加失败（${error.response.status}）：${error.response.data?.msg || '接口调用失败'}`)
+    } else {
+      ElMessage.error('添加失败，请检查表单或网络')
+    }
   }
 }
 
-// 删除区域
+// 删除区域（适配DELETE /api/area/{id}接口）
 const handleZoneDelete = (zoneId) => {
   ElMessageBox.confirm(
     '确定要删除该区域吗？删除后该区域下的所有果树数据也会被删除',
@@ -521,20 +537,23 @@ const handleZoneDelete = (zoneId) => {
     }
   ).then(async () => {
     try {
-      // 模拟接口调用（实际项目解开注释）
-      // const response = await axios.delete(`/api/area/${zoneId}`)
-      // if (response.data.code === 200) {
+      const response = await axios.delete(`/api/area/${zoneId}`)
+      
+      // 核心修复：判断code为200
+      if (response.data && response.data.code === 200) {
         ElMessage.success('区域删除成功！')
-        // 通知父组件更新数据
         emit('zone-update', { type: 'delete', id: zoneId })
-        // 新增：删除后清空同步数据
         emitZoneInfo({})
-      // } else {
-      //   ElMessage.error('删除失败：' + response.data.msg)
-      // }
+      } else {
+        ElMessage.error('删除失败：' + (response.data?.msg || '未知错误'))
+      }
     } catch (error) {
-      console.error('删除区域失败：', error)
-      ElMessage.error('删除失败，请稍后重试')
+      console.error('删除区域失败详情：', error)
+      if (error.response) {
+        ElMessage.error(`删除失败（${error.response.status}）：${error.response.data?.msg || '接口调用失败'}`)
+      } else {
+        ElMessage.error('删除失败，请稍后重试')
+      }
     }
   }).catch(() => {
     ElMessage.info('已取消删除')

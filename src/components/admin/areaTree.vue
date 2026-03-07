@@ -71,14 +71,14 @@
           width="120"
         >
           <template #default="scope">
-            <div class="qrcode-container" v-if="scope.row.img">
+            <div class="qrcode-container" v-if="scope.row.qrCodeUrl">
               <!-- 二维码点击事件：查看大图+下载 -->
               <el-image 
-                :src="`/api/minio/preview/${scope.row.img}`"
+                :src="scope.row.qrCodeUrl"
                 fit="contain"
                 class="qrcode-img"
-                @click="handleQRCodeClick(scope.row.img)"
-                preview-src-list="[`/api/minio/preview/${scope.row.img}`]"
+                @click="handleQRCodeClick(scope.row.qrCodeUrl)"
+                :preview-src-list="[scope.row.qrCodeUrl]"
               >
                 <template #error>
                   <div class="image-slot">图片加载失败</div>
@@ -89,7 +89,7 @@
                 size="mini" 
                 icon="el-icon-download" 
                 class="qrcode-download-btn"
-                @click.stop="downloadQRCode(scope.row.img, scope.row.id)"
+                @click.stop="downloadQRCode(scope.row.qrCodeUrl, scope.row.id)"
                 type="text"
               ></el-button>
             </div>
@@ -170,19 +170,19 @@
             {{ currentTree.ripeNum || 0 }}
           </el-descriptions-item>
           <el-descriptions-item label="二维码">
-            <div v-if="currentTree.img" style="display: flex; align-items: center; gap: 10px">
+            <div v-if="currentTree.qrCodeUrl" style="display: flex; align-items: center; gap: 10px">
               <el-image 
-                :src="`/api/minio/preview/${currentTree.img}`"
+                :src="currentTree.qrCodeUrl"
                 style="width: 80px; height: 80px"
                 fit="contain"
-                @click="handleQRCodeClick(currentTree.img)"
-                preview-src-list="[`/api/minio/preview/${currentTree.img}`]"
+                @click="handleQRCodeClick(currentTree.qrCodeUrl)"
+                :preview-src-list="[currentTree.qrCodeUrl]"
               />
               <div>
                 <el-button 
                   size="mini" 
                   type="primary"
-                  @click.stop="downloadQRCode(currentTree.img, currentTree.id)"
+                  @click.stop="downloadQRCode(currentTree.qrCodeUrl, currentTree.id)"
                 >
                   下载二维码
                 </el-button>
@@ -195,6 +195,37 @@
       <template #footer>
         <el-button @click="showTreeDetailDialog = false">关闭</el-button>
       </template>
+    </el-dialog>
+
+    <!-- 二维码预览弹窗 -->
+    <el-dialog
+      v-model="showQRViewer"
+      title="二维码预览"
+      width="400px"
+      center
+      :close-on-click-modal="true"
+    >
+      <div style="text-align: center; padding: 20px">
+        <el-image
+          :src="qrViewerUrl"
+          style="width: 300px; height: 300px"
+          fit="contain"
+        >
+          <template #error>
+            <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #999">
+              图片加载失败
+            </div>
+          </template>
+        </el-image>
+        <el-button
+          type="primary"
+          size="mini"
+          style="margin-top: 20px"
+          @click="downloadQRCode(qrViewerUrl, '预览二维码')"
+        >
+          下载二维码
+        </el-button>
+      </div>
     </el-dialog>
   </div>
 </template>
@@ -265,7 +296,7 @@ const sortedTreeList = computed(() => {
       id: tree.id,
       ripeDegree: tree.ripeDegree ?? null,
       healthCondition: tree.healthCondition ?? null,
-      img: tree.img ?? null,
+      qrCodeUrl: tree.qrCodeUrl ?? tree.img ?? null, // 兼容旧img字段，优先用新的qrCodeUrl
       type: tree.type ?? null,
       countNum: tree.countNum ?? null,
       ripeNum: tree.ripeNum ?? null
@@ -317,7 +348,7 @@ const handleDeleteTree = (treeId) => {
   })
 }
 
-// 批量生成二维码（适配新后端接口）
+// 批量生成二维码（修复核心逻辑）
 const batchGenerateQRCode = async () => {
   // 1. 提取果树ID，转为Long类型（Number在JS中兼容Long）
   const treeIds = sortedTreeList.value.map(tree => Number(tree.id))
@@ -348,23 +379,16 @@ const batchGenerateQRCode = async () => {
         return
       }
 
-      // 5. 调用查询接口确认二维码（可选，确保数据一致性）
-      await axios.post('/api/fruitTree/selectQR', treeIds, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      })
-
-      // 6. 构建新的果树列表（关联二维码URL）
+      // 5. 构建新的果树列表（关联二维码URL）
       const newTreeList = sortedTreeList.value.map((tree, index) => ({
         ...tree,
-        img: qrImgList[index] // 直接使用后端返回的完整URL
+        qrCodeUrl: qrImgList[index] // 使用后端返回的完整URL
       }))
 
-      // 7. 通知父组件更新列表（持久化二维码数据）
+      // 6. 通知父组件更新列表（持久化二维码数据）
       emit('tree-list-update', props.activeAreaId, newTreeList)
 
-      ElMessage.success('批量生成二维码成功！')
+      ElMessage.success(`成功生成 ${qrImgList.length} 个二维码！`)
     } else {
       ElMessage.error(`生成失败：${generateResponse.data?.msg || '接口返回异常'}`)
     }
@@ -376,22 +400,22 @@ const batchGenerateQRCode = async () => {
     }
     ElMessage.error(`生成失败：${error.response?.data?.msg || error.message || '网络异常，请稍后重试'}`)
   } finally {
-    generateQRLoading.value = false
+    generateQRLoading.value = false // 关闭加载状态
   }
 }
 
 // 二维码点击事件：查看大图
 const handleQRCodeClick = (imgUrl) => {
-  qrViewerUrl.value = `/api/minio/preview/${imgUrl}`
+  qrViewerUrl.value = imgUrl
   showQRViewer.value = true
 }
 
-// 下载二维码
+// 下载二维码（修复URL拼接问题）
 const downloadQRCode = async (imgUrl, treeId) => {
   try {
-    // 创建下载链接
+    // 创建下载链接（直接使用完整URL）
     const link = document.createElement('a')
-    link.href = `/api/minio/preview/${imgUrl}`
+    link.href = imgUrl
     link.download = `果树${treeId}_二维码.png` // 设置下载文件名
     document.body.appendChild(link)
     link.click()
