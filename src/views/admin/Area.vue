@@ -16,9 +16,10 @@
         :active-area-id="activeAreaId"
         :active-zone="activeZone"
         :tree-list="activeZone.trees"
+        :fullZoneInfo="activeZone" 
         @tree-delete="handleTreeDelete"
         @zone-detail="showZoneDetail"
-        @tree-list-update="getTreeList"
+        @tree-list-update="handleTreeListUpdate"  
       />
     </div>
   </CommonLayout>
@@ -31,7 +32,7 @@ import { default as AreaAdd } from '@/components/admin/areaAdd.vue'
 import { default as AreaTree } from '@/components/admin/areaTree.vue'
 
 // 2. 引入Vue相关API
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import axios from 'axios'
 import { useUserStore } from '@/stores/modules/user.js'
@@ -50,7 +51,16 @@ const initFilterData = reactive({
 
 // 当前激活的区域（计算属性）
 const activeZone = computed(() => {
-  return zoneList.value.find(zone => zone.id === activeAreaId.value) || { trees: [], number: '', name: '', type: '', size: 0 }
+  return zoneList.value.find(zone => zone.id === activeAreaId.value) || { 
+    id: '',
+    trees: [], 
+    number: '', 
+    name: '', 
+    type: '', 
+    size: 0,
+    manager: '',
+    fruitCount: ''
+  }
 });
 
 // 初始化用户仓库
@@ -104,15 +114,56 @@ const handleZoneUpdate = async (action) => {
   }
 }
 
+// 核心修复：处理子组件传递的果树列表更新（适配url字段）
+const handleTreeListUpdate = async (areaId, newTreeList) => {
+  try {
+    console.log('★ 接收子组件果树列表更新 ★', {
+      areaId,
+      newTreeList,
+      // 修正：检查url字段
+      二维码字段检查: newTreeList.map(t => ({ id: t.id, url: t.url }))
+    })
+
+    // 1. 找到对应区域的索引
+    const zoneIndex = zoneList.value.findIndex(zone => zone.id === areaId)
+    if (zoneIndex === -1) {
+      ElMessage.warning('未找到对应区域，更新失败')
+      return
+    }
+
+    // 2. 完整替换果树列表，保留所有字段（核心：不要过滤/解构字段）
+    zoneList.value[zoneIndex].trees = [...newTreeList]
+    
+    // 3. 强制触发响应式更新，确保子组件能实时获取最新数据
+    await nextTick()
+    
+    // 4. 可选：持久化更新到后端（如需保存到数据库）
+    // await axios.post('/api/fruitTree/saveTreeList', { areaId, trees: newTreeList })
+    
+    console.log('✅ 果树列表更新成功', zoneList.value[zoneIndex].trees)
+    ElMessage.success(`成功更新 ${newTreeList.length} 条果树数据`)
+  } catch (error) {
+    console.error('❌ 果树列表更新失败', error)
+    ElMessage.error('果树列表更新失败：' + error.message)
+  }
+}
+
 // 获取指定区域的果树列表
 const getTreeList = async (areaId) => {
   try {
+    loading.value = true
     const response = await axios.get(`/api/fruitTree/area/${areaId}`)
     if (response.data && response.data.code === 200) {
       const index = zoneList.value.findIndex(zone => zone.id === areaId)
       if (index > -1) {
+        // 保留原始返回的所有字段，重点：二维码字段是url
         zoneList.value[index].trees = response.data.data || []
-        console.log('果树列表加载成功：', zoneList.value[index].trees)
+        console.log('果树列表加载成功：', {
+          areaId,
+          数据: zoneList.value[index].trees,
+          // 修正：打印url字段（后端返回的二维码地址）
+          二维码字段: zoneList.value[index].trees.map(t => ({ id: t.id, url: t.url }))
+        })
       }
     } else {
       const index = zoneList.value.findIndex(zone => zone.id === areaId)
@@ -128,12 +179,14 @@ const getTreeList = async (areaId) => {
     }
     console.error('获取果树列表失败：', error)
     ElMessage.error('获取果树列表失败，请稍后重试')
+  } finally {
+    loading.value = false
   }
 }
-
 // 获取所有区域列表
 const getZoneList = async () => {
   try {
+    loading.value = true
     const currentOrchardId = userStore.user?.orchardId ? Number(userStore.user.orchardId) : 0
     console.log('获取区域列表 - 果园ID：', currentOrchardId, '类型：', typeof currentOrchardId)
     
@@ -149,11 +202,16 @@ const getZoneList = async () => {
     })
 
     if (response.data && response.data.code === 200) {
+      // 保留原始区域数据，补充默认字段，避免解构丢失
       zoneList.value = (response.data.data || []).map((zone, index) => ({
-        ...zone,
+        ...zone, // 保留所有原始字段
         number: index + 1,
-        trees: []
+        trees: [], // 初始化果树列表
+        size: zone.size || 0,
+        manager: zone.manager || '',
+        fruitCount: zone.fruitCount || ''
       }))
+      console.log('区域列表加载成功：', zoneList.value)
       ElMessage.success('区域列表加载成功')
     } else {
       ElMessage.error(`获取区域列表失败：${response.data?.msg || '后端返回非200状态码'}`)
@@ -168,14 +226,23 @@ const getZoneList = async () => {
     })
     ElMessage.error(`获取区域列表失败（${error.response?.status || '网络错误'}）：${error.response?.data?.msg || '请检查参数或后端接口'}`)
     zoneList.value = []
+  } finally {
+    loading.value = false
   }
 }
 
 // 处理果树删除
 const handleTreeDelete = (treeId) => {
-  const zoneIndex = zoneList.value.findIndex(zone => zone.id === activeAreaId.value)
-  if (zoneIndex > -1) {
-    zoneList.value[zoneIndex].trees = zoneList.value[zoneIndex].trees.filter(tree => tree.id !== treeId)
+  try {
+    const zoneIndex = zoneList.value.findIndex(zone => zone.id === activeAreaId.value)
+    if (zoneIndex > -1) {
+      // 过滤删除指定果树，保留其他字段
+      zoneList.value[zoneIndex].trees = zoneList.value[zoneIndex].trees.filter(tree => tree.id !== treeId)
+      console.log('删除果树成功', { treeId, 剩余果树: zoneList.value[zoneIndex].trees })
+    }
+  } catch (error) {
+    console.error('删除果树失败', error)
+    ElMessage.error('删除果树失败：' + error.message)
   }
 }
 
@@ -211,7 +278,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-
 .area-container {
   padding: 20px;
   box-sizing: border-box;
@@ -222,8 +288,28 @@ onMounted(() => {
   background-color: #ffffff;
 }
 
-
 .area-container :deep(.area-filter) {
   margin-bottom: 20px;
+}
+
+/* 核心修改：拆分两个组件的宽度，替换原有flex:1的统一样式 */
+/* 左侧添加区域：窄栏（28%宽度 + 红框） */
+.area-container > div:first-child {
+  width: 24%; /* 可微调：25%/30%，匹配你要的红框宽度 */
+  overflow: auto;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+  padding: 10px;
+  
+}
+
+/* 右侧果树列表：宽栏（占剩余所有宽度 + 红框） */
+.area-container > div:last-child {
+  flex: 1; /* 自动占剩余宽度 */
+  overflow: auto;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+  padding: 10px;
+  
 }
 </style>
