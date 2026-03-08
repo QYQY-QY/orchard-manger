@@ -11,8 +11,8 @@
           style="width: 180px"
         >
           <el-option label="全部类型" value="" />
-          <el-option label="临时工" value="temp" />
-          <el-option label="巡逻员" value="patrol" />
+          <el-option label="农户" value="3" />
+          <el-option label="临时工" value="6" />
         </el-select>
         <el-select
           v-model="filterStatus"
@@ -21,9 +21,8 @@
           style="width: 150px"
         >
           <el-option label="全部状态" value="" />
-          <el-option label="未激活" value="inactive" />
-          <el-option label="已激活" value="active" />
-          <el-option label="已禁用" value="disabled" />
+          <el-option label="启用" value="1" />
+          <el-option label="禁用" value="0" />
         </el-select>
         <el-button type="primary" size="default" @click="handleFilter">筛选</el-button>
         <el-button size="default" @click="resetFilter">重置</el-button>
@@ -45,10 +44,10 @@
         ref="applyFormRef"
         label-width="100px"
       >
-        <el-form-item label="账号类型" prop="type">
-          <el-radio-group v-model="applyForm.type">
-            <el-radio label="temp">临时工</el-radio>
-            <el-radio label="patrol">巡逻员</el-radio>
+        <el-form-item label="账号类型" prop="isAdmin">
+          <el-radio-group v-model="applyForm.isAdmin">
+            <el-radio label="3">农户</el-radio>
+            <el-radio label="6">临时工</el-radio>
           </el-radio-group>
         </el-form-item>
         <el-form-item label="申请数量" prop="count">
@@ -73,32 +72,54 @@
 import { ref, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
 import axios from 'axios'
+import dayjs from 'dayjs'
+// 从Pinia获取用户信息
+import { useUserStore } from '@/stores/modules/user.js'
+const userStore = useUserStore()
 
-const emit = defineEmits(['filter-change', 'apply-success'])
+// 定义事件
+const emit = defineEmits(['filter-change', 'apply-success', 'get-orchard-id'])
 
-// 筛选条件
+// ========== 统一变量定义 ==========
+// 筛选条件（统一String类型）
 const filterType = ref('')
 const filterStatus = ref('')
 
-// 申请账号弹窗相关
+// 申请弹窗
 const showApplyDialog = ref(false)
 const applyFormRef = ref(null)
+
+// 申请表单（统一默认值）
 const applyForm = reactive({
-  type: '',
-  count: 1
+  isAdmin: '',      // 3=农户，6=临时工
+  count: 1          // 默认申请1个
 })
+
+// 校验规则
 const applyRules = reactive({
-  type: [{ required: true, message: '请选择账号类型', trigger: 'change' }],
+  isAdmin: [{ required: true, message: '请选择账号类型', trigger: 'change' }],
   count: [
     { required: true, message: '请输入申请数量', trigger: 'blur' },
     { type: 'number', min: 1, max: 10, message: '数量需在1-10之间', trigger: 'blur' }
   ]
 })
 
-// 筛选功能
+// ========== 工具方法：格式化后端要求的时间格式 ==========
+const formatBackendTime = () => {
+  // 生成符合后端@JsonFormat的格式：yyyy-MM-dd'T'HH:mm:ss.SSS
+  return dayjs().format('YYYY-MM-DD HH:mm:ss.SSS')
+}
+
+// ========== 方法 ==========
+// 筛选（统一传递String类型）
 const handleFilter = () => {
-  emit('filter-change', { type: filterType.value, status: filterStatus.value })
-  ElMessage.success(`筛选条件：类型=${filterType.value || '全部'}, 状态=${filterStatus.value || '全部'}`)
+  emit('filter-change', { 
+    type: filterType.value,
+    status: filterStatus.value 
+  })
+  const typeText = filterType.value === '3' ? '农户' : filterType.value === '6' ? '临时工' : '全部'
+  const statusText = filterStatus.value === '1' ? '启用' : filterStatus.value === '0' ? '禁用' : '全部'
+  ElMessage.success(`筛选条件：类型=${typeText}, 状态=${statusText}`)
 }
 
 // 重置筛选
@@ -110,42 +131,82 @@ const resetFilter = () => {
 
 // 重置申请表单
 const resetApplyForm = () => {
-  applyForm.type = ''
+  applyForm.isAdmin = ''
   applyForm.count = 1
   applyFormRef.value?.resetFields()
 }
 
-// 提交申请
+// 提交申请（适配后端标准格式）
 const submitApplyForm = async () => {
   try {
     await applyFormRef.value.validate()
-    const res = await axios.post('api/employee/add', {
-      type: applyForm.type,
-      count: applyForm.count
-    })
 
-    if (res.code === 200) {
-      ElMessage.success('账号申请成功！')
+    // 统一从Pinia获取果园ID和创建人ID
+    const orchardId = userStore.user?.orchardId || 1 // 确保是数字类型
+    const createUser = userStore.user?.id || 0
+    if (!orchardId || !createUser) {
+      ElMessage.error('无法获取果园ID或创建人ID，请先登录！')
+      return
+    }
+
+    // 构造请求
+    const requestPromises = []
+    const newAccounts = []
+    const now = formatBackendTime() // 后端要求的时间格式
+
+    for (let i = 0; i < applyForm.count; i++) {
+      // 严格匹配后端/api/employee/add的标准格式
+      const accountParams = {
+        createTime: now,                // 格式：2026-03-08T12:02:27.957
+        createUser: Number(createUser), // 数字类型
+        headImg: '',                    // 字符串类型
+        id: 0,                          // 数字类型
+        idCard: '',                     // 修正字段名：id_card → idCard
+        isAdmin: Number(applyForm.isAdmin), // 3=农户/6=临时工
+        name: '新账号',                 // 默认用户名
+        openId: '',                     // 字符串类型
+        orchardId: Number(orchardId),   // 数字类型
+        password: 123456,               // 数字类型
+        phone: '',                      // 字符串类型
+        sex: 0,                         // 默认女（数字类型）
+        status: 0,                      // 默认禁用（数字类型）
+        updateTime: now,                // 格式：2026-03-08T12:02:27.957
+        updateUser: 0,                  // 数字类型
+        username: `zzc_${Date.now()}_${i}` // 唯一用户名
+      }
+
+      requestPromises.push(axios.post('/api/employee/add', accountParams))
+
+      // 构造返回给父组件的新账号（前端展示用）
+      newAccounts.push({
+        id: `temp_${Date.now()}_${i}`,
+        isAdmin: String(applyForm.isAdmin),
+        status: 0, // 默认禁用
+        realName: '',
+        idCard: '', // 同步字段名
+        name: '新账号',
+        avatar: '',
+        headImg: '',
+        createTime: dayjs(now).format('YYYY-MM-DD HH:mm:ss'), // 前端展示格式
+        updateTime: dayjs(now).format('YYYY-MM-DD HH:mm:ss'),
+        orchardId: String(orchardId),
+        createUser: String(createUser),
+        sex: 0
+      })
+    }
+
+    // 批量提交
+    const responses = await Promise.all(requestPromises)
+    const allSuccess = responses.every(res => res.data.code === 200)
+    
+    if (allSuccess) {
+      ElMessage.success(`成功申请${applyForm.count}个账号！`)
       showApplyDialog.value = false
       resetApplyForm()
-
-      // 生成新账号数据并通知父组件
-      const newAccounts = []
-      for (let i = 0; i < applyForm.count; i++) {
-        const newId = '888' + Math.floor(Math.random() * 1000)
-        newAccounts.push({
-          id: newId,
-          type: applyForm.type,
-          status: 'inactive',
-          realName: '',
-          avatar: '',
-          createTime: new Date().toLocaleString(),
-          updateTime: new Date().toLocaleString()
-        })
-      }
       emit('apply-success', newAccounts)
+      emit('get-orchard-id', String(orchardId))
     } else {
-      ElMessage.error(res.msg || '账号申请失败')
+      ElMessage.error('部分账号申请失败，请检查！')
     }
   } catch (err) {
     console.error('申请账号失败：', err)
@@ -155,7 +216,6 @@ const submitApplyForm = async () => {
 </script>
 
 <style scoped>
-/* 顶部筛选与按钮区 */
 .top-bar {
   display: flex;
   justify-content: space-between;
@@ -178,7 +238,6 @@ const submitApplyForm = async () => {
   font-weight: 500;
 }
 
-/* 统一按钮和组件样式 */
 :deep(.el-button) {
   border-radius: 4px;
 }

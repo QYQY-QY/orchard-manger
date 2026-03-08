@@ -480,7 +480,7 @@ const fetchTaskList = async () => {
     
     console.log('查询任务参数：', queryParams)
     
-    const response = await axios.post('/api/task/query', queryParams)
+    const response = await axios.post('/api/task/queryCreaterId', queryParams)
     if (response.data && response.data.code === 200) {
       // 处理后端返回的数据，补充前端需要的字段
       taskList.value = (response.data.data || []).map(item => ({
