@@ -12,7 +12,7 @@ const router = createRouter({
     {
       path: '/adminindex',
       name: 'AdminIndex',
-      component: () => import('../views/admin/Index.vue')
+      component: () => import('../views/admin/OrchardDashboard.vue')
     },
     //任务管理Mission
     {
