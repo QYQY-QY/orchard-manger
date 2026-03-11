@@ -334,7 +334,7 @@ const submitRealName = async () => {
       realName: realNameForm.value.realName,
       phone: realNameForm.value.phone,
       idCard: realNameForm.value.idCard,
-      accountId: Number(currentAccount.value.id)
+      id: Number(currentAccount.value.id)
     })
     if (res.data.code === 200) {
       const updatedAccount = {

@@ -144,15 +144,23 @@
       </el-table> <!-- 这里是修复的闭合标签 -->
 
       <!-- 批量生成二维码按钮 -->
-      <div style="margin-top: 20px; text-align: right">
-        <el-button 
-          type="primary"
-          @click="batchGenerateQRCode"
-          :loading="generateQRLoading"
-        >
-          批量生成二维码
-        </el-button>
-      </div>
+      <div style="margin-top: 20px; text-align: right; display: flex; gap: 10px; justify-content: flex-end">
+  <el-button 
+    type="primary"
+    @click="batchGenerateQRCode"
+    :loading="generateQRLoading"
+  >
+    批量生成二维码
+  </el-button>
+  <el-button 
+    type="success"
+    @click="batchDownloadQRCode"
+    :loading="downloadQRLoading"
+    :disabled="!sortedTreeList.some(item => item.url)"
+  >
+    批量下载二维码
+  </el-button>
+</div>
     </div>
 
     <!-- 果树详情弹窗 -->
@@ -256,6 +264,10 @@
 import { ref, reactive, computed, watch, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import axios from 'axios'
+import JSZip from 'jszip'
+import { saveAs } from 'file-saver'
+
+const downloadQRLoading = ref(false) // 加这一行
 
 // 定义props
 const props = defineProps({
@@ -384,7 +396,7 @@ const batchGenerateQRCode = async () => {
   try {
     generateQRLoading.value = true
 
-    // 调用接口
+    // 调用接口(该接口)
     const generateResponse = await axios.post('/api/fruitTree/createTreeQRList', treeIds, {
       headers: { 'Content-Type': 'application/json' }
     })
@@ -432,6 +444,84 @@ const batchGenerateQRCode = async () => {
     ElMessage.error(`生成失败：${error.response?.data?.msg || error.message || '网络异常，请稍后重试'}`)
   } finally {
     generateQRLoading.value = false
+  }
+}
+
+// 批量下载二维码（按果树ID命名）
+// 批量下载二维码（极简修复版，优先保证能执行）
+const batchDownloadQRCode = async () => {
+  console.log('=== 开始批量下载 ===')
+  const trees = sortedTreeList.value.filter(t => t.url)
+  console.log('可下载的果树列表：', trees)
+  
+  if (trees.length === 0) {
+    ElMessage.warning('暂无二维码可下载')
+    return
+  }
+
+  // 先手动创建一个空ZIP（排除JSZip初始化问题）
+  let zip
+  try {
+    zip = new JSZip()
+    console.log('✅ JSZip初始化成功')
+  } catch (e) {
+    console.error('❌ JSZip初始化失败：', e)
+    ElMessage.error('压缩包创建失败，请检查依赖是否安装')
+    return
+  }
+
+  // 逐个处理二维码（改用Promise.all，避免循环阻塞）
+  const downloadPromises = trees.map(async (tree) => {
+    try {
+      // 1. 修复URL（必做）
+      let qrUrl = tree.url
+      if (qrUrl && !qrUrl.startsWith('http')) {
+        qrUrl = import.meta.env.VITE_API_BASE_URL + (qrUrl.startsWith('/') ? '' : '/') + qrUrl
+      }
+      console.log(`📥 下载果树${tree.id}：${qrUrl}`)
+
+      // 2. 修复fetch跨域（必做）
+      const res = await fetch(qrUrl, {
+        mode: 'cors',
+        credentials: 'include',
+        headers: {
+          'Accept': 'image/png,image/jpeg,*/*' // 指定接收图片格式
+        }
+      })
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const blob = await res.blob()
+      zip.file(`果树${tree.id}_二维码.png`, blob)
+      console.log(`✅ 果树${tree.id}下载成功`)
+      return true
+    } catch (e) {
+      console.error(`❌ 果树${tree.id}下载失败：`, e.message)
+      return false
+    }
+  })
+
+  try {
+    downloadQRLoading.value = true
+    // 等待所有下载完成
+    const results = await Promise.all(downloadPromises)
+    const successCount = results.filter(Boolean).length
+    console.log(`📊 下载完成：成功${successCount}/${trees.length}`)
+
+    // 生成ZIP并下载（改用原生API，放弃file-saver）
+    const zipBlob = await zip.generateAsync({ type: 'blob' })
+    const downloadUrl = URL.createObjectURL(zipBlob)
+    const link = document.createElement('a')
+    link.href = downloadUrl
+    link.download = `区域${props.activeAreaId}_二维码_${Date.now()}.zip`
+    link.click()
+    URL.revokeObjectURL(downloadUrl) // 释放内存
+
+    ElMessage.success(`批量下载完成！成功${successCount}个，失败${trees.length - successCount}个`)
+  } catch (err) {
+    console.error('❌ 压缩包生成/下载失败：', err)
+    ElMessage.error('批量下载失败：' + err.message)
+  } finally {
+    downloadQRLoading.value = false
   }
 }
 
