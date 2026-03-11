@@ -78,41 +78,41 @@ const hideDetail = () => {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  font-family: 'Microsoft YaHei', sans-serif;
+  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
 }
 
 .fixed-title {
   position: absolute;
-  top: 80px;
+  top: 60px;
   left: 50%;
   transform: translateX(-50%);
-  background: linear-gradient(145deg, #6b4f3c, #8b5e3c);
-  color: #ffd966;
-  padding: 16px 48px;
-  border-radius: 60px;
-  font-size: 2.5rem;
-  font-weight: 800;
-  letter-spacing: 8px;
-  text-shadow: 0 4px 15px rgba(0,0,0,0.7), 0 0 20px #ffb347;
-  border: 2px solid #ff8c42;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+  background: linear-gradient(135deg, #2d5a27 0%, #4a8c3f 50%, #2d5a27 100%);
+  color: #fff;
+  padding: 18px 60px;
+  border-radius: 50px;
+  font-size: 2.2rem;
+  font-weight: 700;
+  letter-spacing: 6px;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  box-shadow: 0 8px 32px rgba(45, 90, 39, 0.4), inset 0 1px 0 rgba(255,255,255,0.2);
   z-index: 200;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(10px);
   white-space: nowrap;
   pointer-events: none;
+  border: 1px solid rgba(255,255,255,0.1);
 }
 
 .fixed-title::before {
-  content: "🍎";
-  margin-right: 20px;
-  font-size: 2.2rem;
-  filter: drop-shadow(0 2px 5px #ff6b6b);
+  content: "🌳";
+  margin-right: 16px;
+  font-size: 2rem;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
 }
 
 .fixed-title::after {
   content: "🍊";
-  margin-left: 20px;
-  font-size: 2.2rem;
-  filter: drop-shadow(0 2px 5px #ffaa00);
+  margin-left: 16px;
+  font-size: 2rem;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
 }
 </style>
