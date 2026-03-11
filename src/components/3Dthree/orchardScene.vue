@@ -1,13 +1,67 @@
 <template>
-  <CommonLayout>
+  <div class="orchard-container">
+    <!-- 信息面板 -->
+    <div class="info-panel">
+      <h1>🍎 智慧果园 · 种植基地 <span>{{负责人}}</span></h1>
+      <p>负责人: {{负责人}} | 总面积: {{总面积}} 亩 | 果树: {{果树总数}} 棵 | 年产量: {{年产量}} 吨</p>
+    </div>
 
-  </CommonLayout>
+    <!-- 固定在页面中上部的标题 -->
+    <div class="fixed-title">智慧果园</div>
+
+    <!-- 右侧数据面板 -->
+    <div class="stats-panel">
+      <div class="title">📊 种植区数据 (随机生成)</div>
+      <div class="item"><span class="label">种植区数量 :</span> <span class="value highlight">{{种植区数量}}</span></div>
+      <div class="item"><span class="label">总面积 (亩) :</span> <span class="value highlight">{{总面积}}</span></div>
+      <div class="item"><span class="label">果树总数 :</span> <span class="value highlight">{{果树总数}}</span></div>
+      <div class="item"><span class="label">预估年产量 :</span> <span class="value highlight">{{年产量}} 吨</span></div>
+      <div class="note">
+        🍊 不规则地面拼块 <br> 🍎 鼠标悬停凸起 <br> 👆 点击查看详情
+      </div>
+    </div>
+
+    <!-- 种植区详情弹窗 -->
+    <div class="detail-modal" :class="{ show: showDetail }">
+      <div class="close-btn" @click="hideDetail">×</div>
+      <div class="zone-name">{{ selectedZone?.name || '🍑 水蜜桃种植区' }}</div>
+      <div class="detail-item">
+        <span class="label">种植面积</span>
+        <span class="value">{{ selectedZone?.area || 120 }} <span class="highlight-number">亩</span></span>
+      </div>
+      <div class="detail-item">
+        <span class="label">果树数量</span>
+        <span class="value">{{ selectedZone?.trees || 3200 }} <span class="highlight-number">棵</span></span>
+      </div>
+      <div class="detail-item">
+        <span class="label">预估年产量</span>
+        <span class="value">{{ selectedZone?.yield || 85 }} <span class="highlight-number">吨</span></span>
+      </div>
+      <div class="detail-item">
+        <span class="label">主要品种</span>
+        <span class="value">{{ selectedZone?.variety || '水蜜桃' }}</span>
+      </div>
+      <div class="detail-item">
+        <span class="label">种植密度</span>
+        <span class="value">{{ selectedZone?.density || 27 }} <span class="highlight-number">棵/亩</span></span>
+      </div>
+      <div class="modal-footer">—— 悬停凸起，点击查看详情 ——</div>
+    </div>
+
+    <!-- 悬停提示 -->
+    <div class="hover-hint" :style ="{ opacity: showDetail ? 0 : 0.7 }">👆 鼠标悬停区域会凸起 | 点击查看详情</div>
+
+    <div class="controls-note">🖱️ 鼠标拖动旋转 | 滚轮缩放 | 悬停凸起效果</div>
+
+    <!-- Three.js 画布容器 -->
+    <div ref="canvasContainer" class="canvas-container"></div>
+  </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, reactive } from 'vue'
 
-// import Index from '@/views/admin/Index.vue'
+import Index from '@/views/admin/Index.vue'
 import superIndex from '@/views/super-admin/Index.vue'
 
 import * as THREE from 'three'
