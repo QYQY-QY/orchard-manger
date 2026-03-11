@@ -16,10 +16,7 @@
     "jszip": "^3.10.1",
     "pinia": "^3.0.4",
     "pinia-plugin-persistedstate": "^4.7.1",
-<<<<<<< HEAD
     "qrcode": "^1.5.4",
-=======
->>>>>>> 7823149730b7cf163eaef00a6361691369aed569
     "three": "^0.183.2",
     "vue": "^3.5.28",
     "vue-router": "^5.0.2"
