@@ -67,48 +67,34 @@
         <template v-else-if="realRole === 'superAdmin'">
           <el-menu-item index="/superadminindex">
             <el-icon><Promotion /></el-icon>
-            <span>果园数据可视化（超级管理员）</span>
+            <span>数据大屏</span>
           </el-menu-item>
 
           <!-- 果园管理（超级管理员版） -->
-          <el-sub-menu index="/superadmin-orchardmanage">
-            <template #title>
-              <el-icon><Management /></el-icon>
-              <span>果园管理（超级管理员）</span>
-            </template>
-            <el-menu-item index="/superadmin-orchardmanage/detail">
-              <el-icon><User /></el-icon>
-              <span>果园详情</span>
-            </el-menu-item>
-            <el-menu-item index="/superadmin-orchardmanage/tree">
-              <el-icon><Crop /></el-icon>
-              <span>果树详情</span>
-            </el-menu-item>
-            <el-menu-item index="/superadmin-orchardmanage/config">
-              <el-icon><Setting /></el-icon>
-              <span>果园配置（专属）</span>
-            </el-menu-item>
-          </el-sub-menu>
-
-          <el-menu-item index="/superadmin-task">
+          <el-menu-item index="/superOrchard">
             <el-icon><Promotion /></el-icon>
-            <span>任务管理（超级管理员）</span>
+            <span>果园详情</span>
           </el-menu-item>
 
-          <el-menu-item index="/superadmin-account">
+          <el-menu-item index="/SuperNotice">
             <el-icon><Promotion /></el-icon>
-            <span>账号管理（超级管理员）</span>
+            <span>通知管理</span>
           </el-menu-item>
 
-          <el-menu-item index="/superadmin-recruitment">
+          <el-menu-item index="/SuperAccount">
             <el-icon><Promotion /></el-icon>
-            <span>人员招聘（超级管理员）</span>
+            <span>账号全局管理</span>
+          </el-menu-item>
+
+          <el-menu-item index="/SuperAi">
+            <el-icon><Promotion /></el-icon>
+            <span>AI助手</span>
           </el-menu-item>
 
           <!-- 超级管理员专属菜单 -->
           <el-menu-item index="/superadmin-system">
             <el-icon><Setting /></el-icon>
-            <span>系统设置（专属）</span>
+            <span>系统设置</span>
           </el-menu-item>
         </template>
 
@@ -148,9 +134,6 @@
           </span>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item command="profile" :icon="User">基本资料</el-dropdown-item>
-              <el-dropdown-item command="avatar" :icon="Crop">更换头像</el-dropdown-item>
-              <el-dropdown-item command="password" :icon="EditPen">重置密码</el-dropdown-item>
               <el-dropdown-item command="logout" :icon="SwitchButton">退出登录</el-dropdown-item>
             </el-dropdown-menu>
           </template>

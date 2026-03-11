@@ -554,6 +554,60 @@ const handleDeleteTask = async (taskId) => {
   }
 }
 
+const formatTime = (time) => {
+  if (!time) return '未设置'
+  
+  // 步骤1：解析时间为本地时间戳
+  const localTime = new Date(time).getTime()
+  // 步骤2：加上8小时时区偏移（抵消toISOString的UTC转换）
+  const utc8Time = new Date(localTime + 8 * 60 * 60 * 1000)
+  // 步骤3：删除T/Z，去掉毫秒，补全格式
+  const iso = utc8Time.toISOString()
+  const noTZ = iso.replace(/T|Z/g, '')
+  const noMs = noTZ.split('.')[0]
+  
+  return noMs.slice(0, 10) + ' ' + noMs.slice(10)
+}
+
+/**
+ * 时间格式化工具：将任意时间格式解析为中国时区（UTC+8）的 YYYY-MM-DD HH:mm:ss 格式（无T/Z）
+ * @param {string|number|Date} time - 输入时间（支持字符串/时间戳/Date对象）
+ * @param {string} fallback - 空值兜底文本，默认'未设置'
+ * @returns {string} 格式化后的时间字符串（YYYY-MM-DD HH:mm:ss）
+ */
+const formatTimeToCST = (time, fallback = '未设置') => {
+  // 1. 空值兜底
+  if (!time) return fallback
+
+  try {
+    // 2. 解析时间为Date对象（兼容所有输入类型）
+    const date = new Date(time)
+    // 校验是否为有效时间（Invalid Date 处理）
+    if (isNaN(date.getTime())) return fallback
+
+    // 3. 计算中国时区（UTC+8）时间戳（抵消toISOString的UTC偏移）
+    const localTimeStamp = date.getTime()
+    const cstTimeStamp = localTimeStamp + 8 * 60 * 60 * 1000 // +8小时时区偏移
+    const cstDate = new Date(cstTimeStamp)
+
+    // 4. 生成ISO字符串并处理格式（保留三位毫秒，删除T/Z，拼接为目标格式）
+    const isoStr = cstDate.toISOString() // 格式：2026-03-09T12:00:00.000Z
+    // 步骤1：删除T和Z → 2026-03-0912:00:00.000
+    const noTZStr = isoStr.replace(/T|Z/g, '')
+    // 步骤2：拆分日期、时间+毫秒 → 日期：2026-03-09，时间+毫秒：12:00:00.000
+    const datePart = noTZStr.slice(0, 10)     // 日期部分：YYYY-MM-DD
+    const timeWithMsPart = noTZStr.slice(10)  // 时间+毫秒：HH:mm:ss.SSS
+    
+    // 步骤3：拼接为 yyyy-MM-dd HH:mm:ss.SSS
+    return `${datePart} ${timeWithMsPart}` 
+    // 最终输出示例：2026-03-09 12:00:00.000
+  } catch (error) {
+    // 异常兜底（如输入非法时间字符串）
+    console.warn('时间格式化失败：', error, '输入值：', time)
+    return fallback
+  }
+}
+
 // 核心改造：发布任务（完全匹配后端add接口参数要求）
 const handlePublish = async () => {
   try {
@@ -577,14 +631,14 @@ const handlePublish = async () => {
       areaId: areaId, // 区域id
       completionTime: '', // 完成时间为空
       creatorId: publishForm.value.creatorId, // 发布者id
-      deadline: publishForm.value.deadline ? new Date(publishForm.value.deadline).toISOString() : '', // 截止时间转ISO格式
+      deadline: formatTimeToCST(publishForm.value.deadline), // 截止时间转ISO格式
       empIds: publishForm.value.empIds, // 发送的人数组
       groupContent: publishForm.value.taskTitle, // 组内容
       groupDescription: publishForm.value.taskInfo, // 组描述
       groupName: publishForm.value.taskTitle, // 组名
       imgsURL: [], // 图片URL空数组
       orchardId: publishForm.value.orchardId, // 果园id
-      postTime: new Date().toISOString(), // 发布时间转ISO格式
+      postTime: formatTimeToCST(new Date()), // 发布时间转ISO格式
       status: publishForm.value.status, // 状态（数字）
       taskInfo: publishForm.value.taskInfo, // 任务信息
       taskTitle: publishForm.value.taskTitle, // 任务标题

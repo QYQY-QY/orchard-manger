@@ -26,12 +26,12 @@ const router = createRouter({
       name: 'AdminArea',
       component: () => import('../views/admin/Area.vue')
     },
-    //果树详情Tree
-    {
-      path: '/admintree',
-      name: 'AdminTree',
-      component: () => import('../views/admin/Tree.vue')
-    },
+    // //果树详情Tree
+    // {
+    //   path: '/admintree',
+    //   name: 'AdminTree',
+    //   component: () => import('../views/admin/Tree.vue')
+    // },
     //账号管理
     {
       path: '/adminaccount',
@@ -64,6 +64,33 @@ const router = createRouter({
       name: 'SuperAdminIndex',
       component: () => import('../views/super-admin/Index.vue')
     },
+
+    //果园数据（果园/区域/果树）
+    {
+      path: '/superOrchard',
+      name: 'SuperOrchard',
+      component: () => import('@/views/super-admin/Orchard.vue')
+    },
+    //账号管理
+    {
+      path: '/SuperAccount',
+      name: 'SuperAccount',
+      component: () => import('@/views/super-admin/SuperAccount.vue')
+    },
+    //账号管理
+    {
+      path: '/SuperNotice',
+      name: 'SuperNotice',
+      component: () => import('@/views/super-admin/notice.vue')
+    },
+    //超管ai
+    {
+      path: '/SuperAi',
+      name: 'SuperAi',
+      component: () => import('@/views/super-admin/AI.vue')
+    },
+
+
     // 404 重定向到登录页
     { path: '/:pathMatch(.*)*', redirect: '/login' }
   ],
