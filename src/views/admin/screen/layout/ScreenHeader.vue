@@ -17,7 +17,7 @@ const updateTime = ref(new Date().toLocaleString())
 
 const handleExit = () => {
   // 跳转到其他页面，例如登录页或首页
-  router.push('/')
+  router.push('/adminarea')
 }
 </script>
 
