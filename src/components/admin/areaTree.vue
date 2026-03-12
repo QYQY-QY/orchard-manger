@@ -11,7 +11,7 @@
         <div>
           <h3>区域{{ fullZoneInfo.number || activeZone.number }}：{{ fullZoneInfo.name || activeZone.name }}</h3>
           <p class="zone-desc">
-            负责人：{{ fullZoneInfo.manager || activeZone.manager || '未设置' }} | 
+            负责人：{{ fullZoneInfo.areaManagerName || '未设置' }} | 
             品种：{{ fullZoneInfo.type || activeZone.type || '-' }} | 
             果树总数：{{ sortedTreeList.length || fullZoneInfo.size || fullZoneInfo.fruitCount || activeZone.size || 0 }}
           </p>
@@ -112,7 +112,7 @@
                 icon="el-icon-download" 
                 class="qrcode-download-btn"
                 @click.stop="downloadQRCode(scope.row.url, scope.row.id)"
-                type="text"
+                link
               ></el-button>
             </div>
             <span class="no-qrcode" v-else>-</span>
@@ -125,7 +125,7 @@
           <template #default="scope">
             <el-button 
               size="small" 
-              type="text"
+              link
               @click="showTreeDetail(scope.row)"
               disabled  
             >
@@ -133,7 +133,7 @@
             </el-button>
             <el-button 
               size="small" 
-              type="text"
+              link
               text-color="danger"
               @click="handleDeleteTree(scope.row.id)"
             >
@@ -293,7 +293,7 @@ const props = defineProps({
       id: '',
       name: '',
       description: '',
-      manager: '',
+      empId: '',
       type: '',
       fruitCount: '',
       size: 0,

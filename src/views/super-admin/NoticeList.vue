@@ -4,7 +4,7 @@
       <el-table
         v-loading="listLoading"
         :data="noticeList"
-        border="none"
+        :border="tableBorder"
         stripe
         :header-cell-style="headerCellStyle"
         :cell-style="cellStyle"
@@ -37,7 +37,7 @@
           <template #default="scope">
             <el-tag
               :type="scope.row.groupId === 0 ? 'success' : scope.row.groupId === 1 ? 'primary' : 'info'"
-              size="medium"
+              size="default"
               style="border-radius: 6px; padding: 4px 12px;"
             >
               {{ scope.row.groupId === 0 ? '所有人' : scope.row.groupId === 1 ? '管理员' : '农户+游客' }}
@@ -81,10 +81,10 @@
       <div v-if="!listLoading && noticeList.length === 0" class="empty-container">
         <el-empty 
           description="暂无通知数据" 
-          image-size="80"
+          :image-size="80" 
         />
         <el-button 
-          type="text" 
+          link
           @click="openAddDialog"
           style="color: #409eff; margin-top: 10px;"
         >
@@ -99,7 +99,7 @@
 import { ref, reactive, onMounted, defineProps, defineExpose, watch } from 'vue'
 import { ElMessage, ElMessageBox, ElEmpty } from 'element-plus'
 import axios from 'axios'
-
+const tableBorder = false
 const props = defineProps(['filterParams'])
 const emit = defineEmits(['refresh-list', 'open-add-dialog'])
 

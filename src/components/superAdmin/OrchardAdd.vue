@@ -109,26 +109,41 @@ const form = reactive({
   name: '',
   address: '',
   empId: '',
-  size : ""
+  size : "",
+  status: 0
 })
 
 // 显示添加对话框
 const showAddDialog = () => {
   dialogType.value = 'add'
-  Object.assign(form, { id: '', name: '', address: '', empId: '' })
+  Object.assign(form, { 
+    id: '', 
+    name: '', 
+    address: '', 
+    empId: '',
+    size: '',  // 添加 size 重置
+    status: 0
+  })
   dialogVisible.value = true
 }
 
 // 显示编辑对话框
 const showEditDialog = (orchard) => {
   dialogType.value = 'edit'
-  Object.assign(form, orchard)
+  Object.assign(form, { 
+    ...orchard,
+    status: orchard.status ?? 0
+  })
   dialogVisible.value = true
 }
 
 // 提交表单
 const handleSubmit = async () => {
   try {
+    const submitData = {
+      ...form,
+      status: form.status ?? 0
+    }
     const url = dialogType.value === 'add' ? '/api/orchard/add' : '/api/orchard/change'
     const res = await axios.post(url, form)
     if (res.data?.code === 200) {

@@ -5,7 +5,9 @@
       <span class="main-title">{{ activeArea.name || '未选择区域' }}</span>
       <!-- 第二行文字移到标题右侧 -->
       <span class="sub-title">
-        负责人：{{ activeArea.manager || '未设置' }} | 品种：{{ activeArea.cropType || '-' }} | 果树总数：{{ activeArea.totalTrees || 0 }}
+        负责人：{{ formattedArea.manager || '未设置' }} | 
+        品种：{{ formattedArea.cropType || '-' }} | 
+        果树总数：{{ formattedArea.totalTrees || 0 }}
       </span>
     </div>
 
@@ -27,11 +29,11 @@
         <div class="tree-table-body">
           <div class="tree-table-row" v-for="tree in treeList" :key="tree.id">
             <div class="table-cell">{{ tree.id || '-' }}</div>
-            <div class="table-cell">{{ tree.cropType || '沃柑' }}</div>
-            <div class="table-cell">{{ tree.fruitTotal || 0 }}</div>
-            <div class="table-cell">{{ tree.ripeFruit || 0 }}</div>
-            <div class="table-cell">{{ tree.ripenessRate || 0 }}%</div>
-            <div class="table-cell">{{ tree.healthStatus || '-' }}</div>
+            <div class="table-cell">{{ tree.type || '沃柑' }}</div>
+            <div class="table-cell">{{ tree.countNum || 0 }}</div>
+            <div class="table-cell">{{ tree.ripeNum || 0 }}</div>
+            <div class="table-cell">{{ tree.ripeDegree || 0 }}%</div>
+            <div class="table-cell">{{ tree.healthCondition || '健康' }}</div>
             <div class="table-cell">
               <!-- 二维码占位（圆角） -->
               <div class="qrcode-placeholder">
@@ -41,8 +43,9 @@
             </div>
             <div class="table-cell">
               <div class="action-buttons">
-                <el-button type="text" size="small" @click="$emit('tree-detail', tree)">查看详情</el-button>
-                <el-button type="text" size="small" color="red">删除</el-button>
+                <el-button link size="small" @click="$emit('tree-detail', tree)">详情</el-button>
+                <el-button link size="small" type="danger"
+                @click="handleDelete(tree)">删除</el-button>
               </div>
             </div>
           </div>
@@ -58,13 +61,44 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
+import { ElMessageBox, ElMessage } from 'element-plus'
 const props = defineProps({
   areaId: { type: String, default: '' },
   activeArea: { type: Object, default: () => ({}) },
   treeList: { type: Array, default: () => [] }
 })
-
-defineEmits(['tree-detail'])
+const emit = defineEmits(['tree-detail', 'tree-delete'])
+const formattedArea = computed(() => {
+  const firstTree = props.treeList[0]
+  const cropType = firstTree?.type || props.activeArea.cropType || '-'
+  const totalTrees = props.treeList.length || props.activeArea.totalTrees || 0
+  
+  return {
+    ...props.activeArea,
+    cropType,
+    totalTrees
+  }
+})
+const handleDelete = (tree) => {
+  console.log('删除果树:', tree)
+  ElMessageBox.confirm(
+    '确定要删除这棵果树吗？',
+    '提示',
+    {
+      confirmButtonText: '确认',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  ).then(() => {
+    // 用户确认删除
+    emit('tree-delete', tree.id)  // 向父组件发送删除事件
+    ElMessage.success('删除成功')
+  }).catch(() => {
+    // 用户取消删除
+    ElMessage.info('已取消删除')
+  })
+}
 </script>
 
 <style scoped>
@@ -190,8 +224,7 @@ defineEmits(['tree-detail'])
 
 .action-buttons {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  /* gap: 2px; */
 }
 
 .action-buttons .el-button {

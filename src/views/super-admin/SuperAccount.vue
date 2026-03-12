@@ -3,15 +3,14 @@
     <div class="super-admin-page">
       <div class="page-header">
         <h3>超级管理员 - 账号管理系统</h3>
-        <!-- 恢复最基础的点击事件，移除stop修饰符（大概率是stop导致事件被拦截） -->
         <el-button type="primary" @click="() => {
             showAddDialog = true;
-            console.log('点击按钮后showAddDialog:', showAddDialog); // 关键打印
             }">创建管理员账号</el-button>
       </div>
 
       <div class="page-content">
         <SuperList 
+          @view-detail="handleViewDetail"
           @edit-account="handleEditAccount"
           @delete-account="handleDeleteAccount"
           @refresh-list="fetchAccountList"
@@ -25,6 +24,28 @@
       />
     </div>
   </CommonLayout>
+  <el-dialog v-model="showDetailDialog" title="账号详情" width="500px">
+    <div v-if="currentDetailAccount">
+      <p><strong>账号ID：</strong>{{ currentDetailAccount.id }}</p>
+      <p><strong>用户类型：</strong>{{ currentDetailAccount.userType }}</p>
+      <p><strong>账号状态：</strong>{{ currentDetailAccount.accountStatus }}</p>
+      <p><strong>实名信息：</strong>{{ currentDetailAccount.name }}</p>
+    </div>
+    <template #footer>
+      <el-button @click="showDetailDialog = false">关闭</el-button>
+    </template>
+  </el-dialog>
+  <el-dialog v-model="showAddDialog" title="账号详情" width="500px">
+    <div v-if="currentDetailAccount">
+      <p><strong>账号ID：</strong>{{ currentDetailAccount.id }}</p>
+      <p><strong>用户类型：</strong>{{ currentDetailAccount.userType }}</p>
+      <p><strong>账号状态：</strong>{{ currentDetailAccount.accountStatus }}</p>
+      <p><strong>实名信息：</strong>{{ currentDetailAccount.name }}</p>
+    </div>
+    <template #footer>
+      <el-button @click="showAddDialog = false">关闭</el-button>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup>
@@ -34,11 +55,15 @@ import CommonLayout from '@/views/common/CommonLayout.vue'
 import SuperList from '@/components/superAdmin/SuperList.vue'
 import SuperAdd from '@/components/superAdmin/SuperAdd.vue'
 import axios from 'axios'
-
+const handleViewDetail = (row) => {
+  currentDetailAccount.value = { ...row }  // 现在这个变量有定义了
+  showDetailDialog.value = true
+}
 // 恢复最基础的响应式变量（删除无关的userStore，避免干扰）
 const showAddDialog = ref(false)
 const currentEditAccount = ref({})
-
+const showDetailDialog = ref(false)
+const currentDetailAccount = ref({})
 // 简化列表请求（仅保留基础逻辑，不影响按钮）
 const fetchAccountList = async () => {
   try {

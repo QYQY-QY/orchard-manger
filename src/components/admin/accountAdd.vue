@@ -107,7 +107,8 @@ const applyRules = reactive({
 // ========== 工具方法：格式化后端要求的时间格式 ==========
 const formatBackendTime = () => {
   // 生成符合后端@JsonFormat的格式：yyyy-MM-dd'T'HH:mm:ss.SSS
-  return dayjs().format('YYYY-MM-DD HH:mm:ss.SSS')
+  return dayjs().format('YYYY-MM-DD[T]HH:mm:ss.SSS[Z]')
+  // return dayjs().format('YYYY-MM-DD HH:mm:ss.SSS')
 }
 
 // ========== 方法 ==========
@@ -151,7 +152,6 @@ const submitApplyForm = async () => {
 
     // 构造请求
     const requestPromises = []
-    const newAccounts = []
     const now = formatBackendTime() // 后端要求的时间格式
 
     for (let i = 0; i < applyForm.count; i++) {
@@ -177,22 +177,6 @@ const submitApplyForm = async () => {
 
       requestPromises.push(axios.post('/api/employee/add', accountParams))
 
-      // 构造返回给父组件的新账号（前端展示用）
-      newAccounts.push({
-        id: `temp_${Date.now()}_${i}`,
-        isAdmin: String(applyForm.isAdmin),
-        status: 0, // 默认禁用
-        realName: '',
-        idCard: '', // 同步字段名
-        name: '新账号',
-        avatar: '',
-        headImg: '',
-        createTime: dayjs(now).format('YYYY-MM-DD HH:mm:ss'), // 前端展示格式
-        updateTime: dayjs(now).format('YYYY-MM-DD HH:mm:ss'),
-        orchardId: String(orchardId),
-        createUser: String(createUser),
-        sex: 0
-      })
     }
 
     // 批量提交
@@ -200,10 +184,30 @@ const submitApplyForm = async () => {
     const allSuccess = responses.every(res => res.data.code === 200)
     
     if (allSuccess) {
+      const realAccounts = responses.map((res, index) => {
+        const realId = res.data.data // 后端返回的ID
+        
+        return {
+          id: String(realId),           // 使用后端返回的真实ID
+          isAdmin: String(applyForm.isAdmin),
+          status: 0,
+          name: '',
+          idCard: '',                  // 注意字段名是 id_card 不是 idCard
+          username: '新账号',
+          avatar: '',
+          headImg: '',
+          createTime: dayjs(now).format('YYYY-MM-DD HH:mm:ss'),
+          updateTime: dayjs(now).format('YYYY-MM-DD HH:mm:ss'),
+          orchardId: String(orchardId),
+          createUser: String(createUser),
+          sex: 0,
+          phone: ''
+        }
+      })
       ElMessage.success(`成功申请${applyForm.count}个账号！`)
       showApplyDialog.value = false
       resetApplyForm()
-      emit('apply-success', newAccounts)
+      emit('apply-success', realAccounts)
       emit('get-orchard-id', String(orchardId))
     } else {
       ElMessage.error('部分账号申请失败，请检查！')

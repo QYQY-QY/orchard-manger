@@ -19,7 +19,7 @@
       >
         <div class="area-name">区域{{ area.id }}：{{ area.name }}</div>
         <div class="area-desc">{{ area.cropType || '-' }}</div>
-        <el-button type="text" size="small" @click.stop="showEditDialog(area)">区域详情</el-button>
+        <el-button link size="small" @click.stop="showEditDialog(area)">区域详情</el-button>
       </div>
     </div>
 

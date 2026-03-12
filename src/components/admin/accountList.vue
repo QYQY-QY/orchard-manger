@@ -26,7 +26,7 @@
       <el-table-column prop="id" label="账号ID" width="220" />
       <el-table-column prop="name" label="用户名" width="150">
         <template #default="{ row }">
-          {{ row.name || '未设置' }}
+          {{ row.username || '未设置' }}
         </template>
       </el-table-column>
       <el-table-column prop="isAdmin" label="账号类型" width="120">
@@ -53,7 +53,7 @@
       </el-table-column>
       <el-table-column label="实名信息" min-width="180">
         <template #default="{ row }">
-          <span v-if="row.id_card && validateIdCard(row.id_card)" class="realname-yes">{{ formatIdCard(row.id_card) }}</span>
+          <span v-if="row.id_card && validateIdCard(row.id_card)" class="name-yes">{{ formatIdCard(row.id_card) }}</span>
           <el-button 
             v-else 
             link 
@@ -260,7 +260,7 @@ watch(() => props.orchardId, (newVal) => {
   text-align: center;
 }
 
-.realname-yes {
+.name-yes {
   color: #67c23a;
   font-weight: 500;
 }

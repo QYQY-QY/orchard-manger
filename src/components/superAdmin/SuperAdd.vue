@@ -70,7 +70,7 @@ const props = defineProps({
 
 // 调试：监听 visible 变化，打印值
 watch(() => props.visible, (val) => {
-  console.log('SuperAdd 弹窗显隐状态：', val); // 点击父组件“创建按钮”后，看控制台是否输出 true
+
 }, { immediate: true });
 
 const emit = defineEmits(['update:visible', 'save-success'])
@@ -82,7 +82,7 @@ const accountForm = reactive({
   password: '',
   status: '1',
   role: '',
-  realName: '',
+  name: '',
   orchardId: '' // 备注：表单无输入项，建议删除或补充输入框
 })
 
@@ -91,7 +91,7 @@ const accountRules = reactive({
   name: [{ required: true, message: '请输入账号名称', trigger: 'blur' }],
   status: [{ required: true, message: '请选择账号状态', trigger: 'change' }],
   role: [{ required: true, message: '请选择用户类型', trigger: 'change' }],
-  realName: [{ required: true, message: '请输入实名信息', trigger: 'blur' }]
+  name: [{ required: true, message: '请输入实名信息', trigger: 'blur' }]
 })
 
 // 监听编辑状态，动态添加/移除password校验规则
@@ -104,7 +104,7 @@ watch(
       accountForm.name = val.name || ''
       accountForm.status = val.status + '' || '1'
       accountForm.role = val.role || ''
-      accountForm.realName = val.realName || ''
+      accountForm.name = val.name || ''
       accountForm.orchardId = val.orchardId || ''
     } else {
       // 创建态：添加密码校验

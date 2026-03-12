@@ -92,7 +92,7 @@ const fetchAccountList = async () => {
         id: item.id, // 管理员ID
         userType: '管理员账号', // 固定为管理员类型
         accountStatus: 'active', // 默认已激活（可根据实际接口字段调整）
-        realName: item.name || '未填写' // 管理员姓名
+        name: item.name || '未填写' // 管理员姓名
       }))
       
       // 可选：适配筛选参数（保留原有筛选逻辑）
