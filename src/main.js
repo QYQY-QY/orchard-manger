@@ -17,6 +17,9 @@ import 'element-plus/dist/index.css'
 //导入布局组件
 import CommonLayout from '@/views/common/CommonLayout.vue'
 
+//导入字体
+import './assets/font/fonts.css'
+
 // 创建 Pinia 实例并配置插件
 const pinia = createPinia()
 pinia.use(piniaPluginPersistedstate) // 注册持久化插件

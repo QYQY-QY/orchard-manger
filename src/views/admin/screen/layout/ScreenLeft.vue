@@ -1,41 +1,58 @@
 <template>
   <div class="screen-left">
-    <!-- 顶部三个数字卡片 -->
-    <div class="cards-row">
-      <div class="stat-card" v-for="item in statCards" :key="item.label">
-        <div class="card-value">{{ item.value }}</div>
-        <div class="card-label">{{ item.label }}</div>
-        <div class="card-trend" :class="{ up: item.trend > 0 }">
-          {{ item.trend > 0 ? '+' : '' }}{{ item.trend }}%
+    <!-- 背景层（渐变 + 网格线 + 扫描线） -->
+    <div class="left-bg"></div>
+
+    <!-- 内容层 -->
+    <div class="left-content">
+      <!-- 顶部两个数字卡片 -->
+      <div class="cards-row">
+        <div class="stat-card" v-for="item in statCards" :key="item.label">
+          <div class="card-value">{{ item.value }}</div>
+          <div class="card-label">{{ item.label }}</div>
         </div>
       </div>
-    </div>
 
-    <!-- 饼图组件 -->
-    <div class="chart-card">
-      <div class="card-title">品类占比</div>
-      <PieChart :data="pieData" height="180px" />
-    </div>
+      <!-- 饼图组件 -->
+      <div class="chart-card">
+        <div class="card-title">品类占比</div>
+        <PieChart :data="pieData" height="180px" />
+      </div>
 
-    <!-- 柱状图组件 -->
-    <div class="chart-card">
-      <div class="card-title">主产县产量对比</div>
-      <BarChart :data="barData" height="180px" />
+      <!-- 柱状图组件 -->
+      <div class="chart-card">
+        <div class="card-title">主产县产量对比</div>
+        <BarChart :data="barData" height="180px" />
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import axios from 'axios'
 import PieChart from '../chart/PieChart.vue'
 import BarChart from '../chart/BarChart.vue'
 
-// 模拟数据
 const statCards = ref([
-  { label: '今日采摘量', value: '1250.8 吨', trend: 5.2 },
-  { label: '累计产量', value: '328.4 万吨', trend: 3.1 },
-  { label: '设备在线率', value: '98.5%', trend: 0.5 }
+  { label: '工作人员总数', value: '加载中...' },
+  { label: '果树总数', value: '加载中...' }
 ])
+
+const fetchStats = async () => {
+  try {
+    const [staffRes, treeRes] = await Promise.all([
+      axios.get('/api/staff/count'),
+      axios.get('/api/tree/count')
+    ])
+    statCards.value[0].value = staffRes.data.data + ' 人'
+    statCards.value[1].value = treeRes.data.data + ' 棵'
+  } catch (error) {
+    console.error('获取统计数据失败', error)
+    statCards.value[0].value = '获取失败'
+    statCards.value[1].value = '获取失败'
+  }
+}
 
 const pieData = ref([
   { name: '温州蜜柑', value: 45 },
@@ -51,80 +68,146 @@ const barData = ref([
   { name: '瑞安', value: 50 },
   { name: '黄岩', value: 55 }
 ])
+
+onMounted(() => {
+  fetchStats()
+})
 </script>
 
 <style scoped>
 .screen-left {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  /* 左深黑 → 右暗绿透明渐变 */
+  background: linear-gradient(
+    to right,
+    rgba(0, 23, 9, 0.884) 0%,
+    rgba(0, 30, 0, 0.452) 40%,
+    rgba(1, 31, 1, 0.066) 75%,
+    rgba(1, 31, 1, 0) 100%
+  );
+  backdrop-filter: blur(2px); /* 轻微模糊，增强融合感 */
+}
+
+/* 背景层：网格线 + 扫描线 */
+.left-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* 暗绿色网格线 */
+.left-bg::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    linear-gradient(rgba(66, 104, 66, 0.15) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(25, 70, 66, 0.15) 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+
+/* 流动扫描线（极淡的暗绿光带） */
+.left-bg::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 80, 0, 0.1), transparent);
+  animation: scanMove 10s infinite linear;
+}
+
+@keyframes scanMove {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+.left-content {
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   gap: 20px;
   height: 100%;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
+/* 卡片行等宽布局 */
 .cards-row {
   display: flex;
   gap: 16px;
   justify-content: space-between;
 }
 
+/* 悬浮式卡片（无边框，半透明，阴影） */
 .stat-card {
   flex: 1;
-  background: rgba(20, 30, 45, 0.6);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 140, 0, 0.3);
-  border-radius: 12px;
-  padding: 16px 12px;
   text-align: center;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-  transition: transform 0.3s;
+  padding: 18px 12px;
+  /* background: rgba(0, 15, 0, 0.4); */
+  backdrop-filter: blur(4px);
+  border: none; /* 无边框 */
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 80, 0, 0.2) inset;
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .stat-card:hover {
-  transform: translateY(-5px);
-  border-color: #ff8c00;
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(186, 240, 224, 0.142) inset;
 }
 
 .card-value {
-  font-size: 24px;
-  font-weight: 600;
-  color: #ffaa00;
-  margin-bottom: 5px;
-}
-
-.card-label {
-  font-size: 14px;
-  color: #ccc;
+  font-size: 36px;
+  font-weight: 700;
+  color: #d0ffd0;
+  line-height: 1.2;
   margin-bottom: 8px;
 }
 
-.card-trend {
-  font-size: 12px;
-  color: #f56c6c;
+/* 获取失败时字体缩小 */
+.card-value.error {
+  font-size: 20px;
+  color: #ffaaaa;
 }
 
-.card-trend.up {
-  color: #67c23a;
+.card-label {
+  font-size: 16px;
+  color: #bee7d6;
+  opacity: 0.9;
 }
 
+/* 图表卡片完全透明，与背景融合 */
 .chart-card {
-  background: rgba(20, 30, 45, 0.6);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 140, 0, 0.3);
-  border-radius: 12px;
-  padding: 15px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
   flex: 1;
   display: flex;
   flex-direction: column;
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 .card-title {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 500;
-  color: #ffaa00;
-  margin-bottom: 12px;
-  padding-left: 10px;
+  color: #c0ffc0;
+  margin-bottom: 16px;
+  padding-left: 12px;
   position: relative;
+  text-shadow: none;
 }
 
 .card-title::before {
@@ -134,8 +217,8 @@ const barData = ref([
   top: 50%;
   transform: translateY(-50%);
   width: 4px;
-  height: 16px;
-  background: linear-gradient(to bottom, #ff8c00, #ffaa00);
+  height: 20px;
+  background: linear-gradient(to bottom, #3fb896, #235640);
   border-radius: 2px;
 }
 </style>

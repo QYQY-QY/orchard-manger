@@ -1,4 +1,6 @@
-<script setup></script>
+<script setup>
+import '@/assets/font/fonts.css'
+</script>
 
 <template>
  <router-view />

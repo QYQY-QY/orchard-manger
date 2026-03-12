@@ -149,7 +149,12 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* 样式部分与之前完全相同，保持不变 */
+/* 应用到标题 */
+.title-chinese {
+  font-family: 'jijia', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  /* 其他样式保持不变 */
+}
+/* 样式部分与之前完全相同，但修改了边框和发光效果 */
 .screen-header {
   position: absolute;
   top: 0;
@@ -162,7 +167,7 @@ onUnmounted(() => {
   justify-content: space-between;
   background: rgba(10, 25, 20, 0.7);
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(100, 255, 180, 0.3);
+  /* border-bottom: 1px solid rgba(100, 255, 180, 0.3); */ /* 已移除边框线条 */
   box-shadow: 0 4px 30px rgba(80, 255, 150, 0.15);
   z-index: 10;
   color: #fff;
@@ -262,6 +267,35 @@ onUnmounted(() => {
   z-index: 2;
 }
 
+/* 发光短线条动画 */
+.header-title::after {
+  content: '';
+  position: absolute;
+  bottom: -15px;          /* 位于标题下方 */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #a0ffc0, transparent);
+  box-shadow: 0 0 15px #80ffa0;
+  animation: glowLine 7s infinite ease-out;
+}
+
+@keyframes glowLine {
+  0% {
+    width: 0;
+    opacity: 1;
+  }
+  50% {
+    width: 195%;           /* 扩展到父容器宽度的30% */
+    opacity: 0.8;
+  }
+  100% {
+    width: 0;
+    opacity: 0;
+  }
+}
+
 .title-chinese {
   display: block;
   font-size: 36px;
@@ -272,7 +306,8 @@ onUnmounted(() => {
   -webkit-text-fill-color: transparent;
   color: transparent;
   letter-spacing: 4px;
-  text-shadow: 0 0 20px rgba(100, 255, 150, 0.6);
+  /* 减弱文字发光效果 */
+  text-shadow: 0 0 10px rgba(100, 255, 150, 0.3);
   -webkit-text-stroke: 1px rgba(255, 255, 255, 0.2);
   font-family: 'PingFang SC', 'Microsoft YaHei', '华文楷体', 'KaiTi', cursive;
   transform: scale(1.02);
@@ -280,7 +315,7 @@ onUnmounted(() => {
 }
 
 .title-chinese:hover {
-  text-shadow: 0 0 30px #90ffb0;
+  text-shadow: 0 0 20px #90ffb0;  /* 悬停时可稍强，但仍保持减弱 */
   transform: scale(1.05);
 }
 
