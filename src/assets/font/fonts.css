@@ -1,0 +1,10 @@
+/* 在文件顶部引入自定义字体 */
+@font-face {
+    font-family: 'jijia';
+    /* 字体名称，可自定义 */
+    src: url('./AaJiJiaHei-2.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+    /* 优化加载体验 */
+}
