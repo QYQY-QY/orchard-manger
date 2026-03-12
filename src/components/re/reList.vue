@@ -105,7 +105,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['view-detail', 'delete-recruit', 'list-loaded'])
+const emit = defineEmits(['detail', 'delete-recruit', 'list-loaded'])
 
 // 删除招聘任务
 const handleDelete = async (id) => {

@@ -90,7 +90,7 @@ const handleAreaSelect = (areaId) => {
 const handleOrchardUpdate = async (action) => {
   switch (action.type) {
     case 'add':
-      await getOrchardList()
+      await getOrchardList()  // 👈 添加这行
       if (orchardList.value.length > 0) {
         const newId = orchardList.value[orchardList.value.length - 1].id
         activeOrchardId.value = newId
@@ -98,12 +98,14 @@ const handleOrchardUpdate = async (action) => {
       }
       break
     case 'edit':
+      await getOrchardList()  // 👈 添加这行
       const editIdx = orchardList.value.findIndex(o => o.id === action.data.id)
       if (editIdx > -1) {
         orchardList.value[editIdx] = { ...orchardList.value[editIdx], ...action.data }
       }
       break
     case 'delete':
+      await getOrchardList()  // 👈 添加这行
       orchardList.value = orchardList.value.filter(o => o.id !== action.id)
       if (activeOrchardId.value === action.id) {
         activeOrchardId.value = ''
@@ -219,7 +221,7 @@ const getOrchardList = async () => {
 const getAreaList = async () => {
   try {
     const orchardId = userStore.user.orchardId || 1
-    const res = await axios.get('https://192.168.123.93:3388/area/selectByOrchardId', {
+    const res = await axios.get('/api/area/selectByOrchardId', {
       params: { orchardId: orchardId }
     })
     if (res.data.code === 200) {

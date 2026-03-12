@@ -105,7 +105,7 @@
             <el-divider content-position="left">实名认证</el-divider>
             <el-form :model="realNameForm" inline @submit.prevent="submitRealName">
               <el-form-item label="真实姓名" prop="realName">
-                <el-input v-model="realNameForm.realName" placeholder="请输入真实姓名" size="small" />
+                <el-input v-model="realNameForm.name" placeholder="请输入真实姓名" size="small" />
               </el-form-item>
               <el-form-item label="手机号" prop="phone">
                 <el-input v-model="realNameForm.phone" placeholder="请输入手机号" size="small" />
@@ -182,7 +182,7 @@
     </el-dialog>
 
     <template #footer>
-      <el-button @click="visible = false">关闭</el-button>
+      <el-button @click="emit('update:visible', false)">关闭</el-button>
     </template>
   </el-dialog>
 </template>
@@ -246,7 +246,7 @@ const editRules = ref({
 
 // 实名认证表单
 const realNameForm = ref({
-  realName: '',
+  name: '',
   phone: '',
   idCard: ''
 })
@@ -258,13 +258,13 @@ watch(() => props.account, (newVal) => {
     // 初始化编辑表单（统一类型转换）
     editForm.value = {
       id: String(newVal.id),
-      name: newVal.name || newVal.realName || '',
+      name: newVal.name || newVal.name || '',
       phone: newVal.phone || '',
       sex: String(Number(newVal.sex) || ''), // 统一转String
       id_card: newVal.id_card || ''
     }
     realNameForm.value = {
-      realName: newVal.realName || '',
+      name: newVal.name || '',
       phone: newVal.phone || '',
       idCard: newVal.id_card || ''
     }
@@ -278,7 +278,7 @@ const cancelEdit = () => {
   isEditing.value = false
   editForm.value = {
     id: String(currentAccount.value.id),
-    name: currentAccount.value.name || currentAccount.value.realName || '',
+    name: currentAccount.value.name || currentAccount.value.name || '',
     phone: currentAccount.value.phone || '',
     sex: String(Number(currentAccount.value.sex) || ''),
     id_card: currentAccount.value.id_card || ''
@@ -302,7 +302,7 @@ const submitEditForm = async () => {
         phone: editForm.value.phone,
         sex: Number(editForm.value.sex),
         id_card: editForm.value.id_card || currentAccount.value.id_card,
-        realName: editForm.value.name,
+        name: editForm.value.name,
         updateTime: dayjs().format('YYYY-MM-DD HH:mm:ss') // 无时区
       }
       currentAccount.value = updatedAccount
@@ -322,16 +322,18 @@ const submitEditForm = async () => {
 // 提交实名认证（修正接口地址）
 const submitRealName = async () => {
   try {
-    if (!realNameForm.value.realName || !realNameForm.value.phone || !realNameForm.value.idCard) {
+    if (!realNameForm.value.name || !realNameForm.value.phone || !realNameForm.value.idCard) {
       return ElMessage.warning('请填写完整实名信息')
     }
     // 身份证校验
     if (!validateIdCard(realNameForm.value.idCard)) {
       return ElMessage.error('请输入正确的18位身份证号')
     }
+    console.log('currentAccount.value:', currentAccount.value)
+    console.log('currentAccount.value.id:', currentAccount.value?.id)
     // 正确接口地址：/api/employee/auth
     const res = await axios.post('/api/employee/auth', {
-      realName: realNameForm.value.realName,
+      name: realNameForm.value.name,
       phone: realNameForm.value.phone,
       idCard: realNameForm.value.idCard,
       id: Number(currentAccount.value.id)
@@ -339,14 +341,14 @@ const submitRealName = async () => {
     if (res.data.code === 200) {
       const updatedAccount = {
         ...currentAccount.value,
-        realName: realNameForm.value.realName,
+        name: realNameForm.value.name,
         phone: realNameForm.value.phone,
         id_card: realNameForm.value.idCard,
         updateTime: dayjs().format('YYYY-MM-DD HH:mm:ss')
       }
       currentAccount.value = updatedAccount
       emit('realname-success', updatedAccount)
-      realNameForm.value = { realName: '', phone: '', idCard: '' }
+      realNameForm.value = { name: '', phone: '', idCard: '' }
       ElMessage.success('实名认证成功！')
     } else {
       ElMessage.error(res.data.msg || '实名认证失败')
@@ -385,6 +387,7 @@ const beforeAvatarUpload = (file) => {
 // 关闭弹窗
 const handleClose = () => {
   emit('close')
+  emit('update:visible', false)
   isEditing.value = false
   uploadAvatar.value = false
 }
