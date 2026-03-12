@@ -73,6 +73,11 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
+// import InfoPanel from '@/components/3Dthree/infoPanel.vue'
+// import StatsPanel from '@/components/3Dthree/StatsPanel.vue'
+// import ZoneDetailModal from '@/components/3Dthree/ZoneDetailModal.vue'
+// import OrchardScene from '@/components/3Dthree/orchardScene.vue'
+// import SceneControls from '@/components/3Dthree/SceneControls.vue'
 
 // 大屏专属子组件按结构引入
 import ScreenHeader from '@/views/admin/screen/components/layout/screen-header.vue'

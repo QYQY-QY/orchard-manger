@@ -731,8 +731,8 @@ onMounted(() => {
 }
 
 .zone-item.active {
-  background-color: #e8f4ff;
-  border-left-color: #409eff;
+  background-color: #e1f7ec8c;
+  border-left-color: #6ebeb1;
 }
 
 .zone-item:hover:not(.active) {

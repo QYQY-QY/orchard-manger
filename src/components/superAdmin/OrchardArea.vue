@@ -5,7 +5,7 @@
       <span class="main-title">{{ activeOrchard.name || '未选择果园' }}</span>
       <!-- 第二行文字移到标题右侧，小字展示 -->
       <span class="sub-title">
-        负责人：{{ activeOrchard.manager || '未设置' }} | 位置：{{ activeOrchard.location || '-' }}
+        负责人：{{ activeOrchard.manager || '未设置' }} | 位置：{{ activeOrchard.address || '-' }}
       </span>
     </div>
 

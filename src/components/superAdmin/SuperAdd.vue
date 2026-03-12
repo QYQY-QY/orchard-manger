@@ -56,6 +56,7 @@ import { ref, reactive, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import axios from 'axios'
 
+// 在 props 定义后加调试
 const props = defineProps({
   visible: {
     type: Boolean,
@@ -67,6 +68,11 @@ const props = defineProps({
   }
 })
 
+// 调试：监听 visible 变化，打印值
+watch(() => props.visible, (val) => {
+  console.log('SuperAdd 弹窗显隐状态：', val); // 点击父组件“创建按钮”后，看控制台是否输出 true
+}, { immediate: true });
+
 const emit = defineEmits(['update:visible', 'save-success'])
 
 const accountFormRef = ref()
@@ -77,7 +83,7 @@ const accountForm = reactive({
   status: '1',
   role: '',
   realName: '',
-  orchardId: ''
+  orchardId: '' // 备注：表单无输入项，建议删除或补充输入框
 })
 
 // 修复：动态生成校验规则，编辑态移除password校验
@@ -112,17 +118,30 @@ watch(
   { immediate: true }
 )
 
-// 保存账号（修复无效的orchardId逻辑）
+// 保存账号（核心修复：精准提示校验失败原因）
 const handleSave = async () => {
+  // 修复：先判断ref是否挂载成功
+  if (!accountFormRef.value) {
+    ElMessage.error('表单初始化失败，请刷新重试')
+    return
+  }
+
   try {
-    // 先校验表单
-    await accountFormRef.value.validate()
+    // 先校验表单（精准捕获每个字段的错误）
+    await accountFormRef.value.validate((valid, invalidFields) => {
+      if (!valid) {
+        // 遍历无效字段，给出精准提示
+        const firstError = Object.keys(invalidFields)[0]
+        const errorMsg = invalidFields[firstError][0].message
+        ElMessage.error(`表单校验失败：${errorMsg}`)
+        throw new Error('ValidationError') // 抛出错误，终止后续逻辑
+      }
+    })
     
     const submitData = {
       ...accountForm,
       status: Number(accountForm.status),
-      // 修复：移除无效的orchardId判断（原逻辑role没有orchard值）
-      orchardId: accountForm.orchardId
+      orchardId: accountForm.orchardId // 若无需此字段，可删除
     }
 
     let res
@@ -141,18 +160,15 @@ const handleSave = async () => {
       ElMessage.error('保存失败：' + res.data.msg)
     }
   } catch (err) {
-    // 校验失败时给出提示
-    if (err.name === 'ValidationError') {
-      ElMessage.warning('请完善表单必填项后重试')
-      return
+    // 校验失败时不重复提示（已在validate中提示）
+    if (err.name !== 'ValidationError') {
+      ElMessage.error('保存账号失败：' + (err.message || '未知错误'))
+      console.error(err)
     }
-    ElMessage.error('保存账号失败：' + (err.message || '未知错误'))
-    console.error(err)
   }
 }
 </script>
 
-<!-- 样式部分不变，保留原有代码 -->
 <style scoped>
 /* 弹窗整体美化 */
 :deep(.account-dialog .el-dialog__header) {
@@ -195,11 +211,10 @@ const handleSave = async () => {
   padding: 8px 20px;
   border-radius: 6px;
 }
+/* 修复：删除硬写的背景色，继承全局主按钮样式 */
 .save-btn {
   padding: 8px 20px;
   border-radius: 6px;
-  background: #409eff;
-  border-color: #409eff;
 }
 
 /* 单选框美化 */

@@ -23,7 +23,7 @@
       <!-- 优化：招聘地点（空值兜底） -->
       <el-table-column label="招聘地点" width="150px">
         <template #default="{ row }">
-          {{ row.orchardName || `果园${row.orchardId}` }}
+          {{ row.areaName || `果园${row.orchardId}` }}
         </template>
       </el-table-column>
       <!-- 优化：发布时间（格式化 + 空值兜底） -->

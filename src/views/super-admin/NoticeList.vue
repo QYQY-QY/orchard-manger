@@ -68,7 +68,7 @@
             <el-button
               type="danger"
               size="small"
-              icon="el-icon-delete"
+              
               style="border-radius: 6px; padding: 6px 12px;"
               @click="handleDelete(scope.row.id)"
             >
@@ -134,7 +134,7 @@ const getNoticeList = async () => {
     const res = await axios.post('/api/announceInfo/list', params)
     
     if (res.data.code === 200) {
-      noticeList.value = res.data.data.records || []
+      noticeList.value = res.data.data || []
     } else {
       ElMessage.error(res.data.msg || '获取通知列表失败')
       noticeList.value = []

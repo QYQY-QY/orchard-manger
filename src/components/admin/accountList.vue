@@ -93,7 +93,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch,defineExpose } from 'vue'
 import { ElMessage, ElIcon, ElEmpty } from 'element-plus'
 import { Loading } from '@element-plus/icons-vue'
 import axios from 'axios'

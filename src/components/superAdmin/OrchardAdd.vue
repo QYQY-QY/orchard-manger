@@ -52,14 +52,14 @@
         </el-form-item>
         <el-form-item label="果园地点">
           <el-input 
-            v-model="form.location" 
+            v-model="form.address" 
             placeholder="请输入果园地点"
             border-radius="6px"
           />
         </el-form-item>
         <el-form-item label="果园管理员">
           <el-select 
-            v-model="form.managerId" 
+            v-model="form.empId" 
             placeholder="请选择管理员"
             border-radius="6px"
           >
@@ -70,6 +70,13 @@
               :value="admin.id"
             />
           </el-select>
+        </el-form-item>
+        <el-form-item label="区域大小">
+          <el-input 
+            v-model="form.size" 
+            placeholder="请输入区域大小"
+            border-radius="6px"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -100,14 +107,15 @@ const adminList = ref([])
 const form = reactive({
   id: '',
   name: '',
-  location: '',
-  managerId: ''
+  address: '',
+  empId: '',
+  size : ""
 })
 
 // 显示添加对话框
 const showAddDialog = () => {
   dialogType.value = 'add'
-  Object.assign(form, { id: '', name: '', location: '', managerId: '' })
+  Object.assign(form, { id: '', name: '', address: '', empId: '' })
   dialogVisible.value = true
 }
 
@@ -121,7 +129,7 @@ const showEditDialog = (orchard) => {
 // 提交表单
 const handleSubmit = async () => {
   try {
-    const url = dialogType.value === 'add' ? '/api/orchard/add' : '/api/orchard/update'
+    const url = dialogType.value === 'add' ? '/api/orchard/add' : '/api/orchard/change'
     const res = await axios.post(url, form)
     if (res.data?.code === 200) {
       ElMessage.success(dialogType.value === 'add' ? '添加成功' : '编辑成功')
@@ -142,12 +150,15 @@ const handleSubmit = async () => {
 // 删除果园
 const handleDelete = async (id) => {
   try {
-    const res = await axios.post('/api/orchard/delete', { id })
+    // 1. 方法改为 DELETE
+    // 2. URL 改为路径参数形式
+    const res = await axios.delete(`/api/orchard/delete/${id}`)
+    
     if (res.data?.code === 200) {
       ElMessage.success('删除成功')
       emit('orchard-update', { type: 'delete', id })
     } else {
-      ElMessage.error('删除失败')
+      ElMessage.error(res.data?.msg || '删除失败')
     }
   } catch (err) {
     console.error(err)
@@ -158,7 +169,7 @@ const handleDelete = async (id) => {
 // 获取管理员列表（isAdmin=2）
 const getAdminList = async () => {
   try {
-    const res = await axios.get('/api/user/listByRole', { params: { isAdmin: 2 } })
+    const res = await axios.get('/api/employee/getAllEmployees')
     if (res.data?.code === 200) {
       adminList.value = res.data.data || []
     }

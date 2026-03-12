@@ -4,6 +4,11 @@
     <!-- 左侧侧边栏 -->
     <el-aside width="200px">
       <div class="el-aside__logo"></div>
+        <img 
+      src="@/assets/images/logo.png" 
+      alt="一树一码——果园管理平台" 
+      style="width: 200px; height: auto;" 
+    />
       <!-- 核心：default-active 绑定当前路由path + unique-opened 保证高亮唯一 -->
       <el-menu
         active-text-color="#ffd04b"
@@ -92,31 +97,19 @@
           </el-menu-item>
 
           <!-- 超级管理员专属菜单 -->
-          <el-menu-item index="/superadmin-system">
+          <el-menu-item index="/sys">
             <el-icon><Setting /></el-icon>
             <span>系统设置</span>
           </el-menu-item>
         </template>
 
         <!-- 个人中心（所有角色都显示） -->
-        <el-sub-menu index="/user">
-          <template #title>
-            <el-icon><UserFilled /></el-icon>
-            <span>个人中心</span>
-          </template>
-          <el-menu-item :index="realRole === 'superAdmin' ? '/superadmin/user/profile' : '/user/profile'">
+       
+          <el-menu-item :index="realRole === 'superAdmin' ? '/sys' : '/sys'">
             <el-icon><User /></el-icon>
-            <span>基本资料</span>
+            <span>个人中心</span>
           </el-menu-item>
-          <el-menu-item :index="realRole === 'superAdmin' ? '/superadmin/user/avatar' : '/user/avatar'">
-            <el-icon><Crop /></el-icon>
-            <span>更换头像</span>
-          </el-menu-item>
-          <el-menu-item :index="realRole === 'superAdmin' ? '/superadmin/user/password' : '/user/password'">
-            <el-icon><EditPen /></el-icon>
-            <span>重置密码</span>
-          </el-menu-item>
-        </el-sub-menu>
+         
       </el-menu>
     </el-aside>
 
@@ -160,6 +153,7 @@
 import { useUserStore } from '@/stores/modules/user'
 import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+
 
 // 2. 初始化路由和用户仓库
 const userStore = useUserStore()
@@ -239,21 +233,21 @@ const handleCommand = (command) => {
   overflow-x: hidden; /* 彻底禁止整个页面左右滚动 */
 
   .el-aside {
-    background-color: #232323;
+    background-color: #000000;
     overflow-x: hidden; /* 禁止侧边栏左右滚动 */
 
     &__logo {
       height: 120px;
       background: url('@/assets/logo.png') no-repeat center / 120px auto;
-      background-color: #1f1f1f;
+      background-color: #000000;
     }
 
     .el-menu {
       border-right: none;
-      height: calc(100vh - 120px);
+      height: calc(100vh - 220px);
       overflow-x: hidden; /* 禁止菜单左右滚动 */
       &-item.is-active {
-        background-color: #409eff !important;
+        background-color: #62ada2 !important;
         color: #fff !important;
       }
       &-submenu.is-active > .el-menu-item {
@@ -287,7 +281,9 @@ const handleCommand = (command) => {
       }
     }
   }
-
+  .el-aside__logo{
+    height: 60px;
+  }
   .el-main {
     background-color: #f5f5f5;
     padding: 20px;

@@ -89,6 +89,12 @@ const router = createRouter({
       name: 'SuperAi',
       component: () => import('@/views/super-admin/AI.vue')
     },
+    //其他
+    {
+      path: '/sys',
+      name: 'sys',
+      component: () => import('../views/super-admin/sys.vue')
+    },
 
 
     // 404 重定向到登录页

@@ -52,7 +52,7 @@ const activeOrchard = computed(() => {
   return orchardList.value.find(o => o.id === activeOrchardId.value) || {
     id: '',
     name: '',
-    location: '',
+    address: '',
     manager: '',
     areas: []
   }
@@ -142,35 +142,91 @@ const handleAreaUpdate = async (action) => {
   }
 }
 
-// 获取果园列表
+// 获取果园列表 - 通用版本
 const getOrchardList = async () => {
   try {
     loading.value = true
-    const res = await axios.get('/api/orchard/list')
+    const empId = userStore.user?.id || userStore.user?.empId
+    
+    console.log('请求参数:', { empId })
+    
+    const res = await axios.post('/api/orchard/list' , {})
+    
+    console.log('完整响应:', res)
+    console.log('响应数据:', res.data)
+    
     if (res.data?.code === 200) {
-      orchardList.value = (res.data.data || []).map(o => ({
+      const responseData = res.data.data
+      let dataArray = []
+      
+      // 判断数据结构并提取数组
+      if (responseData) {
+        if (Array.isArray(responseData)) {
+          // 直接是数组
+          dataArray = responseData
+        } else if (responseData.records && Array.isArray(responseData.records)) {
+          // 分页对象：{ records: [], total: 0, ... }
+          dataArray = responseData.records
+          console.log('分页信息:', {
+            total: responseData.total,
+            size: responseData.size,
+            current: responseData.current,
+            pages: responseData.pages
+          })
+        } else if (responseData.list && Array.isArray(responseData.list)) {
+          // 另一种分页格式：{ list: [], total: 0 }
+          dataArray = responseData.list
+        } else if (responseData.data && Array.isArray(responseData.data)) {
+          // 嵌套数据：{ data: [] }
+          dataArray = responseData.data
+        } else if (typeof responseData === 'object') {
+          // 如果是单个对象，转换为数组
+          console.warn('返回的是单个对象，将包装为数组')
+          dataArray = [responseData]
+        }
+      }
+      
+      // 处理数据，确保每个果园都有 areas 数组
+      orchardList.value = dataArray.map(o => ({
         ...o,
-        areas: []
+        areas: o.areas || [] // 如果已有areas则保留，否则初始化为空数组
       }))
-      ElMessage.success('果园列表加载成功')
+      
+      ElMessage.success(`加载了 ${orchardList.value.length} 个果园`)
+      
+      // 如果列表不为空，默认选中第一个
+      if (orchardList.value.length > 0 && !activeOrchardId.value) {
+        activeOrchardId.value = orchardList.value[0].id
+      }
+      
     } else {
-      ElMessage.error('获取果园列表失败')
+      ElMessage.error(res.data?.msg || '获取果园列表失败')
     }
   } catch (err) {
-    console.error(err)
-    ElMessage.error('网络错误')
+    console.error('获取果园列表错误:', err)
+    if (err.response) {
+      ElMessage.error(`服务器错误: ${err.response.status}`)
+    } else if (err.request) {
+      ElMessage.error('服务器无响应，请检查后端服务')
+    } else {
+      ElMessage.error('请求失败: ' + err.message)
+    }
   } finally {
     loading.value = false
   }
 }
-
 // 新增：获取果园区域列表
 const getAreaList = async () => {
   try {
     const orchardId = userStore.user.orchardId || 1
-    const res = await axios.get(`/api/area/selectByOrchardId/${orchardId}`)
+    const res = await axios.get('https://192.168.123.93:3388/area/selectByOrchardId', {
+      params: { orchardId: orchardId }
+    })
     if (res.data.code === 200) {
-      areaList.value = res.data.data || []
+      const orchardIdx = orchardList.value.findIndex(o => o.id === activeOrchardId.value)
+      if (orchardIdx > -1) {
+        orchardList.value[orchardIdx].areas = res.data.data || []
+      }
     } else {
       ElMessage.error('获取招聘地点列表失败：' + res.data.msg)
     }
@@ -184,7 +240,7 @@ const getAreaList = async () => {
 const getTreeList = async (areaId) => {
   try {
     loading.value = true
-    const res = await axios.get(`/api/fruitTree/listByAreaId/${areaId}`)
+    const res = await axios.get(`/api/fruitTree/area/${areaId}`)
     if (res.data?.code === 200) {
       const orchardIdx = orchardList.value.findIndex(o => o.id === activeOrchardId.value)
       if (orchardIdx > -1) {
