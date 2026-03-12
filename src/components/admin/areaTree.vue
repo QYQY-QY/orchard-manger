@@ -112,7 +112,7 @@
                 icon="el-icon-download" 
                 class="qrcode-download-btn"
                 @click.stop="downloadQRCode(scope.row.url, scope.row.id)"
-                type="text"
+                link
               ></el-button>
             </div>
             <span class="no-qrcode" v-else>-</span>
@@ -125,7 +125,7 @@
           <template #default="scope">
             <el-button 
               size="small" 
-              type="text"
+              link
               @click="showTreeDetail(scope.row)"
               disabled  
             >
@@ -133,7 +133,7 @@
             </el-button>
             <el-button 
               size="small" 
-              type="text"
+              link
               text-color="danger"
               @click="handleDeleteTree(scope.row.id)"
             >

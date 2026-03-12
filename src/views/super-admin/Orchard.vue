@@ -25,8 +25,32 @@
         :active-area="activeArea"
         :tree-list="activeArea.trees"
         @tree-detail="showTreeDetail"
+        @tree-delete="handleTreeDelete"
       />
     </div>
+    <el-dialog
+      v-model="showTreeDetailDialog"
+      title="果树详情"
+      width="500px"
+      destroy-on-close
+    >
+      <div v-if="currentTree.id">
+        <el-descriptions :column="1" border>
+          <el-descriptions-item label="果树编号">{{ currentTree.id }}</el-descriptions-item>
+          <el-descriptions-item label="品种">{{ currentTree.type }}</el-descriptions-item>
+          <el-descriptions-item label="果实总数">{{ currentTree.countNum }}</el-descriptions-item>
+          <el-descriptions-item label="成熟实数">{{ currentTree.ripeNum }}</el-descriptions-item>
+          <el-descriptions-item label="成熟度">{{ currentTree.ripeDegree }}%</el-descriptions-item>
+          <el-descriptions-item label="健康状态">{{ currentTree.healthCondition || '良好' }}</el-descriptions-item>
+          <el-descriptions-item label="所属区域ID">{{ currentTree.areaId }}</el-descriptions-item>
+          <el-descriptions-item label="创建时间">{{ currentTree.createTime }}</el-descriptions-item>
+          <el-descriptions-item label="更新时间">{{ currentTree.updateTime }}</el-descriptions-item>
+        </el-descriptions>
+      </div>
+      <template #footer>
+        <el-button @click="showTreeDetailDialog = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </CommonLayout>
 </template>
 
@@ -72,7 +96,8 @@ const activeArea = computed(() => {
 
 // 初始化用户仓库
 const userStore = useUserStore()
-
+const showTreeDetailDialog = ref(false)
+const currentTree = ref({})
 // 选择果园
 const handleOrchardSelect = async (orchardId) => {
   activeOrchardId.value = orchardId
@@ -220,14 +245,19 @@ const getOrchardList = async () => {
 // 新增：获取果园区域列表
 const getAreaList = async () => {
   try {
-    const orchardId = userStore.user.orchardId || 1
+    if (!activeOrchardId.value) return
+    const orchardId = activeOrchardId.value || 1
     const res = await axios.get('/api/area/selectByOrchardId', {
       params: { orchardId: orchardId }
     })
     if (res.data.code === 200) {
       const orchardIdx = orchardList.value.findIndex(o => o.id === activeOrchardId.value)
-      if (orchardIdx > -1) {
-        orchardList.value[orchardIdx].areas = res.data.data || []
+      if (orchardIdx > -1 && orchardList.value[orchardIdx]) {
+        const areas = (res.data.data || []).map(area => ({
+          ...area,
+          manager: area.empName  // 关键：将 empName 映射为 manager
+        }))
+        orchardList.value[orchardIdx].areas = areas || []
       }
     } else {
       ElMessage.error('获取招聘地点列表失败：' + res.data.msg)
@@ -245,9 +275,10 @@ const getTreeList = async (areaId) => {
     const res = await axios.get(`/api/fruitTree/area/${areaId}`)
     if (res.data?.code === 200) {
       const orchardIdx = orchardList.value.findIndex(o => o.id === activeOrchardId.value)
-      if (orchardIdx > -1) {
+      if (orchardIdx > -1 && orchardList.value[orchardIdx]) {
         const areaIdx = orchardList.value[orchardIdx].areas.findIndex(a => a.id === areaId)
-        if (areaIdx > -1) {
+        if (areaIdx > -1 && orchardList.value[orchardIdx].areas[areaIdx]) {
+          // 安全地更新果树列表
           orchardList.value[orchardIdx].areas[areaIdx].trees = res.data.data || []
         }
       }
@@ -265,11 +296,34 @@ const getTreeList = async (areaId) => {
 // 查看果树详情
 const showTreeDetail = (tree) => {
   console.log('查看果树详情：', tree)
+  // 修改这里：使用 .value 来设置 ref 的值
+  currentTree.value = JSON.parse(JSON.stringify(tree))
+  showTreeDetailDialog.value = true
 }
 
 onMounted(() => {
   getOrchardList()
 })
+const handleTreeDelete = async (treeId) => {
+  console.log('删除果树ID:', treeId)
+  try {
+    // 这里替换为你的真实删除接口
+    const res = await axios.delete(`/api/fruitTree/${treeId}`)
+    // 如果后端接口是其他格式，比如 POST，则相应调整
+    // const res = await axios.post('/api/fruitTree/delete', { id: treeId })
+    
+    if (res.data.code === 200) {
+      ElMessage.success('果树删除成功')
+      // 删除成功后刷新当前区域的果树列表
+      await getTreeList(activeAreaId.value)
+    } else {
+      ElMessage.error(res.data.msg || '删除失败')
+    }
+  } catch (err) {
+    console.error('删除果树错误:', err)
+    ElMessage.error('网络错误，删除失败')
+  }
+}
 </script>
 <!-- 父组件 Orchard.vue 的 style 部分新增 -->
 <style scoped>

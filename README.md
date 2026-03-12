@@ -37,3 +37,16 @@ npm run dev
 npm run build
 ```
 
+
+
+
+
+```
+果园管理系统前端组件
+├── OrchardAdd.vue          # 果园管理组件（一级）
+├── OrchardArea.vue         # 区域管理组件（二级）
+├── OrchardTree.vue         # 果树管理组件（三级）
+├── superList.vue           # 管理员列表组件
+└── superAdd.vue            # 管理员添加/编辑弹窗组件
+```
+

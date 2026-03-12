@@ -16,8 +16,8 @@
         <div class="zone-remark">{{ zone.description || '无备注' }}</div>
         <!-- 详情/删除按钮 -->
         <div class="zone-actions">
-          <el-button size="mini" type="text" @click.stop="handleZoneDetail(zone)">详情</el-button>
-          <el-button size="mini" type="text" text-color="danger" @click.stop="handleZoneDelete(zone.id)">删除</el-button>
+          <el-button size="mini" link @click.stop="handleZoneDetail(zone)">详情</el-button>
+          <el-button size="mini" link text-color="danger" @click.stop="handleZoneDelete(zone.id)">删除</el-button>
         </div>
       </div>
     </div>

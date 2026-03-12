@@ -8,7 +8,7 @@
         <label>账号</label>
         <input
           v-model="form.username"
-          type="text"
+          link
           placeholder="请输入账号"
           :class="{ 'input-error': !!error.username }"
         />
