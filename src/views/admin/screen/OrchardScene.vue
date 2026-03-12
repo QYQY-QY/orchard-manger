@@ -882,13 +882,13 @@ const generatePlots = () => {
       idDiv.style.fontSize = '22px';
       idDiv.style.fontWeight = '600';
       idDiv.style.textShadow = '0 0 15px #2a9d8f';
-      //idDiv.style.backgroundColor = '#0a1e23';
+      idDiv.style.backgroundColor = '#0a1e23';
       idDiv.style.padding = '2px 12px';
       idDiv.style.borderRadius = '20px';
       idDiv.style.border = '2px solid #2a9d8f';
       idDiv.style.fontFamily = 'Arial, sans-serif';
       idDiv.style.boxShadow = '0 0 20px rgba(42, 157, 143, 0.3)';
-     // idDiv.style.opacity = '1';
+      idDiv.style.opacity = '1';
 
       const idLabel = new CSS2DObject(idDiv);
       idLabel.position.set(centerX, 1.2, centerZ);
