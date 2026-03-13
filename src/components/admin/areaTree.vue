@@ -4,99 +4,95 @@
     <div class="map-container" v-if="!activeAreaId">
       <div class="map-tips">请先选择或添加区域</div>
     </div>
-    
+
     <!-- 选中区域后显示表格 -->
     <div class="tree-list-container" v-if="activeAreaId">
       <div class="zone-info">
         <div>
-          <h3>区域{{ fullZoneInfo.number || activeZone.number }}：{{ fullZoneInfo.name || activeZone.name }}</h3>
+          <h3>
+            区域{{ fullZoneInfo.number || activeZone.number }}：{{
+              fullZoneInfo.name || activeZone.name
+            }}
+          </h3>
           <p class="zone-desc">
-            负责人：{{ fullZoneInfo.areaManagerName || '未设置' }} | 
-            品种：{{ fullZoneInfo.type || activeZone.type || '-' }} | 
-            果树总数：{{ sortedTreeList.length || fullZoneInfo.size || fullZoneInfo.fruitCount || activeZone.size || 0 }}
+            负责人：{{ fullZoneInfo.areaManagerName || "未设置" }} | 品种：{{
+              fullZoneInfo.type || activeZone.type || "-"
+            }}
+            | 果树总数：{{
+              sortedTreeList.length ||
+              fullZoneInfo.size ||
+              fullZoneInfo.fruitCount ||
+              activeZone.size ||
+              0
+            }}
           </p>
         </div>
       </div>
-      
+
       <!-- 果树表格（已修复闭合标签） -->
-      <el-table 
-        :data="sortedTreeList" 
-        border 
-        stripe 
+      <el-table
+        :data="sortedTreeList"
+        border
+        stripe
         style="width: 100%; margin-top: 20px"
         :header-cell-style="{ backgroundColor: '#f8f9fa' }"
         :empty-text="`该区域暂无果树数据`"
       >
         <!-- 果树编号 -->
-        <el-table-column 
-          label="果树编号" 
-          min-width="120"  
-        >
+        <el-table-column label="果树编号" min-width="120">
           <template #default="scope">
             {{ scope.row.id }}
           </template>
         </el-table-column>
         <!-- 新增：果树品种列 -->
-        <el-table-column 
-          label="果树品种" 
-          min-width="100"  
-        >
+        <el-table-column label="果树品种" min-width="100">
           <template #default="scope">
-            {{ scope.row.type || '-' }}
+            {{ scope.row.type || "-" }}
           </template>
         </el-table-column>
         <!-- 新增：果实数量列 -->
-        <el-table-column 
-          label="果实总数" 
-          min-width="100"  
-        >
+        <el-table-column label="果实总数" min-width="100">
           <template #default="scope">
             {{ scope.row.countNum || 0 }}
           </template>
         </el-table-column>
         <!-- 新增：成熟果实数量列 -->
-        <el-table-column 
-          label="成熟果实数" 
-          min-width="100"  
-        >
+        <el-table-column label="成熟果实数" min-width="100">
           <template #default="scope">
             {{ scope.row.ripeNum || 0 }}
           </template>
         </el-table-column>
-        <el-table-column 
-          label="成熟度" 
-          min-width="100"  
-        >
+        <el-table-column label="成熟度" min-width="100">
           <template #default="scope">
-            <el-tag 
-              size="small" 
+            <el-tag
+              size="small"
               :type="getRipeDegreeTagType(scope.row.ripeDegree)"
             >
               {{ formatRipeDegree(scope.row.ripeDegree) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column 
-          label="健康状态" 
-          min-width="100"  
-        >
+        <el-table-column label="健康状态" min-width="100">
           <template #default="scope">
-            <el-tag 
-              size="small" 
-              :type="scope.row.healthCondition === '健康' ? 'success' : (scope.row.healthCondition === '异常' ? 'danger' : 'warning')"
+            <el-tag
+              size="small"
+              :type="
+                scope.row.healthCondition === '健康'
+                  ? 'success'
+                  : scope.row.healthCondition === '异常'
+                  ? 'danger'
+                  : 'warning'
+              "
             >
-              {{ scope.row.healthCondition || '-' }}
+              {{ scope.row.healthCondition || "-" }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column 
-          label="二维码" 
-          min-width="100" 
-        >
+        <el-table-column label="二维码" min-width="100">
           <template #default="scope">
             <!-- 核心修复：使用后端返回的url字段 -->
             <div class="qrcode-container" v-if="scope.row.url">
-              <el-image 
+              <el-image
                 :src="scope.row.url"
                 fit="contain"
                 class="qrcode-img"
@@ -107,9 +103,9 @@
                   <div class="image-slot">图片加载失败</div>
                 </template>
               </el-image>
-              <el-button 
-                size="mini" 
-                icon="el-icon-download" 
+              <el-button
+                size="mini"
+                icon="el-icon-download"
                 class="qrcode-download-btn"
                 @click.stop="downloadQRCode(scope.row.url, scope.row.id)"
                 link
@@ -118,21 +114,18 @@
             <span class="no-qrcode" v-else>-</span>
           </template>
         </el-table-column>
-        <el-table-column 
-          label="操作" 
-          width="auto"  
-        >
+        <el-table-column label="操作" width="auto">
           <template #default="scope">
-            <el-button 
-              size="small" 
+            <el-button
+              size="small"
               link
               @click="showTreeDetail(scope.row)"
-              disabled  
+              disabled
             >
               查看详情
             </el-button>
-            <el-button 
-              size="small" 
+            <el-button
+              size="small"
               link
               text-color="danger"
               @click="handleDeleteTree(scope.row.id)"
@@ -141,47 +134,54 @@
             </el-button>
           </template>
         </el-table-column>
-      </el-table> <!-- 这里是修复的闭合标签 -->
+      </el-table>
+      <!-- 这里是修复的闭合标签 -->
 
       <!-- 批量生成二维码按钮 -->
-      <div style="margin-top: 20px; text-align: right; display: flex; gap: 10px; justify-content: flex-end">
-  <el-button 
-    type="primary"
-    @click="batchGenerateQRCode"
-    :loading="generateQRLoading"
-  >
-    批量生成二维码
-  </el-button>
-  <el-button 
-    type="success"
-    @click="batchDownloadQRCode"
-    :loading="downloadQRLoading"
-    :disabled="!sortedTreeList.some(item => item.url)"
-  >
-    批量下载二维码
-  </el-button>
-</div>
+      <div
+        style="
+          margin-top: 20px;
+          text-align: right;
+          display: flex;
+          gap: 10px;
+          justify-content: flex-end;
+        "
+      >
+        <el-button
+          type="primary"
+          @click="batchGenerateQRCode"
+          :loading="generateQRLoading"
+        >
+          批量生成二维码
+        </el-button>
+        <el-button
+          type="success"
+          @click="batchDownloadQRCode"
+          :loading="downloadQRLoading"
+          :disabled="!sortedTreeList.some((item) => item.url)"
+        >
+          批量下载二维码
+        </el-button>
+      </div>
     </div>
 
     <!-- 果树详情弹窗 -->
-    <el-dialog 
-      v-model="showTreeDetailDialog" 
-      title="果树详情" 
+    <el-dialog
+      v-model="showTreeDetailDialog"
+      title="果树详情"
       width="600px"
       center
       :close-on-click-modal="false"
     >
       <div class="tree-detail-content">
-        <el-descriptions 
-          title="果树基础信息" 
-          :column="1" 
-          border 
-        >
+        <el-descriptions title="果树基础信息" :column="1" border>
           <el-descriptions-item label="果树ID">
             {{ currentTree.id }}
           </el-descriptions-item>
           <el-descriptions-item label="果树品种">
-            {{ currentTree.type || fullZoneInfo.type || activeZone.type || '-' }}
+            {{
+              currentTree.type || fullZoneInfo.type || activeZone.type || "-"
+            }}
           </el-descriptions-item>
           <el-descriptions-item label="果实总数">
             {{ currentTree.countNum || 0 }}
@@ -195,13 +195,24 @@
             </el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="健康状态">
-            <el-tag :type="currentTree.healthCondition === '健康' ? 'success' : (currentTree.healthCondition === '异常' ? 'danger' : 'warning')">
-              {{ currentTree.healthCondition || '-' }}
+            <el-tag
+              :type="
+                currentTree.healthCondition === '健康'
+                  ? 'success'
+                  : currentTree.healthCondition === '异常'
+                  ? 'danger'
+                  : 'warning'
+              "
+            >
+              {{ currentTree.healthCondition || "-" }}
             </el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="二维码">
-            <div v-if="currentTree.url" style="display: flex; align-items: center; gap: 10px">
-              <el-image 
+            <div
+              v-if="currentTree.url"
+              style="display: flex; align-items: center; gap: 10px"
+            >
+              <el-image
                 :src="currentTree.url"
                 style="width: 80px; height: 80px"
                 fit="contain"
@@ -209,8 +220,8 @@
                 :preview-src-list="[currentTree.url]"
               />
               <div>
-                <el-button 
-                  size="mini" 
+                <el-button
+                  size="mini"
                   type="primary"
                   @click.stop="downloadQRCode(currentTree.url, currentTree.id)"
                 >
@@ -242,7 +253,16 @@
           fit="contain"
         >
           <template #error>
-            <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #999">
+            <div
+              style="
+                width: 100%;
+                height: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #999;
+              "
+            >
               图片加载失败
             </div>
           </template>
@@ -261,319 +281,352 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, nextTick } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import axios from 'axios'
-import JSZip from 'jszip'
-import { saveAs } from 'file-saver'
+import { ref, reactive, computed, watch, nextTick } from "vue";
+import { ElMessage, ElMessageBox } from "element-plus";
+import axios from "axios";
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
 
-const downloadQRLoading = ref(false) // 加这一行
+const downloadQRLoading = ref(false); // 加这一行
 
 // 定义props
 const props = defineProps({
   activeAreaId: {
     type: [String, Number],
     required: true,
-    default: ''
+    default: "",
   },
   activeZone: {
     type: Object,
     required: true,
-    default: () => ({ trees: [], number: '', name: '', type: '', size: 0 })
+    default: () => ({ trees: [], number: "", name: "", type: "", size: 0 }),
   },
   treeList: {
     type: Array,
     required: true,
-    default: () => []
+    default: () => [],
   },
   fullZoneInfo: {
     type: Object,
     required: false,
     default: () => ({
-      id: '',
-      name: '',
-      description: '',
-      empId: '',
-      type: '',
-      fruitCount: '',
+      id: "",
+      name: "",
+      description: "",
+      empId: "",
+      areaManagerName: "",
+      type: "",
+      fruitCount: "",
       size: 0,
-      orchardId: '',
-      number: ''
-    })
-  }
-})
+      orchardId: "",
+      number: "",
+    }),
+  },
+});
 
-const emit = defineEmits(['tree-delete', 'tree-list-update'])
+const emit = defineEmits(["tree-delete", "tree-list-update"]);
 
 // 状态定义
-const generateQRLoading = ref(false)
-const showQRViewer = ref(false)
-const qrViewerUrl = ref('')
-const showTreeDetailDialog = ref(false)
-const currentTree = reactive({})
+const generateQRLoading = ref(false);
+const showQRViewer = ref(false);
+const qrViewerUrl = ref("");
+const showTreeDetailDialog = ref(false);
+const currentTree = reactive({});
 
 // 核心修复：适配后端返回的字段结构
 const sortedTreeList = computed(() => {
   // 1. 过滤掉无效数据
-  const validTrees = (props.treeList || []).filter(tree => {
-    return tree && tree.id !== undefined && tree.id !== null && tree.id !== ''
-  })
-  
+  const validTrees = (props.treeList || []).filter((tree) => {
+    return tree && tree.id !== undefined && tree.id !== null && tree.id !== "";
+  });
+
   // 2. 打印完整数据，方便排查
-  console.log('原始treeList数据：', props.treeList)
-  console.log('过滤后有效数据：', validTrees)
-  
+  console.log("原始treeList数据：", props.treeList);
+  console.log("过滤后有效数据：", validTrees);
+
   // 3. 适配后端返回的字段，保留所有原始数据
-  return validTrees.map(tree => ({
+  return validTrees.map((tree) => ({
     ...tree, // 保留所有原始字段
     // 字段适配：确保数据格式统一
-    id: tree.id || '',
-    type: tree.type || '',
-    countNum: tree.countNum || '0',
-    ripeNum: tree.ripeNum || '0',
+    id: tree.id || "",
+    type: tree.type || "",
+    countNum: tree.countNum || "0",
+    ripeNum: tree.ripeNum || "0",
     ripeDegree: tree.ripeDegree || null,
     healthCondition: tree.healthCondition || null,
     url: tree.url || null, // 二维码地址使用后端返回的url字段
-    areaId: tree.areaId || '',
-    typeId: tree.typeId || ''
-  }))
-})
+    areaId: tree.areaId || "",
+    typeId: tree.typeId || "",
+  }));
+});
 
 // 格式化成熟度
 const formatRipeDegree = (degree) => {
-  if (degree === 'NaN' || !degree || degree === null) return '-'
-  const numDegree = Number(degree)
-  if (numDegree === 0) return '未成熟'
-  if (numDegree > 0 && numDegree < 100) return `${numDegree}%`
-  if (numDegree >= 100) return '已成熟'
-  return '-'
-}
+  if (degree === "NaN" || !degree || degree === null) return "-";
+  const numDegree = Number(degree);
+  if (numDegree === 0) return "未成熟";
+  if (numDegree > 0 && numDegree < 100) return `${numDegree}%`;
+  if (numDegree >= 100) return "已成熟";
+  return "-";
+};
 
 // 获取成熟度标签类型
 const getRipeDegreeTagType = (degree) => {
-  if (degree === 'NaN' || !degree || degree === null) return 'warning'
-  const numDegree = Number(degree)
-  if (numDegree === 0) return 'info'
-  if (numDegree > 0 && numDegree < 100) return 'primary'
-  if (numDegree >= 100) return 'success'
-  return 'warning'
-}
+  if (degree === "NaN" || !degree || degree === null) return "warning";
+  const numDegree = Number(degree);
+  if (numDegree === 0) return "info";
+  if (numDegree > 0 && numDegree < 100) return "primary";
+  if (numDegree >= 100) return "success";
+  return "warning";
+};
 
 // 查看果树详情
 const showTreeDetail = (tree) => {
-  Object.assign(currentTree, JSON.parse(JSON.stringify(tree)))
-  showTreeDetailDialog.value = true
-}
+  Object.assign(currentTree, JSON.parse(JSON.stringify(tree)));
+  showTreeDetailDialog.value = true;
+};
 
 // 删除果树
 const handleDeleteTree = (treeId) => {
-  ElMessageBox.confirm(
-    '确定要删除该果树吗？',
-    '提示',
-    {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    }
-  ).then(() => {
-    emit('tree-delete', treeId)
-    ElMessage.success('果树删除成功！')
-  }).catch(() => {
-    ElMessage.info('已取消删除')
+  ElMessageBox.confirm("确定要删除该果树吗？", "提示", {
+    confirmButtonText: "确定",
+    cancelButtonText: "取消",
+    type: "warning",
   })
-}
+    .then(() => {
+      emit("tree-delete", treeId);
+      ElMessage.success("果树删除成功！");
+    })
+    .catch(() => {
+      ElMessage.info("已取消删除");
+    });
+};
 
 // 批量生成二维码（适配新的字段结构）
 const batchGenerateQRCode = async () => {
-  const treeIds = sortedTreeList.value.map(tree => Number(tree.id))
-  console.log('待生成二维码的果树ID：', treeIds)
+  const treeIds = sortedTreeList.value.map((tree) => Number(tree.id));
+  console.log("待生成二维码的果树ID：", treeIds);
 
   if (treeIds.length === 0) {
-    ElMessage.warning('当前区域暂无有效果树ID，无法生成二维码！')
-    return
+    ElMessage.warning("当前区域暂无有效果树ID，无法生成二维码！");
+    return;
   }
 
   try {
-    generateQRLoading.value = true
+    generateQRLoading.value = true;
 
     // 调用接口(该接口)
-    const generateResponse = await axios.post('/api/fruitTree/createTreeQRList', treeIds, {
-      headers: { 'Content-Type': 'application/json' }
-    })
-    console.log('接口返回数据：', generateResponse.data)
+    const generateResponse = await axios.post(
+      "/api/fruitTree/createTreeQRList",
+      treeIds,
+      {
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+    console.log("接口返回数据：", generateResponse.data);
 
-    if (generateResponse.data && generateResponse.data.code === 200) { 
-      const qrImgList = generateResponse.data.data || [] 
-      console.log('后端返回的二维码URL：', qrImgList)
+    if (generateResponse.data && generateResponse.data.code === 200) {
+      const qrImgList = generateResponse.data.data || [];
+      console.log("后端返回的二维码URL：", qrImgList);
 
       // 校验数量
       if (qrImgList.length !== treeIds.length) {
-        ElMessage.warning(`生成异常：二维码数量(${qrImgList.length})与果树数量(${treeIds.length})不匹配！`)
-        return
+        ElMessage.warning(
+          `生成异常：二维码数量(${qrImgList.length})与果树数量(${treeIds.length})不匹配！`
+        );
+        return;
       }
 
       // 修复：更新url字段（后端返回的字段名）
       const newTreeList = sortedTreeList.value.map((tree, index) => {
-        let qrUrl = qrImgList[index]
-        if (qrUrl && !qrUrl.startsWith('http')) {
-          qrUrl = import.meta.env.VITE_API_BASE_URL + (qrUrl.startsWith('/') ? '' : '/') + qrUrl
+        let qrUrl = qrImgList[index];
+        if (qrUrl && !qrUrl.startsWith("http")) {
+          qrUrl =
+            import.meta.env.VITE_API_BASE_URL +
+            (qrUrl.startsWith("/") ? "" : "/") +
+            qrUrl;
         }
         return {
           ...tree,
-          url: qrUrl // 使用url字段存储二维码地址
-        }
-      })
-      console.log('待更新的果树列表：', newTreeList)
+          url: qrUrl, // 使用url字段存储二维码地址
+        };
+      });
+      console.log("待更新的果树列表：", newTreeList);
 
       // 通知父组件更新
-      emit('tree-list-update', props.activeAreaId, newTreeList)
-      
-      // 强制触发响应式更新
-      await nextTick()
-      console.log('更新后表格数据：', sortedTreeList.value.map(t => ({
-        id: t.id,
-        url: t.url
-      })))
+      emit("tree-list-update", props.activeAreaId, newTreeList);
 
-      ElMessage.success(`成功生成 ${qrImgList.filter(Boolean).length} 个二维码！`)
+      // 强制触发响应式更新
+      await nextTick();
+      console.log(
+        "更新后表格数据：",
+        sortedTreeList.value.map((t) => ({
+          id: t.id,
+          url: t.url,
+        }))
+      );
+
+      ElMessage.success(
+        `成功生成 ${qrImgList.filter(Boolean).length} 个二维码！`
+      );
     } else {
-      ElMessage.error(`生成失败：${generateResponse.data?.msg || '接口返回异常'}`)
+      ElMessage.error(
+        `生成失败：${generateResponse.data?.msg || "接口返回异常"}`
+      );
     }
   } catch (error) {
-    console.error('批量生成二维码失败：', error)
-    ElMessage.error(`生成失败：${error.response?.data?.msg || error.message || '网络异常，请稍后重试'}`)
+    console.error("批量生成二维码失败：", error);
+    ElMessage.error(
+      `生成失败：${
+        error.response?.data?.msg || error.message || "网络异常，请稍后重试"
+      }`
+    );
   } finally {
-    generateQRLoading.value = false
+    generateQRLoading.value = false;
   }
-}
+};
 
 // 批量下载二维码（按果树ID命名）
 // 批量下载二维码（极简修复版，优先保证能执行）
 const batchDownloadQRCode = async () => {
-  console.log('=== 开始批量下载 ===')
-  const trees = sortedTreeList.value.filter(t => t.url)
-  console.log('可下载的果树列表：', trees)
-  
+  console.log("=== 开始批量下载 ===");
+  const trees = sortedTreeList.value.filter((t) => t.url);
+  console.log("可下载的果树列表：", trees);
+
   if (trees.length === 0) {
-    ElMessage.warning('暂无二维码可下载')
-    return
+    ElMessage.warning("暂无二维码可下载");
+    return;
   }
 
   // 先手动创建一个空ZIP（排除JSZip初始化问题）
-  let zip
+  let zip;
   try {
-    zip = new JSZip()
-    console.log('✅ JSZip初始化成功')
+    zip = new JSZip();
+    console.log("✅ JSZip初始化成功");
   } catch (e) {
-    console.error('❌ JSZip初始化失败：', e)
-    ElMessage.error('压缩包创建失败，请检查依赖是否安装')
-    return
+    console.error("❌ JSZip初始化失败：", e);
+    ElMessage.error("压缩包创建失败，请检查依赖是否安装");
+    return;
   }
 
   // 逐个处理二维码（改用Promise.all，避免循环阻塞）
   const downloadPromises = trees.map(async (tree) => {
     try {
       // 1. 修复URL（必做）
-      let qrUrl = tree.url
-      if (qrUrl && !qrUrl.startsWith('http')) {
-        qrUrl = import.meta.env.VITE_API_BASE_URL + (qrUrl.startsWith('/') ? '' : '/') + qrUrl
+      let qrUrl = tree.url;
+      if (qrUrl && !qrUrl.startsWith("http")) {
+        qrUrl =
+          import.meta.env.VITE_API_BASE_URL +
+          (qrUrl.startsWith("/") ? "" : "/") +
+          qrUrl;
       }
-      console.log(`📥 下载果树${tree.id}：${qrUrl}`)
+      console.log(`📥 下载果树${tree.id}：${qrUrl}`);
 
       // 2. 修复fetch跨域（必做）
       const res = await fetch(qrUrl, {
-        mode: 'cors',
-        credentials: 'include',
+        mode: "cors",
+        credentials: "include",
         headers: {
-          'Accept': 'image/png,image/jpeg,*/*' // 指定接收图片格式
-        }
-      })
+          Accept: "image/png,image/jpeg,*/*", // 指定接收图片格式
+        },
+      });
 
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const blob = await res.blob()
-      zip.file(`果树${tree.id}_二维码.png`, blob)
-      console.log(`✅ 果树${tree.id}下载成功`)
-      return true
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      zip.file(`果树${tree.id}_二维码.png`, blob);
+      console.log(`✅ 果树${tree.id}下载成功`);
+      return true;
     } catch (e) {
-      console.error(`❌ 果树${tree.id}下载失败：`, e.message)
-      return false
+      console.error(`❌ 果树${tree.id}下载失败：`, e.message);
+      return false;
     }
-  })
+  });
 
   try {
-    downloadQRLoading.value = true
+    downloadQRLoading.value = true;
     // 等待所有下载完成
-    const results = await Promise.all(downloadPromises)
-    const successCount = results.filter(Boolean).length
-    console.log(`📊 下载完成：成功${successCount}/${trees.length}`)
+    const results = await Promise.all(downloadPromises);
+    const successCount = results.filter(Boolean).length;
+    console.log(`📊 下载完成：成功${successCount}/${trees.length}`);
 
     // 生成ZIP并下载（改用原生API，放弃file-saver）
-    const zipBlob = await zip.generateAsync({ type: 'blob' })
-    const downloadUrl = URL.createObjectURL(zipBlob)
-    const link = document.createElement('a')
-    link.href = downloadUrl
-    link.download = `区域${props.activeAreaId}_二维码_${Date.now()}.zip`
-    link.click()
-    URL.revokeObjectURL(downloadUrl) // 释放内存
+    const zipBlob = await zip.generateAsync({ type: "blob" });
+    const downloadUrl = URL.createObjectURL(zipBlob);
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = `区域${props.activeAreaId}_二维码_${Date.now()}.zip`;
+    link.click();
+    URL.revokeObjectURL(downloadUrl); // 释放内存
 
-    ElMessage.success(`批量下载完成！成功${successCount}个，失败${trees.length - successCount}个`)
+    ElMessage.success(
+      `批量下载完成！成功${successCount}个，失败${
+        trees.length - successCount
+      }个`
+    );
   } catch (err) {
-    console.error('❌ 压缩包生成/下载失败：', err)
-    ElMessage.error('批量下载失败：' + err.message)
+    console.error("❌ 压缩包生成/下载失败：", err);
+    ElMessage.error("批量下载失败：" + err.message);
   } finally {
-    downloadQRLoading.value = false
+    downloadQRLoading.value = false;
   }
-}
+};
 
 // 二维码点击事件
 const handleQRCodeClick = (imgUrl) => {
-  qrViewerUrl.value = imgUrl
-  showQRViewer.value = true
-}
+  qrViewerUrl.value = imgUrl;
+  showQRViewer.value = true;
+};
 
 // 下载二维码
 const downloadQRCode = async (imgUrl, treeId) => {
   try {
     // 修复：处理URL为空的情况
     if (!imgUrl) {
-      ElMessage.warning('二维码URL为空，无法下载！')
-      return
+      ElMessage.warning("二维码URL为空，无法下载！");
+      return;
     }
-    const link = document.createElement('a')
-    link.href = imgUrl
-    link.download = `果树${treeId}_二维码.png`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    ElMessage.success('二维码下载成功！')
+    const link = document.createElement("a");
+    link.href = imgUrl;
+    link.download = `果树${treeId}_二维码.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    ElMessage.success("二维码下载成功！");
   } catch (error) {
-    console.error('二维码下载失败：', error)
-    ElMessage.error('二维码下载失败，请稍后重试！')
+    console.error("二维码下载失败：", error);
+    ElMessage.error("二维码下载失败，请稍后重试！");
   }
-}
+};
 
 // 监听activeAreaId变化
 watch(
   () => props.activeAreaId,
   (newVal) => {
     if (!newVal) {
-      showTreeDetailDialog.value = false
-      Object.assign(currentTree, {})
-      showQRViewer.value = false
+      showTreeDetailDialog.value = false;
+      Object.assign(currentTree, {});
+      showQRViewer.value = false;
     }
   },
   { immediate: true }
-)
+);
 
 // 监听treeList变化，实时打印字段信息
-watch(() => props.treeList, (newList) => {
-  console.log('★ treeList更新通知 ★')
-  console.log('新数据：', newList)
-  console.log('二维码字段(url)：', newList.map(t => ({
-    id: t?.id,
-    url: t?.url
-  })))
-}, { deep: true, immediate: true })
+watch(
+  () => props.treeList,
+  (newList) => {
+    console.log("★ treeList更新通知 ★");
+    console.log("新数据：", newList);
+    console.log(
+      "二维码字段(url)：",
+      newList.map((t) => ({
+        id: t?.id,
+        url: t?.url,
+      }))
+    );
+  },
+  { deep: true, immediate: true }
+);
 </script>
 
 <style scoped>
@@ -662,7 +715,7 @@ watch(() => props.treeList, (newList) => {
   position: absolute;
   bottom: 0;
   right: 0;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.5);
   color: white;
   width: 20px;
   height: 20px;
