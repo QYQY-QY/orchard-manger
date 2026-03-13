@@ -6,14 +6,10 @@
       <!-- 账号输入框 + 自动消失的错误提示 -->
       <div class="form-item">
         <label>账号</label>
-        <input
-          v-model="form.username"
-          link
-          placeholder="请输入账号"
-          :class="{ 'input-error': !!error.username }"
-        />
+        <input v-model="form.username" link placeholder="请输入账号" :class="{ 'input-error': !!error.username }" />
         <!-- 错误提示：2秒后自动消失 -->
-        <div v-if="error.username" class="error-tip" :class="{ 'fade-out': isUsernameTipFade }">{{ error.username }}</div>
+        <div v-if="error.username" class="error-tip" :class="{ 'fade-out': isUsernameTipFade }">{{ error.username }}
+        </div>
       </div>
 
       <!-- 密码输入框 + 自动消失的错误提示 -->
@@ -22,14 +18,11 @@
           <label>密码</label>
           <a href="javascript:;" class="forget-pwd">忘记密码？</a>
         </div>
-        <input
-          v-model="form.password"
-          type="password"
-          placeholder="请输入密码"
-          :class="{ 'input-error': !!error.password }"
-        />
+        <input v-model="form.password" type="password" placeholder="请输入密码"
+          :class="{ 'input-error': !!error.password }" />
         <!-- 错误提示：2秒后自动消失 -->
-        <div v-if="error.password" class="error-tip" :class="{ 'fade-out': isPasswordTipFade }">{{ error.password }}</div>
+        <div v-if="error.password" class="error-tip" :class="{ 'fade-out': isPasswordTipFade }">{{ error.password }}
+        </div>
       </div>
 
       <button class="login-btn" @click="login" :disabled="loading">
@@ -44,7 +37,7 @@
 // 1. 导入所有必需依赖
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import service from '@/utils/request' 
+import service from '@/utils/request'
 import { useUserStore } from '@/stores/modules/user'
 import { ElMessage } from 'element-plus'
 
@@ -113,7 +106,7 @@ const login = async () => {
   try {
     // 核心修改：用service.post替代axios.post
     // 拦截器会自动处理空数据、code≠200的情况，这里直接拿到resData=data
-    const userInfo = await service.post('/api/employee/login', form) 
+    const userInfo = await service.post('/api/employee/login', form)
 
     // 能走到这里，说明：
     // 1. 后端返回了 {code:200, data: Employee对象}
@@ -127,8 +120,8 @@ const login = async () => {
 
     // 提示+跳转
     ElMessage.success(`登录成功！欢迎回来，${userInfo.name || userInfo.username}`)
-    const targetPath = userInfo.isAdmin === 1 
-      ? '/superadminindex'  
+    const targetPath = userInfo.isAdmin === 1
+      ? '/superadminindex'
       : '/adminindex'
     await router.push(targetPath)
 
@@ -179,6 +172,7 @@ const login = async () => {
   color: #666;
   font-size: 14px;
 }
+
 /* 密码标签+忘记密码链接的容器 */
 .pwd-label-wrap {
   display: flex;
@@ -190,12 +184,13 @@ const login = async () => {
 /* 忘记密码链接样式 */
 .forget-pwd {
   font-size: 12px;
-  color: #42b983;
+  color: #164831;
   text-decoration: none;
   cursor: pointer;
 }
+
 .forget-pwd:hover {
-  color: #359469;
+  color: #205b40;
   text-decoration: underline;
 }
 
@@ -252,11 +247,11 @@ const login = async () => {
 }
 
 .login-btn:disabled {
-  background: #a0d9b8;
+  background: #66bca1;
   cursor: not-allowed;
 }
 
 .login-btn:hover:not(:disabled) {
-  background: #359469;
+  background: #2c7b5d;
 }
 </style>

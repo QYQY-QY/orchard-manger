@@ -52,8 +52,8 @@ const router = createRouter({
     },
     //ai聊天
     {
-      path: '/adminai',
-      name: 'AdminAi',
+      path: '/AiChat',
+      name: 'Aichat',
       component: () => import('../views/admin/AI.vue')
     },
 
