@@ -3,30 +3,37 @@
     <div class="notice-management-page">
       <div class="search-bar">
         <el-form :inline="true" :model="filterForm" class="search-form">
-          <el-form-item label="发布年份">
-            <el-select
-              v-model="filterForm.year"
-              placeholder="请选择年份"
-              style="width: 180px;"
-            >
-              <el-option
-                v-for="year in yearOptions"
-                :key="year"
-                :label="year + '年'"
-                :value="year"
-              />
-            </el-select>
+          <el-form-item label="通知标题">
+            <el-input
+              v-model="filterForm.title"
+              placeholder="标题搜索"
+              style="width: 200px"
+            />
           </el-form-item>
-          <el-form-item label="通知状态">
+          <el-form-item label="完成状态">
             <el-select
-              v-model="filterForm.status"
-              placeholder="请选择状态"
-              style="width: 180px;"
+              v-model="filterForm.isFinish"
+              placeholder="全部"
+              style="width: 120px"
             >
               <el-option label="全部" value="" />
-              <el-option label="未完成" value="0" />
-              <el-option label="已完成" value="1" />
+              <el-option label="未完成" :value="0" />
+              <el-option label="已完成" :value="1" />
             </el-select>
+          </el-form-item>
+          <el-form-item label="接收人ID">
+            <el-input
+              v-model="filterForm.empId"
+              placeholder="接收人ID"
+              style="width: 150px"
+            />
+          </el-form-item>
+          <el-form-item label="果园ID">
+            <el-input
+              v-model="filterForm.orchardId"
+              placeholder="果园ID"
+              style="width: 150px"
+            />
           </el-form-item>
           <el-form-item>
             <el-button type="primary" @click="getNoticeList">筛选</el-button>
@@ -34,11 +41,7 @@
           </el-form-item>
         </el-form>
 
-        <el-button
-          type="primary"
-          class="publish-btn"
-          @click="openAddDialog"
-        >
+        <el-button type="primary" class="publish-btn" @click="openAddDialog">
           发布通知
         </el-button>
       </div>
@@ -67,61 +70,63 @@
 </template>
 
 <script setup>
-import CommonLayout from '@/views/common/CommonLayout.vue'
-import NoticeList from './NoticeList.vue'
-import NoticeAdd from './NoticeAdd.vue'
-import { ref, reactive, onMounted, watch } from 'vue'
-import { ElMessage } from 'element-plus'
+import CommonLayout from "@/views/common/CommonLayout.vue";
+import NoticeList from "./NoticeList.vue";
+import NoticeAdd from "./NoticeAdd.vue";
+import { ref, reactive, onMounted, watch } from "vue";
+import { ElMessage } from "element-plus";
 
-const addDialogVisible = ref(false)
+const addDialogVisible = ref(false);
 const filterForm = reactive({
-  year: '',
-  status: ''
-})
-const yearOptions = ref([])
-const noticeListRef = ref(null)
+  title: "",
+  isFinish: "",
+  empId: "",
+  orchardId: "",
+});
+const yearOptions = ref([]);
+const noticeListRef = ref(null);
 
 const openAddDialog = () => {
-  addDialogVisible.value = true
-}
+  addDialogVisible.value = true;
+};
 
 const handlePublishSuccess = () => {
-  addDialogVisible.value = false
-  ElMessage.success('通知发布成功！')
-  noticeListRef.value?.getNoticeList()
-}
+  addDialogVisible.value = false;
+  ElMessage.success("通知发布成功！");
+  noticeListRef.value?.getNoticeList();
+};
 
 const resetFilter = () => {
-  filterForm.year = ''
-  filterForm.status = ''
-  getNoticeList()
-}
+  filterForm.title = "";
+  filterForm.isFinish = "";
+  filterForm.empId = "";
+  filterForm.orchardId = "";
+  getNoticeList();
+};
 
 const getNoticeList = () => {
   if (noticeListRef.value) {
-    noticeListRef.value.getNoticeList()
+    noticeListRef.value.getNoticeList();
   }
-}
+};
 
 const getYearOptions = () => {
-  const now = new Date()
-  const currentYear = now.getFullYear()
-  yearOptions.value = []
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  yearOptions.value = [];
   for (let i = currentYear; i >= currentYear - 5; i--) {
-    yearOptions.value.push(i)
+    yearOptions.value.push(i);
   }
-}
+};
 
 onMounted(() => {
-  getYearOptions()
-  setTimeout(() => {
-    getNoticeList()
-  }, 100)
-})
+  getYearOptions();
+  getNoticeList();
+});
 
-watch([() => filterForm.year, () => filterForm.status], () => {
-  getNoticeList()
-}, { immediate: true })
+// watch([() => filterForm.year, () => filterForm.status], () => {
+//   getNoticeList()
+// }, { immediate: true })
 </script>
 
 <style scoped>
@@ -141,6 +146,7 @@ watch([() => filterForm.year, () => filterForm.status], () => {
 /* 关键修改：删除 max-width，调整 margin 为 0 auto 并和列表容器对齐 */
 .search-bar {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   align-items: center;
   margin-bottom: 20px;
@@ -157,33 +163,42 @@ watch([() => filterForm.year, () => filterForm.status], () => {
 
 .search-form {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 20px;
-  margin-right: 20px;
+  flex-wrap: wrap;
+  gap: 16px;
+  flex: 1;
 }
 
 .publish-btn {
   padding: 8px 20px;
   border-radius: 8px;
   margin: 0 0 0 20px;
+  flex-shrink: 0;
+}
+@media (max-width: 1200px) {
+  .search-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-form {
+    margin-right: 0;
+    margin-bottom: 16px;
+  }
+
+  .publish-btn {
+    margin-left: 0;
+    width: 100%;
+  }
 }
 
 :deep(.el-form-item) {
   margin-bottom: 0;
   display: flex;
   align-items: center;
+  min-width: 200px;
 }
-
-:deep(.el-form-item__label) {
-  margin-right: 12px;
-  line-height: 32px;
-}
-
-:deep(.el-input__wrapper),
-:deep(.el-select__wrapper) {
-  height: 36px;
-  display: flex;
-  align-items: center;
+:deep(.el-input),
+:deep(.el-select) {
+  width: 100% !important; /* 让输入框占满表单项 */
 }
 </style>
