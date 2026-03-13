@@ -2,12 +2,9 @@
   <div class="orchard-add">
     <div class="header">
       <span>添加果园</span>
-      <el-button 
-        type="primary" 
-        text 
-        @click="showAddDialog"
-        class="add-btn"
-      >+</el-button>
+      <el-button type="primary" text @click="showAddDialog" class="add-btn"
+        >+</el-button
+      >
     </div>
 
     <div class="orchard-list">
@@ -18,48 +15,52 @@
         :class="{ active: orchard.id === activeOrchardId }"
         @click="$emit('orchard-select', orchard.id)"
       >
-        <div class="item-title">
-          果园{{ orchard.id }}：{{ orchard.name }}
-        </div>
-        <div class="item-info">
-          果园负责人：{{ orchard.manager }}
-        </div>
+        <div class="item-title">果园{{ orchard.id }}：{{ orchard.name }}</div>
+        <div class="item-info">果园负责人：{{ orchard.manager }}</div>
         <div class="item-actions">
-          <el-button type="primary" text size="small" @click.stop="showEditDialog(orchard)">查看详情</el-button>
-          <el-button type="danger" text size="small" @click.stop="handleDelete(orchard.id)">删除果园</el-button>
+          <el-button
+            type="primary"
+            text
+            size="small"
+            @click.stop="showEditDialog(orchard)"
+            >查看详情</el-button
+          >
+          <el-button
+            type="danger"
+            text
+            size="small"
+            @click.stop="handleDelete(orchard.id)"
+            >删除果园</el-button
+          >
         </div>
       </div>
     </div>
 
     <!-- 添加/编辑对话框（圆角美化） -->
-    <el-dialog 
-      v-model="dialogVisible" 
-      :title="dialogType === 'add' ? '添加果园' : '编辑果园'" 
+    <el-dialog
+      v-model="dialogVisible"
+      :title="dialogType === 'add' ? '添加果园' : '编辑果园'"
       width="500px"
-      border-radius="12px" 
+      border-radius="12px"
     >
-      <el-form 
-        :model="form" 
-        label-width="80px"
-        class="form-container"
-      >
+      <el-form :model="form" label-width="80px" class="form-container">
         <el-form-item label="果园名称">
-          <el-input 
-            v-model="form.name" 
+          <el-input
+            v-model="form.name"
             placeholder="请输入果园名称"
-            border-radius="6px" 
+            border-radius="6px"
           />
         </el-form-item>
         <el-form-item label="果园地点">
-          <el-input 
-            v-model="form.address" 
+          <el-input
+            v-model="form.address"
             placeholder="请输入果园地点"
             border-radius="6px"
           />
         </el-form-item>
         <el-form-item label="果园管理员">
-          <el-select 
-            v-model="form.empId" 
+          <el-select
+            v-model="form.empId"
             placeholder="请选择管理员"
             border-radius="6px"
           >
@@ -72,8 +73,8 @@
           </el-select>
         </el-form-item>
         <el-form-item label="区域大小">
-          <el-input 
-            v-model="form.size" 
+          <el-input
+            v-model="form.size"
             placeholder="请输入区域大小"
             border-radius="6px"
           />
@@ -81,121 +82,124 @@
       </el-form>
       <template #footer>
         <el-button border-radius="6px">取消</el-button>
-        <el-button type="primary" border-radius="6px" @click="handleSubmit">确定</el-button>
+        <el-button type="primary" border-radius="6px" @click="handleSubmit"
+          >确定</el-button
+        >
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import axios from 'axios'
+import { ref, reactive, onMounted } from "vue";
+import { ElMessage } from "element-plus";
+import axios from "axios";
 
 const props = defineProps({
   orchardList: { type: Array, default: () => [] },
-  activeOrchardId: { type: String, default: '' }
-})
+  activeOrchardId: { type: String, default: "" },
+});
 
-const emit = defineEmits(['orchard-select', 'orchard-update'])
+const emit = defineEmits(["orchard-select", "orchard-update"]);
 
 // 对话框
-const dialogVisible = ref(false)
-const dialogType = ref('add')
-const adminList = ref([])
+const dialogVisible = ref(false);
+const dialogType = ref("add");
+const adminList = ref([]);
 
 const form = reactive({
-  id: '',
-  name: '',
-  address: '',
-  empId: '',
-  size : "",
-  status: 0
-})
+  id: "",
+  name: "",
+  address: "",
+  empId: "",
+  size: "",
+  status: 0,
+});
 
 // 显示添加对话框
 const showAddDialog = () => {
-  dialogType.value = 'add'
-  Object.assign(form, { 
-    id: '', 
-    name: '', 
-    address: '', 
-    empId: '',
-    size: '',  // 添加 size 重置
-    status: 0
-  })
-  dialogVisible.value = true
-}
+  dialogType.value = "add";
+  Object.assign(form, {
+    id: "",
+    name: "",
+    address: "",
+    empId: "",
+    size: "", // 添加 size 重置
+    status: 0,
+  });
+  dialogVisible.value = true;
+};
 
 // 显示编辑对话框
 const showEditDialog = (orchard) => {
-  dialogType.value = 'edit'
-  Object.assign(form, { 
+  dialogType.value = "edit";
+  Object.assign(form, {
     ...orchard,
-    status: orchard.status ?? 0
-  })
-  dialogVisible.value = true
-}
+    status: orchard.status ?? 0,
+  });
+  dialogVisible.value = true;
+};
 
 // 提交表单
 const handleSubmit = async () => {
   try {
     const submitData = {
       ...form,
-      status: form.status ?? 0
-    }
-    const url = dialogType.value === 'add' ? '/api/orchard/add' : '/api/orchard/change'
-    const res = await axios.post(url, form)
+      status: form.status ?? 0,
+    };
+    const url =
+      dialogType.value === "add" ? "/api/orchard/add" : "/api/orchard/change";
+    const res = await axios.post(url, form);
     if (res.data?.code === 200) {
-      ElMessage.success(dialogType.value === 'add' ? '添加成功' : '编辑成功')
-      dialogVisible.value = false
-      emit('orchard-update', {
+      ElMessage.success(dialogType.value === "add" ? "添加成功" : "编辑成功");
+      dialogVisible.value = false;
+      emit("orchard-update", {
         type: dialogType.value,
-        data: res.data.data
-      })
+        data: res.data.data,
+      });
     } else {
-      ElMessage.error('操作失败')
+      ElMessage.error("操作失败");
     }
   } catch (err) {
-    console.error(err)
-    ElMessage.error('网络错误')
+    console.error(err);
+    ElMessage.error("网络错误");
   }
-}
+};
 
 // 删除果园
 const handleDelete = async (id) => {
   try {
     // 1. 方法改为 DELETE
     // 2. URL 改为路径参数形式
-    const res = await axios.delete(`/api/orchard/delete/${id}`)
-    
+    const res = await axios.delete(`/api/orchard/delete/${id}`);
+
     if (res.data?.code === 200) {
-      ElMessage.success('删除成功')
-      emit('orchard-update', { type: 'delete', id })
+      ElMessage.success("删除成功");
+      emit("orchard-update", { type: "delete", id });
     } else {
-      ElMessage.error(res.data?.msg || '删除失败')
+      ElMessage.error(res.data?.msg || "删除失败");
     }
   } catch (err) {
-    console.error(err)
-    ElMessage.error('网络错误')
+    console.error(err);
+    ElMessage.error("网络错误");
   }
-}
+};
 
 // 获取管理员列表（isAdmin=2）
 const getAdminList = async () => {
   try {
-    const res = await axios.get('/api/employee/getAllEmployees')
+    const res = await axios.get("/api/employee/getAllEmployees");
     if (res.data?.code === 200) {
-      adminList.value = res.data.data || []
+      adminList.value = res.data.data || [];
     }
   } catch (err) {
-    console.error(err)
+    console.error(err);
   }
-}
+};
 
 onMounted(() => {
-  getAdminList()
-})
+  getAdminList();
+});
 </script>
 
 <style scoped>

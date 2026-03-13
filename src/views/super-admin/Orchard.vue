@@ -258,7 +258,8 @@ const getOrchardList = async () => {
       // 处理数据，确保每个果园都有 areas 数组
       orchardList.value = dataArray.map((o) => ({
         ...o,
-        areas: o.areas || [], // 如果已有areas则保留，否则初始化为空数组
+        areas: o.areas || [], // 如果已有areas则保留
+        manager: o.empName || o.manager,
       }));
 
       ElMessage.success(`加载了 ${orchardList.value.length} 个果园`);
@@ -291,16 +292,37 @@ const getAreaList = async () => {
     const res = await axios.get("/api/area/selectByOrchardId", {
       params: { orchardId: orchardId },
     });
+    console.log("获取区域列表:", res);
     if (res.data.code === 200) {
       const orchardIdx = orchardList.value.findIndex(
         (o) => o.id === activeOrchardId.value
       );
       if (orchardIdx > -1 && orchardList.value[orchardIdx]) {
         const areas = (res.data.data || []).map((area) => ({
-          ...area,
-          areaManagerName: area.empName,
+          id: area.id || "",
+          name: area.name || "",
+          orchardId: area.orchardId || "",
+          orchardName: area.orchardName || "",
+          empId: area.empId || "",
+          empName: area.empName || "",
+          type: area.type || "",
+          typeId: area.typeId || "", // 添加 typeId 字段
+          fruitType: area.fruitType || null,
+          size: area.size || 0,
+          fruitCount: area.fruitCount || null,
+          description: area.description || "",
+          createTime: area.createTime || "",
+          updateTime: area.updateTime || "",
+          createUser: area.createUser || null,
+          updateUser: area.updateUser || null,
+          createUserName: area.createUserName || null,
+          updateUserName: area.updateUserName || null,
+          employeeList: area.employeeList || [],
         }));
-        orchardList.value[orchardIdx].areas = areas || [];
+
+        orchardList.value[orchardIdx].areas = areas;
+        orchardList.value = [...orchardList.value]; // 强制触发更新
+        console.log("更新后的areas:", areas);
       }
     } else {
       ElMessage.error("获取招聘地点列表失败：" + res.data.msg);

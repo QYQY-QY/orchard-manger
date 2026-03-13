@@ -5,7 +5,7 @@
       <span class="main-title">{{ activeOrchard.name || "未选择果园" }}</span>
       <!-- 第二行文字移到标题右侧，小字展示 -->
       <span class="sub-title">
-        负责人：{{ activeOrchard.areaManagerName || "未设置" }} | 位置：{{
+        负责人：{{ activeOrchard.manager || "未设置" }} | 位置：{{
           activeOrchard.address || "-"
         }}
       </span>
@@ -20,7 +20,7 @@
         @click="$emit('area-select', area.id)"
       >
         <div class="area-name">区域{{ area.id }}：{{ area.name }}</div>
-        <div class="area-desc">品种ID：{{ area.typeId || "-" }}</div>
+        <div class="area-desc">品种：{{ area.type || "-" }}</div>
         <el-button link size="small" @click.stop="showEditDialog(area)"
           >区域详情</el-button
         >
@@ -99,8 +99,8 @@ const handleSubmit = async () => {
     const submitData = {
       id: form.id,
       name: form.name,
-      empId: form.manager, // 负责人ID
-      typeId: form.cropType, // 品种ID
+      empName: form.manager,
+      type: form.cropType, // 品种ID
       orchardId: props.orchardId,
       description: form.description || "", // 如果有描述字段
     };
@@ -149,7 +149,7 @@ const showEditDialog = (area) => {
   Object.assign(form, {
     id: area.id,
     name: area.name || "",
-    manager: area.empId || "", // 注意：后端返回的是 empId（负责人ID）
+    manager: area.empName || "",
     cropType: area.typeId || "", // 注意：后端返回的是 typeId（品种ID）
     orchardId: props.orchardId,
   });
