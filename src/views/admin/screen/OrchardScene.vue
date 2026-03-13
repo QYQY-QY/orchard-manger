@@ -85,6 +85,7 @@ let ringGroup;
 let particleSystem;
 let dataFlowLines;
 let ambientParticles;
+let waterRippleEffect; // 水波纹效果
 
 // 转换函数：XZ放大60倍，三个地块保持不交叉的距离
 function transformWithNonOverlap() {
@@ -112,6 +113,7 @@ function transformWithNonOverlap() {
   const plotCenters = plotsData.map(plot => {
     let sumX = 0, sumZ = 0;
     plot.boundaryPoints.forEach(p => {
+      // 直接映射：经度 -> X，纬度 -> Z，保持原始方向
       sumX += (p[0] - centerLng) * finalScale;
       sumZ += (p[1] - centerLat) * finalScale;
     });
@@ -170,6 +172,119 @@ let animationId;
 const plotMeshes = [];
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
+
+// 创建水波纹效果
+const createWaterRippleEffect = () => {
+  const rippleGroup = new THREE.Group();
+  
+  // 创建多个同心半透明环，模拟水波纹
+  const rippleCount = 5;
+  const baseRadius = 30;
+  const rippleColors = [0x2a9d8f, 0x40c0b0, 0x60e0d0];
+  
+  for (let j = 0; j < 3; j++) { // 多组波纹
+    for (let i = 0; i < rippleCount; i++) {
+      const radius = baseRadius + i * 15 + j * 8;
+      const opacity = 0.08 - i * 0.015;
+      if (opacity <= 0) continue;
+      
+      const points = [];
+      const segments = 120;
+      
+      // 创建轻微椭圆效果，增加自然感
+      for (let k = 0; k <= segments; k++) {
+        const angle = (k / segments) * Math.PI * 2;
+        // 轻微的不规则偏移，让波纹更自然
+        const xOffset = Math.sin(angle * 3) * 2;
+        const zOffset = Math.cos(angle * 2) * 2;
+        const x = Math.cos(angle) * (radius + xOffset);
+        const z = Math.sin(angle) * (radius + zOffset);
+        points.push(new THREE.Vector3(x, -0.3, z)); // 放在地块下方
+      }
+      
+      const geometry = new THREE.BufferGeometry().setFromPoints(points);
+      const material = new THREE.LineBasicMaterial({
+        color: rippleColors[j % rippleColors.length],
+        transparent: true,
+        opacity: opacity,
+        blending: THREE.AdditiveBlending
+      });
+      
+      const ripple = new THREE.LineLoop(geometry, material);
+      
+      // 存储波纹的属性以便动画使用
+      ripple.userData = {
+        baseRadius: radius,
+        speed: 0.2 + Math.random() * 0.3,
+        phase: Math.random() * Math.PI * 2,
+        originalOpacity: opacity
+      };
+      
+      rippleGroup.add(ripple);
+    }
+  }
+  
+  // 添加一些流动的光点，沿着波纹路径
+  const dotCount = 60;
+  const dotGeometry = new THREE.BufferGeometry();
+  const dotPositions = [];
+  const dotColors = [];
+  
+  for (let i = 0; i < dotCount; i++) {
+    const angle = (i / dotCount) * Math.PI * 2;
+    const radius = 60 + Math.sin(i * 0.8) * 15;
+    const x = Math.cos(angle) * radius;
+    const z = Math.sin(angle) * radius;
+    dotPositions.push(x, -0.25, z);
+    
+    // 蓝绿色渐变
+    const colorVal = 0.4 + Math.sin(angle) * 0.3;
+    dotColors.push(0.2, colorVal, 0.8);
+  }
+  
+  dotGeometry.setAttribute('position', new THREE.Float32BufferAttribute(dotPositions, 3));
+  dotGeometry.setAttribute('color', new THREE.Float32BufferAttribute(dotColors, 3));
+  
+  const dotMaterial = new THREE.PointsMaterial({
+    size: 0.8,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.4,
+    blending: THREE.AdditiveBlending,
+    map: (() => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 16;
+      canvas.height = 16;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(8, 8, 4, 0, Math.PI * 2);
+      ctx.fill();
+      return new THREE.CanvasTexture(canvas);
+    })()
+  });
+  
+  const dots = new THREE.Points(dotGeometry, dotMaterial);
+  dots.userData = { speed: 0.2 };
+  rippleGroup.add(dots);
+  
+  // 添加底部光晕平面，增强水润感
+  const glowPlaneGeometry = new THREE.CircleGeometry(150, 64);
+  const glowPlaneMaterial = new THREE.MeshBasicMaterial({
+    color: 0x1a4d4d,
+    transparent: true,
+    opacity: 0.15,
+    side: THREE.DoubleSide,
+    blending: THREE.AdditiveBlending
+  });
+  
+  const glowPlane = new THREE.Mesh(glowPlaneGeometry, glowPlaneMaterial);
+  glowPlane.rotation.x = -Math.PI / 2;
+  glowPlane.position.y = -0.35;
+  rippleGroup.add(glowPlane);
+  
+  return rippleGroup;
+};
 
 // 创建信息标签 - 不透明背景
 const createInfoLabel = (id, centerX, centerY, centerZ) => {
@@ -266,8 +381,13 @@ const createInfoLabel = (id, centerX, centerY, centerZ) => {
   return label;
 };
 
+
 // 创建科技背景元素 - 纯色背景，无网格
 const createTechBackground = () => {
+  // 创建水波纹效果（放在最底层）
+  waterRippleEffect = createWaterRippleEffect();
+  scene.add(waterRippleEffect);
+  
   // 创建环形光圈组
   ringGroup = new THREE.Group();
   
@@ -292,7 +412,7 @@ const createTechBackground = () => {
       const angle = (i / segments) * Math.PI * 2;
       const x = Math.cos(angle) * radius + pos.x;
       const z = Math.sin(angle) * radius + pos.z;
-      points.push(new THREE.Vector3(x, -0.5, z)); // 放到地块下方
+      points.push(new THREE.Vector3(x, -0.5, z));
     }
     
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
@@ -315,7 +435,7 @@ const createTechBackground = () => {
       const angle = (i / dotCount) * Math.PI * 2;
       const x = Math.cos(angle) * (radius - 2) + pos.x;
       const z = Math.sin(angle) * (radius - 2) + pos.z;
-      dotPositions.push(x, -0.45, z); // 放到地块下方
+      dotPositions.push(x, -0.45, z);
     }
     
     dotGeometry.setAttribute('position', new THREE.Float32BufferAttribute(dotPositions, 3));
@@ -353,7 +473,7 @@ const createTechBackground = () => {
     for (let t = 0; t <= 1; t += 0.05) {
       const x = startX * (1-t) + endX * t;
       const z = startZ * (1-t) + endZ * t;
-      const y = -0.3 + Math.sin(t * Math.PI) * 2; // 放到地块下方
+      const y = -0.3 + Math.sin(t * Math.PI) * 2;
       points.push(new THREE.Vector3(x, y, z));
     }
     
@@ -374,7 +494,7 @@ const createTechBackground = () => {
     const range = 200;
     const x = (Math.random() - 0.5) * range * 2;
     const z = (Math.random() - 0.5) * range * 2;
-    const y = Math.random() * 10 - 5; // 分布在下方
+    const y = Math.random() * 10 - 5;
     
     particlePositions.push(x, y, z);
     
@@ -415,30 +535,20 @@ const createTechBackground = () => {
   );
   
   scene.add(ambientParticles);
-  
-  // 添加底部光晕 - 不透明
-  const glowPlaneGeometry = new THREE.CircleGeometry(300, 64);
-  const glowPlaneMaterial = new THREE.MeshBasicMaterial({
-    color: 0x1a4d4d,
-    transparent: false,
-    opacity: 0.1,
-    side: THREE.DoubleSide,
-    blending: THREE.AdditiveBlending
-  });
-  
-  const glowPlane = new THREE.Mesh(glowPlaneGeometry, glowPlaneMaterial);
-  glowPlane.rotation.x = -Math.PI / 2;
-  glowPlane.position.y = -0.5;
-  scene.add(glowPlane);
 };
 
 // 创建地块边缘发光效果 - 颜色与信息框边框保持一致
-const createEdgeGlow = (points, centerX, centerY, centerZ, color = 0x2a9d8f) => {
+const createEdgeGlow = (localPoints, centerX, centerY, centerZ, color = 0x2a9d8f) => {
   const glowGroup = new THREE.Group();
   
-  // 创建边缘发光线条
-  const linePoints = points.map(p => new THREE.Vector3(p.x, 0.2, p.z));
+  // 使用本地坐标创建边缘发光
+  // 注意：这些坐标应该是相对于中心点的偏移量
+  const linePoints = localPoints.map(p => new THREE.Vector3(p.x, 0.2, p.z));
   linePoints.push(linePoints[0]); // 闭合
+  
+  // 调试边缘发光的第一个点
+  console.log('边缘发光第一个点:', linePoints[0].x, linePoints[0].z);
+  console.log('边缘发光中心点:', centerX, centerY, centerZ);
   
   const lineGeometry = new THREE.BufferGeometry().setFromPoints(linePoints);
   const lineMaterial = new THREE.LineBasicMaterial({
@@ -452,13 +562,13 @@ const createEdgeGlow = (points, centerX, centerY, centerZ, color = 0x2a9d8f) => 
   glowGroup.add(line);
   
   // 添加边缘光点
-  const dotCount = Math.floor(points.length * 1.5);
+  const dotCount = Math.floor(localPoints.length * 1.5);
   const dotGeometry = new THREE.BufferGeometry();
   const dotPositions = [];
   
   for (let i = 0; i < dotCount; i++) {
-    const idx = Math.floor(Math.random() * points.length);
-    const p = points[idx];
+    const idx = Math.floor(Math.random() * localPoints.length);
+    const p = localPoints[idx];
     dotPositions.push(p.x, 0.3, p.z);
   }
   
@@ -472,6 +582,9 @@ const createEdgeGlow = (points, centerX, centerY, centerZ, color = 0x2a9d8f) => 
   
   const dots = new THREE.Points(dotGeometry, dotMaterial);
   glowGroup.add(dots);
+  
+  // 将glowGroup放在中心点
+  glowGroup.position.set(centerX, centerY, centerZ);
   
   return glowGroup;
 };
@@ -577,7 +690,14 @@ const onClick = (event) => {
         scene.add(infoLabel);
         infoLabels.set(clickedMesh, infoLabel);
         
-        const edgeGlow = createEdgeGlow(plotItem.points, plotItem.centerX, 1.5, plotItem.centerZ, 0x7ae0d0);
+        // 使用镜像后的本地坐标创建边缘发光
+        const edgeGlow = createEdgeGlowWithMirror(
+  plotItem.points,  // 使用原始点
+  plotItem.centerX,
+  1.5,
+  plotItem.centerZ,
+  0x7ae0d0
+);
         scene.add(edgeGlow);
         edgeGlowMeshes.set(clickedMesh, edgeGlow);
       }
@@ -586,7 +706,6 @@ const onClick = (event) => {
     resetAllPlots();
   }
 };
-
 // 处理鼠标移动（用于悬停效果）
 const onMouseMove = (event) => {
   const rect = renderer.domElement.getBoundingClientRect();
@@ -657,8 +776,14 @@ const onMouseMove = (event) => {
         
         const existingEdgeGlow = edgeGlowMeshes.get(hoveredMesh);
         if (!existingEdgeGlow) {
-          // 使用与信息框边框相同的颜色 0x2a9d8f
-          const edgeGlow = createEdgeGlow(plotItem.points, plotItem.centerX, 1.5, plotItem.centerZ, 0x2a9d8f);
+          // 使用镜像后的本地坐标创建边缘发光
+          const edgeGlow = createEdgeGlowWithMirror(
+  plotItem.points,  // 使用原始点
+  plotItem.centerX,
+  1.5,
+  plotItem.centerZ,
+  0x7ae0d0
+);
           scene.add(edgeGlow);
           edgeGlowMeshes.set(hoveredMesh, edgeGlow);
         }
@@ -721,7 +846,8 @@ const initScene = () => {
   controls.dampingFactor = 0.05;
   controls.autoRotate = true;
   controls.autoRotateSpeed = 0.6;
-  controls.maxPolarAngle = Math.PI / 2.3;
+  // controls.maxPolarAngle = Math.PI / 2.3;
+ controls.maxPolarAngle = Math.PI; // 允许从底部到顶部的完全旋转
   controls.minDistance = 50;
   controls.maxDistance = 300;
 
@@ -759,71 +885,8 @@ const initScene = () => {
 
 // 创建单个地块 - 增强立体感和渐变
 const createPlotMesh = (plotId, points, color) => {
-  const shape = new THREE.Shape();
-  if (points.length === 0) return null;
-  
-  shape.moveTo(points[0].x, points[0].z);
-  for (let i = 1; i < points.length; i++) {
-    shape.lineTo(points[i].x, points[i].z);
-  }
-  shape.closePath();
-
-  const extrudeSettings = {
-    steps: 1,
-    depth: 2.0,
-    bevelEnabled: true,
-    bevelThickness: 0.3,
-    bevelSize: 0.25,
-    bevelSegments: 4
-  };
-
-  const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-  geometry.rotateX(-Math.PI / 2);
-
-  const material = new THREE.MeshStandardMaterial({
-    color: color,
-    roughness: 0.2,
-    metalness: 0.3,
-    emissive: 0x0a2a2a,
-    emissiveIntensity: 0.3,
-    transparent: true,
-    opacity: 0.95,
-    flatShading: false
-  });
-
-  const mesh = new THREE.Mesh(geometry, material);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-  mesh.userData.id = plotId;
-
-  const centerX = points.reduce((sum, p) => sum + p.x, 0) / points.length;
-  const centerZ = points.reduce((sum, p) => sum + p.z, 0) / points.length;
-
-  // 添加顶部高光面 - 不透明
-  const topFaceMaterial = new THREE.MeshBasicMaterial({
-    color: 0x2a9d8f,
-    transparent: false,
-    opacity: 0.15,
-    side: THREE.DoubleSide,
-    blending: THREE.AdditiveBlending
-  });
-  
-  for (let i = 0; i < points.length - 2; i++) {
-    const triangleGeometry = new THREE.BufferGeometry();
-    const triangleVertices = [
-      points[0].x, 1.0, points[0].z,
-      points[i + 1].x, 1.0, points[i + 1].z,
-      points[i + 2].x, 1.0, points[i + 2].z
-    ];
-    triangleGeometry.setAttribute('position', new THREE.Float32BufferAttribute(triangleVertices, 3));
-    triangleGeometry.setIndex([0, 1, 2]);
-    triangleGeometry.computeVertexNormals();
-    
-    const triangleMesh = new THREE.Mesh(triangleGeometry, topFaceMaterial);
-    mesh.add(triangleMesh);
-  }
-
-  return { mesh, centerX, centerZ, color, points };
+  console.warn('createPlotMesh 已废弃，直接在 generatePlots 中创建');
+  return null;
 };
 
 // 调整相机位置
@@ -856,51 +919,207 @@ const adjustCameraToFitPlots = (meshesData) => {
 const generatePlots = () => {
   const meshesData = transformWithNonOverlap();
 
-  const colors = [0x1a6b5e, 0x1f7a6b, 0x248b78];
+const colors = [0x4f794a, 0x4f6f46, 0x3f503b]; // Material Design 风格的绿色
 
   meshesData.forEach((item, index) => {
     const color = colors[index % colors.length];
-    const result = createPlotMesh(item.id, item.points, color);
-    if (result) {
-      const { mesh, centerX, centerZ, color, points } = result;
-      
-      scene.add(mesh);
-      
-      plotMeshes.push({ 
-        mesh, 
-        centerX, 
-        centerZ,
-        points,
-        id: item.id,
-        originalColor: color
-      });
+    
+    // 计算地块的中心点
+    const centerX = item.points.reduce((sum, p) => sum + p.x, 0) / item.points.length;
+    const centerZ = item.points.reduce((sum, p) => sum + p.z, 0) / item.points.length;
+    
+    // 关键修改：保持原始相对偏移不变，不进行镜像
+    // 因为从调试数据看，地块和编号已经重合了，说明不需要镜像
+    const localPoints = item.points.map(p => ({
+      x: p.x - centerX,  // 保持原始偏移
+      z: p.z - centerZ   // 保持原始偏移
+    }));
 
-      // 创建ID小标签 - 不透明背景
-      const idDiv = document.createElement('div');
-      idDiv.textContent = item.id;
-      idDiv.style.color = '#7ae0d0';
-      idDiv.style.fontSize = '22px';
-      idDiv.style.fontWeight = '600';
-      idDiv.style.textShadow = '0 0 15px #2a9d8f';
-      idDiv.style.backgroundColor = '#0a1e23';
-      idDiv.style.padding = '2px 12px';
-      idDiv.style.borderRadius = '20px';
-      idDiv.style.border = '2px solid #2a9d8f';
-      idDiv.style.fontFamily = 'Arial, sans-serif';
-      idDiv.style.boxShadow = '0 0 20px rgba(42, 157, 143, 0.3)';
-      idDiv.style.opacity = '1';
-
-      const idLabel = new CSS2DObject(idDiv);
-      idLabel.position.set(centerX, 1.2, centerZ);
-      scene.add(idLabel);
+        console.log(`地块 ${item.id} 调试:`);
+    console.log('  - 原始点:', item.points[0].x, item.points[0].z);
+    console.log('  - 中心点:', centerX, centerZ);
+    console.log('  - 本地坐标:', localPoints[0].x, localPoints[0].z);
+    
+    // 使用本地坐标创建形状
+    const shape = new THREE.Shape();
+    if (localPoints.length === 0) return;
+    
+    shape.moveTo(localPoints[0].x, localPoints[0].z);
+    for (let i = 1; i < localPoints.length; i++) {
+      shape.lineTo(localPoints[i].x, localPoints[i].z);
     }
+    shape.closePath();
+
+    const extrudeSettings = {
+      steps: 1,
+      depth: 2.0,
+      bevelEnabled: true,
+      bevelThickness: 0.3,
+      bevelSize: 0.25,
+      bevelSegments: 4
+    };
+
+    const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+    geometry.rotateX(-Math.PI / 2);
+
+    const material = new THREE.MeshStandardMaterial({
+      color: color,
+      roughness: 0.2,
+      metalness: 0.3,
+      emissive: 0x0a2a2a,
+      emissiveIntensity: 0.3,
+      transparent: true,
+      opacity: 0.95,
+      flatShading: false
+    });
+
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    mesh.userData.id = item.id;
+    
+    // mesh位置设置为中心点
+    mesh.position.set(centerX, 0, centerZ);
+    
+    scene.add(mesh);
+    
+    plotMeshes.push({ 
+      mesh, 
+      centerX, 
+      centerZ,
+      points: item.points,
+      localPoints: localPoints,
+      id: item.id,
+      originalColor: color
+    });
+
+    // 创建ID小标签
+    const idDiv = document.createElement('div');
+    idDiv.textContent = item.id;
+    idDiv.style.color = '#7ae0d0';
+    idDiv.style.fontSize = '22px';
+    idDiv.style.fontWeight = '600';
+    idDiv.style.textShadow = '0 0 15px #2a9d8f';
+    idDiv.style.backgroundColor = '#0a1e23';
+    idDiv.style.padding = '2px 12px';
+    idDiv.style.borderRadius = '20px';
+    idDiv.style.border = '2px solid #2a9d8f';
+    idDiv.style.fontFamily = 'Arial, sans-serif';
+    idDiv.style.boxShadow = '0 0 20px rgba(42, 157, 143, 0.3)';
+    idDiv.style.opacity = '1';
+
+    const idLabel = new CSS2DObject(idDiv);
+    idLabel.position.set(centerX, 1.2, centerZ);
+    scene.add(idLabel);
+    
+    // 调试信息
+    console.log(`地块 ${item.id}:`);
+    console.log('  - 中心点:', centerX, centerZ);
+    console.log('  - 原始第一个顶点:', item.points[0].x, item.points[0].z);
+    console.log('  - 相对中心偏移:', item.points[0].x - centerX, item.points[0].z - centerZ);
+    console.log('  - 镜像后本地顶点:', localPoints[0].x, localPoints[0].z);
   });
 
   adjustCameraToFitPlots(meshesData);
 };
 
+
+// 创建一个新的函数，专门处理边缘发光的镜像
+const createEdgeGlowWithMirror = (worldPoints, centerX, centerY, centerZ, color = 0x2a9d8f) => {
+  const glowGroup = new THREE.Group();
+  
+  // 将世界坐标转换为本地坐标，并应用Z轴镜像
+  const localPoints = worldPoints.map(p => ({
+    x: p.x - centerX,
+    z: -(p.z - centerZ)  // Z轴镜像
+  }));
+  
+  // 使用镜像后的本地坐标创建边缘发光
+  const linePoints = localPoints.map(p => new THREE.Vector3(p.x, 0.2, p.z));
+  linePoints.push(linePoints[0]);
+  
+  const lineGeometry = new THREE.BufferGeometry().setFromPoints(linePoints);
+  const lineMaterial = new THREE.LineBasicMaterial({
+    color: color,
+    transparent: true,
+    opacity: 0.6,
+    blending: THREE.AdditiveBlending
+  });
+  
+  const line = new THREE.Line(lineGeometry, lineMaterial);
+  glowGroup.add(line);
+  
+  // 添加边缘光点
+  const dotCount = Math.floor(localPoints.length * 1.5);
+  const dotGeometry = new THREE.BufferGeometry();
+  const dotPositions = [];
+  
+  for (let i = 0; i < dotCount; i++) {
+    const idx = Math.floor(Math.random() * localPoints.length);
+    const p = localPoints[idx];
+    dotPositions.push(p.x, 0.3, p.z);
+  }
+  
+  dotGeometry.setAttribute('position', new THREE.Float32BufferAttribute(dotPositions, 3));
+  const dotMaterial = new THREE.PointsMaterial({
+    color: color,
+    size: 0.2,
+    transparent: true,
+    blending: THREE.AdditiveBlending
+  });
+  
+  const dots = new THREE.Points(dotGeometry, dotMaterial);
+  glowGroup.add(dots);
+  
+  glowGroup.position.set(centerX, centerY, centerZ);
+  
+  return glowGroup;
+};
+
+
 const animate = () => {
   animationId = requestAnimationFrame(animate);
+  
+  // 水波纹动画 - 向外扩散效果
+  if (waterRippleEffect) {
+    const time = Date.now() * 0.001;
+    
+    waterRippleEffect.children.forEach((child, index) => {
+      if (child.isLineLoop && child.userData) {
+        // 波纹半径随时间变化
+        const baseRadius = child.userData.baseRadius;
+        const speed = child.userData.speed;
+        const phase = child.userData.phase;
+        
+        // 重新生成几何体，实现半径变化
+        const points = [];
+        const segments = 120;
+        
+        for (let i = 0; i <= segments; i++) {
+          const angle = (i / segments) * Math.PI * 2;
+          // 半径随时间波动，实现扩散效果
+          const radiusOffset = Math.sin(time * speed + phase) * 5;
+          const xOffset = Math.sin(angle * 3 + time) * 3;
+          const zOffset = Math.cos(angle * 2 + time * 0.5) * 3;
+          const x = Math.cos(angle) * (baseRadius + radiusOffset + xOffset);
+          const z = Math.sin(angle) * (baseRadius + radiusOffset + zOffset);
+          points.push(new THREE.Vector3(x, -0.3, z));
+        }
+        
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        child.geometry.dispose();
+        child.geometry = geometry;
+        
+        // 透明度也随时间波动
+        child.material.opacity = child.userData.originalOpacity + Math.sin(time * 2 + phase) * 0.02;
+      }
+      
+      // 流动光点动画
+      if (child.isPoints && child.userData) {
+        child.rotation.y += 0.002;
+      }
+    });
+  }
   
   if (ringGroup) {
     ringGroup.rotation.y += 0.0003;
