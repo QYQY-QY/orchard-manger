@@ -24,10 +24,14 @@
           <el-option label="启用" value="1" />
           <el-option label="禁用" value="0" />
         </el-select>
-        <el-button type="primary" size="default" @click="handleFilter">筛选</el-button>
+        <el-button type="primary" size="default" @click="handleFilter"
+          >筛选</el-button
+        >
         <el-button size="default" @click="resetFilter">重置</el-button>
       </div>
-      <el-button type="primary" size="default" @click="showApplyDialog = true">申请账号</el-button>
+      <el-button type="primary" size="default" @click="showApplyDialog = true"
+        >申请账号</el-button
+      >
     </div>
 
     <!-- 申请账号弹窗 -->
@@ -69,154 +73,170 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
-import { ElMessage } from 'element-plus'
-import axios from 'axios'
-import dayjs from 'dayjs'
+import { ref, reactive } from "vue";
+import { ElMessage } from "element-plus";
+import axios from "axios";
+import dayjs from "dayjs";
 // 从Pinia获取用户信息
-import { useUserStore } from '@/stores/modules/user.js'
-const userStore = useUserStore()
+import { useUserStore } from "@/stores/modules/user.js";
+const userStore = useUserStore();
 
 // 定义事件
-const emit = defineEmits(['filter-change', 'apply-success', 'get-orchard-id'])
+const emit = defineEmits(["filter-change", "apply-success", "get-orchard-id"]);
 
 // ========== 统一变量定义 ==========
 // 筛选条件（统一String类型）
-const filterType = ref('')
-const filterStatus = ref('')
+const filterType = ref("");
+const filterStatus = ref("");
 
 // 申请弹窗
-const showApplyDialog = ref(false)
-const applyFormRef = ref(null)
+const showApplyDialog = ref(false);
+const applyFormRef = ref(null);
 
 // 申请表单（统一默认值）
 const applyForm = reactive({
-  isAdmin: '',      // 3=农户，6=临时工
-  count: 1          // 默认申请1个
-})
+  isAdmin: "", // 3=农户，6=临时工
+  count: 1, // 默认申请1个
+});
 
 // 校验规则
 const applyRules = reactive({
-  isAdmin: [{ required: true, message: '请选择账号类型', trigger: 'change' }],
+  isAdmin: [{ required: true, message: "请选择账号类型", trigger: "change" }],
   count: [
-    { required: true, message: '请输入申请数量', trigger: 'blur' },
-    { type: 'number', min: 1, max: 10, message: '数量需在1-10之间', trigger: 'blur' }
-  ]
-})
+    { required: true, message: "请输入申请数量", trigger: "blur" },
+    {
+      type: "number",
+      min: 1,
+      max: 10,
+      message: "数量需在1-10之间",
+      trigger: "blur",
+    },
+  ],
+});
 
 // ========== 工具方法：格式化后端要求的时间格式 ==========
 const formatBackendTime = () => {
   // 生成符合后端@JsonFormat的格式：yyyy-MM-dd'T'HH:mm:ss.SSS
-  return dayjs().format('YYYY-MM-DD[T]HH:mm:ss.SSS[Z]')
-  // return dayjs().format('YYYY-MM-DD HH:mm:ss.SSS')
-}
+  // return dayjs().format('YYYY-MM-DD[T]HH:mm:ss.SSS[Z]')
+  // return dayjs().format("YYYY-MM-DDTHH:mm:ss");
+  return dayjs().format("YYYY-MM-DD HH:mm:ss.SSS");
+};
 
 // ========== 方法 ==========
 // 筛选（统一传递String类型）
 const handleFilter = () => {
-  emit('filter-change', { 
+  emit("filter-change", {
     type: filterType.value,
-    status: filterStatus.value 
-  })
-  const typeText = filterType.value === '3' ? '农户' : filterType.value === '6' ? '临时工' : '全部'
-  const statusText = filterStatus.value === '1' ? '启用' : filterStatus.value === '0' ? '禁用' : '全部'
-  ElMessage.success(`筛选条件：类型=${typeText}, 状态=${statusText}`)
-}
+    status: filterStatus.value,
+  });
+  const typeText =
+    filterType.value === "3"
+      ? "农户"
+      : filterType.value === "6"
+      ? "临时工"
+      : "全部";
+  const statusText =
+    filterStatus.value === "1"
+      ? "启用"
+      : filterStatus.value === "0"
+      ? "禁用"
+      : "全部";
+  ElMessage.success(`筛选条件：类型=${typeText}, 状态=${statusText}`);
+};
 
 // 重置筛选
 const resetFilter = () => {
-  filterType.value = ''
-  filterStatus.value = ''
-  emit('filter-change', { type: '', status: '' })
-}
+  filterType.value = "";
+  filterStatus.value = "";
+  emit("filter-change", { type: "", status: "" });
+};
 
 // 重置申请表单
 const resetApplyForm = () => {
-  applyForm.isAdmin = ''
-  applyForm.count = 1
-  applyFormRef.value?.resetFields()
-}
+  applyForm.isAdmin = "";
+  applyForm.count = 1;
+  applyFormRef.value?.resetFields();
+};
 
 // 提交申请（适配后端标准格式）
 const submitApplyForm = async () => {
   try {
-    await applyFormRef.value.validate()
+    await applyFormRef.value.validate();
 
     // 统一从Pinia获取果园ID和创建人ID
-    const orchardId = userStore.user?.orchardId || 1 // 确保是数字类型
-    const createUser = userStore.user?.id || 0
+    const orchardId = userStore.user?.orchardId || 1; // 确保是数字类型
+    const createUser = userStore.user?.id || 0;
     if (!orchardId || !createUser) {
-      ElMessage.error('无法获取果园ID或创建人ID，请先登录！')
-      return
+      ElMessage.error("无法获取果园ID或创建人ID，请先登录！");
+      return;
     }
 
     // 构造请求
-    const requestPromises = []
-    const now = formatBackendTime() // 后端要求的时间格式
+    const requestPromises = [];
+    const now = formatBackendTime(); // 后端要求的时间格式
 
     for (let i = 0; i < applyForm.count; i++) {
       // 严格匹配后端/api/employee/add的标准格式
       const accountParams = {
-        createTime: now,                // 格式：2026-03-08T12:02:27.957
+        createTime: now, // 格式：2026-03-08T12:02:27.957
         createUser: Number(createUser), // 数字类型
-        headImg: '',                    // 字符串类型
-        id: 0,                          // 数字类型
-        idCard: '',                     // 修正字段名：id_card → idCard
+        headImg: "", // 字符串类型
+        id: 0, // 数字类型
+        idCard: "", // 修正字段名：id_card → idCard
         isAdmin: Number(applyForm.isAdmin), // 3=农户/6=临时工
-        name: '新账号',                 // 默认用户名
-        openId: '',                     // 字符串类型
-        orchardId: Number(orchardId),   // 数字类型
-        password: 123456,               // 数字类型
-        phone: '',                      // 字符串类型
-        sex: 0,                         // 默认女（数字类型）
-        status: 0,                      // 默认禁用（数字类型）
-        updateTime: now,                // 格式：2026-03-08T12:02:27.957
-        updateUser: 0,                  // 数字类型
-        username: `zzc_${Date.now()}_${i}` // 唯一用户名
-      }
+        name: "新账号", // 默认用户名
+        openId: "", // 字符串类型
+        orchardId: Number(orchardId), // 数字类型
+        password: 123456, // 数字类型
+        phone: "", // 字符串类型
+        sex: 0, // 默认女（数字类型）
+        status: 0, // 默认禁用（数字类型）
+        updateTime: now, // 格式：2026-03-08T12:02:27.957
+        updateUser: 0, // 数字类型
+        username: `zzc_${Date.now()}_${i}`, // 唯一用户名
+      };
 
-      requestPromises.push(axios.post('/api/employee/add', accountParams))
-
+      requestPromises.push(axios.post("/api/employee/add", accountParams));
     }
 
     // 批量提交
-    const responses = await Promise.all(requestPromises)
-    const allSuccess = responses.every(res => res.data.code === 200)
-    
+    const responses = await Promise.all(requestPromises);
+    const allSuccess = responses.every((res) => res.data.code === 200);
+
     if (allSuccess) {
       const realAccounts = responses.map((res, index) => {
-        const realId = res.data.data // 后端返回的ID
-        
+        const realId = res.data.data; // 后端返回的ID
+
         return {
-          id: String(realId),           // 使用后端返回的真实ID
+          id: String(realId), // 使用后端返回的真实ID
           isAdmin: String(applyForm.isAdmin),
           status: 0,
-          name: '',
-          idCard: '',                  // 注意字段名是 id_card 不是 idCard
-          username: '新账号',
-          avatar: '',
-          headImg: '',
-          createTime: dayjs(now).format('YYYY-MM-DD HH:mm:ss'),
-          updateTime: dayjs(now).format('YYYY-MM-DD HH:mm:ss'),
+          name: "",
+          idCard: "", // 注意字段名是 id_card 不是 idCard
+          username: "新账号",
+          avatar: "",
+          headImg: "",
+          createTime: dayjs(now).format("YYYY-MM-DD HH:mm:ss"),
+          updateTime: dayjs(now).format("YYYY-MM-DD HH:mm:ss"),
           orchardId: String(orchardId),
           createUser: String(createUser),
           sex: 0,
-          phone: ''
-        }
-      })
-      ElMessage.success(`成功申请${applyForm.count}个账号！`)
-      showApplyDialog.value = false
-      resetApplyForm()
-      emit('apply-success', realAccounts)
-      emit('get-orchard-id', String(orchardId))
+          phone: "",
+        };
+      });
+      ElMessage.success(`成功申请${applyForm.count}个账号！`);
+      showApplyDialog.value = false;
+      resetApplyForm();
+      emit("apply-success", realAccounts);
+      emit("get-orchard-id", String(orchardId));
     } else {
-      ElMessage.error('部分账号申请失败，请检查！')
+      ElMessage.error("部分账号申请失败，请检查！");
     }
   } catch (err) {
-    console.error('申请账号失败：', err)
-    ElMessage.error('账号申请失败，请稍后重试')
+    console.error("申请账号失败：", err);
+    ElMessage.error("账号申请失败，请稍后重试");
   }
-}
+};
 </script>
 
 <style scoped>

@@ -45,11 +45,6 @@
           </template>
         </el-table-column>
         <!-- 新增：果树品种列 -->
-        <el-table-column label="果树品种" min-width="100">
-          <template #default="scope">
-            {{ scope.row.type || "-" }}
-          </template>
-        </el-table-column>
         <!-- 新增：果实数量列 -->
         <el-table-column label="果实总数" min-width="100">
           <template #default="scope">
@@ -84,7 +79,7 @@
                   : 'warning'
               "
             >
-              {{ scope.row.healthCondition || "-" }}
+              {{ scope.row.healthCondition || "未添加" }}
             </el-tag>
           </template>
         </el-table-column>
@@ -116,12 +111,7 @@
         </el-table-column>
         <el-table-column label="操作" width="auto">
           <template #default="scope">
-            <el-button
-              size="small"
-              link
-              @click="showTreeDetail(scope.row)"
-              disabled
-            >
+            <el-button size="small" link @click="showTreeDetail(scope.row)">
               查看详情
             </el-button>
             <el-button
@@ -166,72 +156,171 @@
     </div>
 
     <!-- 果树详情弹窗 -->
+    <!-- 果树日志详情弹窗 -->
     <el-dialog
       v-model="showTreeDetailDialog"
-      title="果树详情"
-      width="600px"
+      title="果树操作日志"
+      width="800px"
       center
       :close-on-click-modal="false"
     >
-      <div class="tree-detail-content">
-        <el-descriptions title="果树基础信息" :column="1" border>
-          <el-descriptions-item label="果树ID">
-            {{ currentTree.id }}
-          </el-descriptions-item>
-          <el-descriptions-item label="果树品种">
-            {{
-              currentTree.type || fullZoneInfo.type || activeZone.type || "-"
-            }}
-          </el-descriptions-item>
-          <el-descriptions-item label="果实总数">
-            {{ currentTree.countNum || 0 }}
-          </el-descriptions-item>
-          <el-descriptions-item label="成熟果实数量">
-            {{ currentTree.ripeNum || 0 }}
-          </el-descriptions-item>
-          <el-descriptions-item label="成熟度">
-            <el-tag :type="getRipeDegreeTagType(currentTree.ripeDegree)">
-              {{ formatRipeDegree(currentTree.ripeDegree) }}
-            </el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="健康状态">
-            <el-tag
-              :type="
-                currentTree.healthCondition === '健康'
-                  ? 'success'
-                  : currentTree.healthCondition === '异常'
-                  ? 'danger'
-                  : 'warning'
-              "
+      <div class="tree-log-content">
+        <!-- 果树基本信息简洁显示 -->
+        <div
+          style="
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #f5f7fa;
+            border-radius: 4px;
+          "
+        >
+          <el-row :gutter="20">
+            <el-col :span="8"
+              ><strong>果树ID：</strong>{{ currentTree.id }}</el-col
             >
-              {{ currentTree.healthCondition || "-" }}
-            </el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="二维码">
-            <div
-              v-if="currentTree.url"
-              style="display: flex; align-items: center; gap: 10px"
+            <el-col :span="8"
+              ><strong>品种：</strong>{{ currentTree.type || "-" }}</el-col
             >
-              <el-image
-                :src="currentTree.url"
-                style="width: 80px; height: 80px"
-                fit="contain"
-                @click="handleQRCodeClick(currentTree.url)"
-                :preview-src-list="[currentTree.url]"
-              />
-              <div>
-                <el-button
-                  size="mini"
-                  type="primary"
-                  @click.stop="downloadQRCode(currentTree.url, currentTree.id)"
+            <el-col :span="8"
+              ><strong>所属区域：</strong
+              >{{ currentTree.areaName || currentTree.areaId || "-" }}</el-col
+            >
+          </el-row>
+        </div>
+
+        <!-- 日志统计卡片 -->
+        <el-row :gutter="20" style="margin-bottom: 20px">
+          <el-col :span="8">
+            <el-card shadow="hover" style="text-align: center">
+              <h3 style="margin: 0; color: #409eff">
+                {{ currentTree.logs?.length || 0 }}
+              </h3>
+              <div style="font-size: 12px; color: #666">总日志数</div>
+            </el-card>
+          </el-col>
+          <el-col :span="8">
+            <el-card shadow="hover" style="text-align: center">
+              <h3 style="margin: 0; color: #67c23a">
+                {{
+                  currentTree.logs?.filter((log) => log.type === "1").length ||
+                  0
+                }}
+              </h3>
+              <div style="font-size: 12px; color: #666">浇水次数</div>
+            </el-card>
+          </el-col>
+          <el-col :span="8">
+            <el-card shadow="hover" style="text-align: center">
+              <h3 style="margin: 0; color: #e6a23c">
+                {{
+                  currentTree.logs?.filter((log) => log.type === "2").length ||
+                  0
+                }}
+              </h3>
+              <div style="font-size: 12px; color: #666">施肥次数</div>
+            </el-card>
+          </el-col>
+        </el-row>
+
+        <!-- 日志列表 -->
+        <el-timeline v-if="currentTree.logs && currentTree.logs.length > 0">
+          <el-timeline-item
+            v-for="log in sortedLogs"
+            :key="log.id"
+            :timestamp="log.createTime"
+            placement="top"
+            :type="
+              log.type === '1'
+                ? 'primary'
+                : log.type === '2'
+                ? 'success'
+                : 'info'
+            "
+            :color="
+              log.type === '1'
+                ? '#409eff'
+                : log.type === '2'
+                ? '#67c23a'
+                : '#909399'
+            "
+          >
+            <el-card shadow="hover" style="margin-bottom: 10px">
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                "
+              >
+                <el-tag
+                  :type="
+                    log.type === '1'
+                      ? 'primary'
+                      : log.type === '2'
+                      ? 'success'
+                      : 'info'
+                  "
+                  size="small"
                 >
-                  下载二维码
-                </el-button>
+                  {{
+                    log.type === "1"
+                      ? "浇水"
+                      : log.type === "2"
+                      ? "施肥"
+                      : "其他操作"
+                  }}
+                </el-tag>
+                <span style="font-size: 12px; color: #999"
+                  >日志ID: {{ log.id }}</span
+                >
               </div>
-            </div>
-            <span v-else>-</span>
-          </el-descriptions-item>
-        </el-descriptions>
+
+              <el-descriptions
+                :column="2"
+                size="small"
+                style="margin-top: 10px"
+              >
+                <el-descriptions-item label="施用量">
+                  {{ log.num || 0 }} {{ log.unit || "-" }}
+                </el-descriptions-item>
+                <el-descriptions-item label="操作方式">
+                  {{ log.operationMethod || "-" }}
+                </el-descriptions-item>
+                <el-descriptions-item label="操作时间">
+                  {{ log.operationTime || "-" }}
+                </el-descriptions-item>
+                <el-descriptions-item label="更新时间">
+                  {{ log.updateTime || "-" }}
+                </el-descriptions-item>
+                <el-descriptions-item label="创建用户">
+                  {{ log.createUser || "-" }}
+                </el-descriptions-item>
+                <el-descriptions-item label="更新用户">
+                  {{ log.updateUser || "-" }}
+                </el-descriptions-item>
+              </el-descriptions>
+
+              <div
+                v-if="log.content"
+                style="
+                  margin-top: 8px;
+                  padding: 8px;
+                  background-color: #f8f9fa;
+                  border-radius: 4px;
+                "
+              >
+                <strong>备注内容：</strong>{{ log.content }}
+              </div>
+            </el-card>
+          </el-timeline-item>
+        </el-timeline>
+
+        <!-- 无日志时的提示 -->
+        <el-empty
+          v-else
+          description="暂无操作日志"
+          :image-size="100"
+        ></el-empty>
       </div>
       <template #footer>
         <el-button @click="showTreeDetailDialog = false">关闭</el-button>
@@ -359,15 +448,21 @@ const sortedTreeList = computed(() => {
     typeId: tree.typeId || "",
   }));
 });
-
 // 格式化成熟度
 const formatRipeDegree = (degree) => {
-  if (degree === "NaN" || !degree || degree === null) return "-";
+  // 如果没有数据，返回 "0"
+  if (degree === null || degree === undefined || degree === "") return "0";
+
+  // 处理 "NaN" 的情况
+  if (degree === "NaN") return "0";
+
   const numDegree = Number(degree);
-  if (numDegree === 0) return "未成熟";
+  if (isNaN(numDegree)) return "0";
+
+  if (numDegree === 0) return "0";
   if (numDegree > 0 && numDegree < 100) return `${numDegree}%`;
   if (numDegree >= 100) return "已成熟";
-  return "-";
+  return "0";
 };
 
 // 获取成熟度标签类型
@@ -381,9 +476,47 @@ const getRipeDegreeTagType = (degree) => {
 };
 
 // 查看果树详情
-const showTreeDetail = (tree) => {
-  Object.assign(currentTree, JSON.parse(JSON.stringify(tree)));
-  showTreeDetailDialog.value = true;
+const showTreeDetail = async (tree) => {
+  try {
+    // 显示加载中
+    ElMessage.info("加载果树详情中...");
+
+    // 调用新接口获取详情
+    const response = await axios.get(`/api/fruitTree/treeInfo/${tree.id}`);
+
+    if (response.data && response.data.code === 200) {
+      const treeDetail = response.data.data;
+
+      // 将详情数据赋值给 currentTree
+      Object.assign(currentTree, {
+        id: treeDetail.id,
+        type: treeDetail.type,
+        countNum: treeDetail.countNum,
+        ripeNum: treeDetail.ripeNum,
+        ripeDegree: treeDetail.ripeDegree,
+        healthCondition: treeDetail.healthCondition,
+        url: treeDetail.url,
+        areaId: treeDetail.areaId,
+        areaName: treeDetail.areaName,
+        orchardName: treeDetail.orchardName,
+        areaManagerName: treeDetail.areaManagerName,
+        img: treeDetail.img,
+        logs: treeDetail.logs || [],
+        tasks: treeDetail.tasks || [],
+        createTime: treeDetail.createTime,
+        updateTime: treeDetail.updateTime,
+      });
+
+      showTreeDetailDialog.value = true;
+    } else {
+      ElMessage.error(
+        "获取果树详情失败：" + (response.data?.msg || "未知错误")
+      );
+    }
+  } catch (error) {
+    console.error("获取果树详情失败:", error);
+    ElMessage.error("获取果树详情失败，请稍后重试");
+  }
 };
 
 // 删除果树
@@ -485,8 +618,13 @@ const batchGenerateQRCode = async () => {
     generateQRLoading.value = false;
   }
 };
-
-// 批量下载二维码（按果树ID命名）
+// 按创建时间倒序排序的日志
+const sortedLogs = computed(() => {
+  if (!currentTree.logs) return [];
+  return [...currentTree.logs].sort((a, b) => {
+    return new Date(b.createTime) - new Date(a.createTime);
+  });
+});
 // 批量下载二维码（极简修复版，优先保证能执行）
 const batchDownloadQRCode = async () => {
   console.log("=== 开始批量下载 ===");
@@ -740,5 +878,26 @@ watch(
   color: #999;
   font-size: 10px;
   background-color: #f5f7fa;
+}
+.tree-log-content {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 0 10px;
+}
+
+.tree-log-content::-webkit-scrollbar {
+  width: 6px;
+}
+.tree-log-content::-webkit-scrollbar-thumb {
+  background: #dcdcdc;
+  border-radius: 3px;
+}
+.tree-log-content::-webkit-scrollbar-track {
+  background: #f5f5f5;
+}
+
+:deep(.el-timeline-item__timestamp) {
+  color: #666;
+  font-size: 12px;
 }
 </style>
