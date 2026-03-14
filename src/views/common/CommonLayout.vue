@@ -12,7 +12,7 @@
 
         <!-- 普通管理员 (admin) 菜单 -->
         <template v-if="realRole === 'admin'">
-          <el-menu-item index="/adminindex">
+          <el-menu-item index="/Adminindex">
             <el-icon>
               <Promotion />
             </el-icon>
