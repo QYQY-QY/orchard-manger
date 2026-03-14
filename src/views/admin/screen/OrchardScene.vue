@@ -66,13 +66,13 @@ const mainCitrusCounties = [
   { name: '义乌市', adcode: 330782, lng: 120.07, lat: 29.31, count: 60, region: 1 },
   { name: '东阳市', adcode: 330783, lng: 120.23, lat: 29.28, count: 50, region: 1 },
   { name: '磐安县', adcode: 330727, lng: 120.44, lat: 29.05, count: 45, region: 1 },
-  
+
   // 区域②：浦江、兰溪、金东、婺城（中部区域）
   { name: '浦江县', adcode: 330726, lng: 119.88, lat: 29.45, count: 40, region: 2 },
   { name: '兰溪市', adcode: 330781, lng: 119.46, lat: 29.21, count: 55, region: 2 },
   { name: '金东区', adcode: 330703, lng: 119.68, lat: 29.10, count: 40, region: 2 },
   { name: '婺城区', adcode: 330702, lng: 119.65, lat: 29.08, count: 45, region: 2 },
-  
+
   // 区域③：永康、武义（南部区域）
   { name: '永康市', adcode: 330784, lng: 120.03, lat: 28.90, count: 55, region: 3 },
   { name: '武义县', adcode: 330723, lng: 119.82, lat: 28.90, count: 50, region: 3 }
@@ -353,7 +353,7 @@ const createMeshFromPolygon = (coordinates, baseColor, countyName, region) => {
 // 创建县级地图 - 根据区域分配颜色（同一区域颜色相同）
 const createCountyMap = (geojson, region) => {
   if (!geojson || !geojson.features) return;
-  
+
   const features = geojson.features;
   const baseColor = new THREE.Color(REGION_COLORS[region]);
 
@@ -386,7 +386,7 @@ const addCountyMarkers = () => {
     const marker = new THREE.Mesh(markerGeom, markerMat);
     marker.position.set(x, 0.4, z);
     jinhuaGroup.add(marker);
-    
+
     // 添加一个小光环 - 也使用橙色
     const glowGeom = new THREE.SphereGeometry(0.7, 8);
     const glowMat = new THREE.MeshStandardMaterial({
