@@ -96,6 +96,49 @@ const router = createRouter({
       component: () => import('../views/super-admin/sys.vue')
     },
 
+    // ========== 新增：大屏跳转页面路由 ==========
+    // 果园数据大屏（图2）- 如果还没有
+    {
+      path: '/orchard-scene',
+      name: 'OrchardScene',
+      component: () => import('@/views/screen/OrchardScene.vue')
+    },
+    // 病虫害专项防控监测大屏（图3）
+    {
+      path: '/pest-control',
+      name: 'PestControl',
+      component: () => import('@/views/screen/pages/PestControl.vue')
+    },
+    // 多端协同与溯源管理大屏
+    {
+      path: '/multi-cooperation',
+      name: 'MultiCooperation',
+      component: () => import('@/views/screen/pages/MultiCooperation.vue')
+    },
+    // 历史数据趋势分析大屏
+    {
+      path: '/historical-trend',
+      name: 'HistoricalTrend',
+      component: () => import('@/views/screen/pages/HistoricalTrend.vue')
+    },
+    // 农事任务调度管理大屏
+    {
+      path: '/task-dispatch',
+      name: 'TaskDispatch',
+      component: () => import('@/views/screen/pages/TaskDispatch.vue')
+    },
+    // 水肥精准管控决策大屏
+    {
+      path: '/water-fertilizer',
+      name: 'WaterFertilizer',
+      component: () => import('@/views/screen/pages/WaterFertilizer.vue')
+    },
+    // 总览图（如果需要）
+    {
+      path: '/overview',
+      name: 'Overview',
+      component: () => import('@/views/screen/pages/Overview.vue')
+    },
 
     // 404 重定向到登录页
     { path: '/:pathMatch(.*)*', redirect: '/login' }
