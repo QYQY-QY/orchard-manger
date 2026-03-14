@@ -2,58 +2,53 @@
   <div class="orchard-tree">
     <!-- 头部：标题 + 右侧小字 -->
     <div class="header">
-      <span class="main-title">{{ activeArea.name || '未选择区域' }}</span>
+      <span class="main-title">{{ activeArea.name || "未选择区域" }}</span>
       <!-- 第二行文字移到标题右侧 -->
       <span class="sub-title">
-        负责人：{{ formattedArea.manager || '未设置' }} | 
-        品种：{{ formattedArea.cropType || '-' }} | 
-        果树总数：{{ formattedArea.totalTrees || 0 }}
+        负责人：{{ activeArea.areaManagerName || "未设置" }} | 品种：{{
+          formattedArea.cropType || "-"
+        }}
+        | 果树总数：{{ formattedArea.totalTrees || 0 }}
       </span>
     </div>
 
     <div class="tree-container">
-      <div v-if="treeList.length === 0" class="empty-tip">请先选择或添加区域</div>
+      <div v-if="treeList.length === 0" class="empty-tip">
+        请先选择或添加区域
+      </div>
       <div v-else>
         <!-- 表格头部（圆角） -->
         <div class="tree-table-header">
           <div class="table-cell">果树编号</div>
-          <div class="table-cell">果树品种</div>
           <div class="table-cell">果实总数</div>
           <div class="table-cell">成熟实数</div>
           <div class="table-cell">成熟度</div>
           <div class="table-cell">健康状态</div>
-          <div class="table-cell">二维码</div>
           <div class="table-cell">操作</div>
         </div>
         <!-- 表格内容 -->
         <div class="tree-table-body">
           <div class="tree-table-row" v-for="tree in treeList" :key="tree.id">
-            <div class="table-cell">{{ tree.id || '-' }}</div>
-            <div class="table-cell">{{ tree.type || '沃柑' }}</div>
+            <div class="table-cell">{{ tree.id || "-" }}</div>
             <div class="table-cell">{{ tree.countNum || 0 }}</div>
             <div class="table-cell">{{ tree.ripeNum || 0 }}</div>
             <div class="table-cell">{{ tree.ripeDegree || 0 }}%</div>
-            <div class="table-cell">{{ tree.healthCondition || '健康' }}</div>
-            <div class="table-cell">
-              <!-- 二维码占位（圆角） -->
-              <div class="qrcode-placeholder">
-                <img v-if="tree.qrcode" :src="tree.qrcode" alt="二维码" width="40" height="40" />
-                <div v-else class="qrcode-empty"></div>
-              </div>
-            </div>
+            <div class="table-cell">{{ tree.healthCondition || "健康" }}</div>
             <div class="table-cell">
               <div class="action-buttons">
-                <el-button link size="small" @click="$emit('tree-detail', tree)">详情</el-button>
-                <el-button link size="small" type="danger"
-                @click="handleDelete(tree)">删除</el-button>
+                <el-button link size="small" @click="$emit('tree-detail', tree)"
+                  >详情</el-button
+                >
+                <el-button
+                  link
+                  size="small"
+                  type="danger"
+                  @click="handleDelete(tree)"
+                  >删除</el-button
+                >
               </div>
             </div>
           </div>
-        </div>
-        <!-- 底部按钮（圆角） -->
-        <div class="tree-table-footer">
-          <el-button type="primary" size="small" border-radius="6px">批量生成二维码</el-button>
-          <el-button type="success" size="small" style="margin-left: 8px;" border-radius="6px">批量下载二维码</el-button>
         </div>
       </div>
     </div>
@@ -61,44 +56,42 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { ElMessageBox, ElMessage } from 'element-plus'
+import { computed } from "vue";
+import { ElMessageBox, ElMessage } from "element-plus";
 const props = defineProps({
-  areaId: { type: String, default: '' },
+  areaId: { type: String, default: "" },
   activeArea: { type: Object, default: () => ({}) },
-  treeList: { type: Array, default: () => [] }
-})
-const emit = defineEmits(['tree-detail', 'tree-delete'])
+  treeList: { type: Array, default: () => [] },
+});
+const emit = defineEmits(["tree-detail", "tree-delete"]);
 const formattedArea = computed(() => {
-  const firstTree = props.treeList[0]
-  const cropType = firstTree?.type || props.activeArea.cropType || '-'
-  const totalTrees = props.treeList.length || props.activeArea.totalTrees || 0
-  
+  const firstTree = props.treeList[0];
+  const cropType = firstTree?.type || props.activeArea.cropType || "-";
+  const totalTrees = props.treeList.length || props.activeArea.totalTrees || 0;
+
   return {
     ...props.activeArea,
     cropType,
-    totalTrees
-  }
-})
+    totalTrees,
+  };
+});
 const handleDelete = (tree) => {
-  console.log('删除果树:', tree)
-  ElMessageBox.confirm(
-    '确定要删除这棵果树吗？',
-    '提示',
-    {
-      confirmButtonText: '确认',
-      cancelButtonText: '取消',
-      type: 'warning'
-    }
-  ).then(() => {
-    // 用户确认删除
-    emit('tree-delete', tree.id)  // 向父组件发送删除事件
-    ElMessage.success('删除成功')
-  }).catch(() => {
-    // 用户取消删除
-    ElMessage.info('已取消删除')
+  console.log("删除果树:", tree);
+  ElMessageBox.confirm("确定要删除这棵果树吗？", "提示", {
+    confirmButtonText: "确认",
+    cancelButtonText: "取消",
+    type: "warning",
   })
-}
+    .then(() => {
+      // 用户确认删除
+      emit("tree-delete", tree.id); // 向父组件发送删除事件
+      ElMessage.success("删除成功");
+    })
+    .catch(() => {
+      // 用户取消删除
+      ElMessage.info("已取消删除");
+    });
+};
 </script>
 
 <style scoped>
@@ -122,6 +115,7 @@ const handleDelete = (tree) => {
   font-weight: 500;
   border-bottom: 1px solid #e8e8e8;
   background: #fafafa;
+  min-width: 0;
 }
 
 .main-title {
@@ -135,7 +129,7 @@ const handleDelete = (tree) => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 300px; /* 适配右侧宽度 */
+  max-width: 500px; /* 适配右侧宽度 */
 }
 
 .tree-container {
@@ -195,31 +189,26 @@ const handleDelete = (tree) => {
   text-overflow: ellipsis;
 }
 
-.table-cell:nth-child(1) { flex: 0.8; }
-.table-cell:nth-child(2) { flex: 0.8; }
-.table-cell:nth-child(3) { flex: 0.8; }
-.table-cell:nth-child(4) { flex: 0.8; }
-.table-cell:nth-child(5) { flex: 0.8; }
-.table-cell:nth-child(6) { flex: 0.8; }
-.table-cell:nth-child(7) { flex: 1; }
-.table-cell:nth-child(8) { flex: 1; }
-
-/* 二维码占位圆角 */
-.qrcode-placeholder {
-  width: 40px;
-  height: 40px;
-  background: #f5f5f5;
-  border-radius: 8px; /* 二维码圆角 */
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.table-cell:nth-child(1) {
+  flex: 0.8;
 }
-
-.qrcode-empty {
-  width: 40px;
-  height: 40px;
-  background: #eee;
-  border-radius: 8px;
+.table-cell:nth-child(2) {
+  flex: 0.8;
+}
+.table-cell:nth-child(3) {
+  flex: 0.8;
+}
+.table-cell:nth-child(4) {
+  flex: 0.8;
+}
+.table-cell:nth-child(5) {
+  flex: 0.8;
+}
+.table-cell:nth-child(6) {
+  flex: 0.8;
+}
+.table-cell:nth-child(7) {
+  flex: 1;
 }
 
 .action-buttons {

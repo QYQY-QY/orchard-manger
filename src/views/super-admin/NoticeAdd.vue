@@ -99,7 +99,7 @@ import { ref, reactive, onMounted, watch } from "vue";
 import { ElMessage } from "element-plus";
 import { useUserStore } from "@/stores/modules/user";
 import axios from "axios";
-
+import dayjs from "dayjs";
 const emit = defineEmits(["publish-success"]);
 
 // 表单引用
@@ -208,8 +208,16 @@ const submitForm = async () => {
     await formRef.value.validate();
     loading.value = true;
 
-    // 真实接口：POST /api/announceInfo/publish
-    const res = await axios.post("/api/announceInfo/publish", form);
+    const now = dayjs().format("YYYY-MM-DD HH:mm:ss").substring(0, 19);
+    console.log("生成的时间:", now);
+    const submitData = {
+      ...form,
+      createTime: now,
+      updateTime: now,
+    };
+    console.log("提交数据：", submitData);
+    // 虚假接口：POST /api/announceInfo/publish
+    const res = await axios.post("/api/announceInfo/publish", submitData);
     if (res.data.code === 200) {
       emit("publish-success");
       ElMessage.success("通知发布成功");
