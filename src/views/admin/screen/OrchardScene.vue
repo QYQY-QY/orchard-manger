@@ -28,6 +28,20 @@ const progressWidth = ref(0);
 // Three.js 相关变量
 let scene, camera, renderer, labelRenderer, controls, stars, jinhuaGroup;
 let animationFrameId = null;
+let raycaster, mouse;
+
+// 存储每个区域的网格对象
+const regionMeshes = {
+  1: [], // 区域①的网格
+  2: [], // 区域②的网格
+  3: []  // 区域③的网格
+};
+
+// 当前高亮的区域
+let currentHighlightedRegion = null;
+
+// 存储每个网格的原始颜色和发光状态
+const meshOriginalColors = new Map();
 
 // 金华市边界范围（基于实际经纬度）
 const JINHUA_BOUNDS = {
@@ -41,9 +55,9 @@ const MAP_SIZE = 32;
 
 // 区域颜色定义 - 三个区域不同颜色（只用于地图区块，不用于球体）
 const REGION_COLORS = {
-  1: 0x2a6e3f, // 区域①（义乌、东阳、磐安）- 官绿色
+  1: 0xff6633, // 区域①（义乌、东阳、磐安）- 橙红色
   2: 0x33cc66, // 区域②（浦江、兰溪、金东、婺城）- 翠绿色
-  3: 0x779649  // 区域③（永康、武义）- 碧山色
+  3: 0x3366cc  // 区域③（永康、武义）- 蓝色
 };
 
 // 金华市下属县区数据 - 使用行政区划代码
@@ -146,6 +160,94 @@ const initScene = () => {
 
   jinhuaGroup = new THREE.Group();
   scene.add(jinhuaGroup);
+  
+  // 初始化 Raycaster 和鼠标向量
+  raycaster = new THREE.Raycaster();
+  mouse = new THREE.Vector2();
+  
+  // 添加鼠标移动监听
+  window.addEventListener('mousemove', onMouseMove);
+};
+
+// 鼠标移动事件处理
+const onMouseMove = (event) => {
+  // 计算鼠标位置归一化坐标 (-1 到 1)
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  
+  // 更新射线
+  raycaster.setFromCamera(mouse, camera);
+  
+  // 获取所有网格对象
+  const allMeshes = [];
+  for (let i = 1; i <= 3; i++) {
+    allMeshes.push(...regionMeshes[i]);
+  }
+  
+  // 检测与网格的交点
+  const intersects = raycaster.intersectObjects(allMeshes);
+  
+  if (intersects.length > 0) {
+    // 获取第一个被击中的网格
+    const hitMesh = intersects[0].object;
+    
+    // 查找该网格属于哪个区域
+    for (let region = 1; region <= 3; region++) {
+      if (regionMeshes[region].includes(hitMesh)) {
+        // 如果当前高亮的区域不是这个区域，则切换高亮
+        if (currentHighlightedRegion !== region) {
+          highlightRegion(region);
+        }
+        break;
+      }
+    }
+  } else {
+    // 如果没有击中任何网格，且当前有高亮区域，则取消高亮
+    if (currentHighlightedRegion !== null) {
+      unhighlightAllRegions();
+    }
+  }
+};
+
+// 高亮指定区域
+const highlightRegion = (region) => {
+  // 先取消所有区域的高亮
+  unhighlightAllRegions();
+  
+  // 设置当前高亮区域
+  currentHighlightedRegion = region;
+  
+  // 为该区域的所有网格添加发光效果
+  regionMeshes[region].forEach(mesh => {
+    if (mesh.material) {
+      // 保存原始颜色（如果还没保存）
+      if (!meshOriginalColors.has(mesh)) {
+        meshOriginalColors.set(mesh, mesh.material.color.clone());
+      }
+      
+      // 增强亮度和发光效果
+      mesh.material.emissive.setHSL(0, 0, 0.3); // 增加自发光
+      mesh.material.color.multiplyScalar(1.3); // 提高亮度
+    }
+  });
+};
+
+// 取消所有区域的高亮
+const unhighlightAllRegions = () => {
+  if (currentHighlightedRegion === null) return;
+  
+  // 恢复之前高亮区域的所有网格
+  for (let region = 1; region <= 3; region++) {
+    regionMeshes[region].forEach(mesh => {
+      if (mesh.material && meshOriginalColors.has(mesh)) {
+        // 恢复原始颜色
+        mesh.material.color.copy(meshOriginalColors.get(mesh));
+        mesh.material.emissive.setHex(0x111111); // 恢复原始自发光
+      }
+    });
+  }
+  
+  currentHighlightedRegion = null;
 };
 
 // 备用地图
@@ -167,7 +269,7 @@ const createFallbackMap = () => {
 };
 
 // 从多边形坐标创建网格
-const createMeshFromPolygon = (coordinates, baseColor, countyName) => {
+const createMeshFromPolygon = (coordinates, baseColor, countyName, region) => {
   try {
     const shapes = [];
 
@@ -226,7 +328,16 @@ const createMeshFromPolygon = (coordinates, baseColor, countyName) => {
       const mesh = new THREE.Mesh(geometry, material);
       mesh.rotation.x = -Math.PI / 2;
       mesh.position.y = 0;
+      
+      // 添加用户数据，标记所属区域
+      mesh.userData = { region, countyName };
+      
       jinhuaGroup.add(mesh);
+      
+      // 将该网格添加到对应区域的数组中
+      if (region >= 1 && region <= 3) {
+        regionMeshes[region].push(mesh);
+      }
 
       const edges = new THREE.EdgesGeometry(geometry);
       const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x88aa88, transparent: true, opacity: 0.3 }));
@@ -252,10 +363,10 @@ const createCountyMap = (geojson, region) => {
     const countyName = properties ? properties.name : `县${index}`;
 
     if (geometry.type === 'Polygon') {
-      createMeshFromPolygon(geometry.coordinates, baseColor, countyName);
+      createMeshFromPolygon(geometry.coordinates, baseColor, countyName, region);
     } else if (geometry.type === 'MultiPolygon') {
       geometry.coordinates.forEach(polygonCoords => {
-        createMeshFromPolygon(polygonCoords, baseColor, countyName);
+        createMeshFromPolygon(polygonCoords, baseColor, countyName, region);
       });
     }
   });
@@ -403,7 +514,38 @@ const loadAllCountyMaps = async () => {
 
 // 动画循环
 const animate = () => {
-  animationFrameId = requestAnimationFrame(animate);
+  requestAnimationFrame(animate);
+  
+  // 每帧都进行射线检测，实现实时交互
+  if (camera && controls && raycaster) {
+    // 更新射线检测（鼠标位置已在 mousemove 中更新）
+    const allMeshes = [];
+    for (let i = 1; i <= 3; i++) {
+      allMeshes.push(...regionMeshes[i]);
+    }
+    
+    if (allMeshes.length > 0) {
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(allMeshes);
+      
+      if (intersects.length > 0) {
+        const hitMesh = intersects[0].object;
+        for (let region = 1; region <= 3; region++) {
+          if (regionMeshes[region].includes(hitMesh)) {
+            if (currentHighlightedRegion !== region) {
+              highlightRegion(region);
+            }
+            break;
+          }
+        }
+      } else {
+        if (currentHighlightedRegion !== null) {
+          unhighlightAllRegions();
+        }
+      }
+    }
+  }
+  
   if (controls) controls.update();
   if (stars) stars.rotation.y += 0.0001;
   if (renderer && scene && camera) renderer.render(scene, camera);
@@ -433,6 +575,7 @@ onBeforeUnmount(() => {
     cancelAnimationFrame(animationFrameId);
   }
   window.removeEventListener('resize', handleResize);
+  window.removeEventListener('mousemove', onMouseMove);
   if (renderer && mapContainer.value) {
     mapContainer.value.removeChild(renderer.domElement);
   }
