@@ -15,13 +15,13 @@
 
       <!-- 饼图组件 -->
       <div class="chart-card">
-        <div class="card-title">品类占比</div>
+        <div class="card-title">种类占比</div>
         <PieChart :data="pieData" height="180px" />
       </div>
 
       <!-- 柱状图组件 -->
       <div class="chart-card">
-        <div class="card-title">主产县产量对比</div>
+        <div class="card-title">灾害类型及数量</div>
         <BarChart :data="barData" height="180px" />
       </div>
     </div>
@@ -53,21 +53,6 @@ const fetchStats = async () => {
     statCards.value[1].value = '获取失败'
   }
 }
-
-const pieData = ref([
-  { name: '温州蜜柑', value: 45 },
-  { name: '椪柑', value: 28 },
-  { name: '脐橙', value: 18 },
-  { name: '其他', value: 9 }
-])
-
-const barData = ref([
-  { name: '临海', value: 60 },
-  { name: '象山', value: 50 },
-  { name: '常山', value: 55 },
-  { name: '瑞安', value: 50 },
-  { name: '黄岩', value: 55 }
-])
 
 onMounted(() => {
   fetchStats()
