@@ -10,7 +10,7 @@ const router = createRouter({
 
     // 普通管理员路由
     {
-      path: '/adminindex',
+      path: '/Adminindex',
       name: 'AdminIndex',
       component: () => import('../views/admin/Index.vue')
     },

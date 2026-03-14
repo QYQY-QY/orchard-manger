@@ -15,10 +15,10 @@
 </template>
 
 <script setup>
-import Bg3D from './screen/OrchardScene.vue'
-import ScreenHeader from './screen/layout/ScreenHeader.vue'
-import ScreenLeft from './screen/layout/ScreenLeft.vue'
-import ScreenRight from './screen/layout/ScreenRight.vue'
+import Bg3D from '@/views/admin/screen/OrchardScene.vue'
+import ScreenHeader from '@/views/admin/screen/layout/ScreenHeader.vue'
+import ScreenLeft from '@/views/admin/screen/layout/ScreenLeft.vue'
+import ScreenRight from '@/views/admin/screen/layout/ScreenRight.vue'
 </script>
 
 <style scoped>
@@ -35,7 +35,8 @@ import ScreenRight from './screen/layout/ScreenRight.vue'
   top: 80px;
   left: 0;
   right: 0;
-  bottom: 0;           /* 紧贴底部 */
+  bottom: 0;
+  /* 紧贴底部 */
   display: flex;
   gap: 20px;
   pointer-events: none;
@@ -47,12 +48,12 @@ import ScreenRight from './screen/layout/ScreenRight.vue'
   height: 100%;
   pointer-events: auto;
   z-index: 2;
-  background: linear-gradient(to right, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
+  background: linear-gradient(to right, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0) 100%);
   border-radius: 0;
 }
 
 .panel-right {
-  background: linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
+  background: linear-gradient(to left, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0) 100%);
 }
 
 .panel-center {
