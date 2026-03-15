@@ -1,12 +1,17 @@
-<!-- TraceManagement.vue - 多端协同与溯源管理大屏 -->
+<!-- TraceManagement.vue - 多端协同与溯源管理大屏（带返回功能） -->
 <template>
   <div class="trace-dashboard">
-    <!-- 头部角色 -->
+    <!-- 头部角色 - 添加返回按钮 -->
     <div class="header">
       <div class="title-section">
-        <h1>
-          <i class="fas fa-handshake"></i> 多端协同与溯源管理
-        </h1>
+        <div class="title-with-back">
+          <button class="back-btn" @click="goBack">
+            <i class="fas fa-arrow-left"></i> 返回
+          </button>
+          <h1>
+            <i class="fas fa-handshake"></i> 多端协同与溯源管理
+          </h1>
+        </div>
         <div class="role-tag">
           <i class="fas fa-qrcode"></i> 运营人员 · 溯源管理员 · 多端互通
         </div>
@@ -149,6 +154,14 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+// 返回上一页功能
+const goBack = () => {
+  router.back()
+}
 
 // KPI数据
 const kpiData = ref([
@@ -208,9 +221,19 @@ const syncLogs = ref([
   font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
 }
 
+body {
+  background: linear-gradient(145deg, #c9dbc9 0%, #b5d2be 100%);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
 .trace-dashboard {
   max-width: 1440px;
   width: 100%;
+  margin: 0 auto;
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -227,6 +250,44 @@ const syncLogs = ref([
   margin-bottom: 28px;
   flex-wrap: wrap;
   gap: 20px;
+}
+
+.title-section {
+  flex: 1;
+}
+
+.title-with-back {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 8px;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #60b282;
+  color: #1d5433;
+  font-size: 1rem;
+  font-weight: 500;
+  padding: 10px 20px;
+  border-radius: 40px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+.back-btn:hover {
+  background: #60b282;
+  color: white;
+  transform: translateX(-3px);
+  box-shadow: 0 6px 12px rgba(96, 178, 130, 0.3);
+}
+
+.back-btn i {
+  font-size: 1rem;
 }
 
 .title-section h1 {
@@ -268,6 +329,7 @@ const syncLogs = ref([
   color: #1f6d40;
   border: 1px solid #abd8b8;
   font-size: 1rem;
+  white-space: nowrap;
 }
 
 .kpi-row {
@@ -552,5 +614,35 @@ const syncLogs = ref([
   display: flex;
   flex-wrap: wrap;
   gap: 24px;
+}
+
+@media (max-width: 1200px) {
+  .kpi-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .two-col {
+    grid-template-columns: 1fr;
+  }
+  
+  .title-with-back {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 768px) {
+  .kpi-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .update-time {
+    align-self: flex-start;
+  }
 }
 </style>
