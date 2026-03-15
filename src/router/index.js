@@ -88,6 +88,14 @@ const router = createRouter({
       component: () => import('@/views/admin/screen/OrchardScene.vue')
     },
 
+    // 总体数据大屏
+    {
+      path: '/TotalScreen',
+      name: 'TotalScreen',
+      // 修正：使用 @/views 而不是 @views
+      component: () => import('@/views/admin/screen/pages/TotalScreen.vue')
+    },
+
     // 病虫害专项防控监测大屏
     {
       path: '/PestControl',
@@ -138,8 +146,37 @@ const router = createRouter({
 
 // 路由守卫：登录校验 + 角色跳转
 router.beforeEach((to, from) => {
+  console.log('========== 路由守卫 ==========');
+  console.log('目标路径 to.path:', to.path);
+  console.log('来源路径 from.path:', from.path);
+
+
   const token = localStorage.getItem('token')
   const userStore = useUserStore()
+
+  // 定义不需要登录验证的页面路径
+  const screenPages = [
+    // '/login',
+    '/OrchardScene',
+    '/TotalScreen',
+    '/PestControl',
+    '/MultiCooperation',
+    '/HistoricalTrend',
+    '/TaskDispatch',
+    '/WaterFertilizer',
+    '/Overview'
+  ]
+
+  // 如果是大屏页面，直接放行
+  if (screenPages.includes(to.path)) {
+    return true
+  }
+
+  // 放行所有以 /screen 开头的路径（大屏相关页面）
+  if (to.path.startsWith('/screen')) {
+    console.log('大屏页面，直接放行')
+    return true
+  }
 
   // 登录页直接放行
   if (to.path === '/login') {

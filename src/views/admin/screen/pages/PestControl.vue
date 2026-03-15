@@ -1,12 +1,17 @@
-<!-- PestControl.vue - 病虫害专项防控监测大屏 -->
+<!-- PestControl.vue - 病虫害专项防控监测大屏（带返回功能） -->
 <template>
   <div class="pest-dashboard">
-    <!-- 头部 -->
+    <!-- 头部 - 添加返回按钮 -->
     <div class="header">
       <div class="title-section">
-        <h1>
-          <i class="fas fa-bug"></i> 病虫害专项防控监测
-        </h1>
+        <div class="title-with-back">
+          <button class="back-btn" @click="goBack">
+            <i class="fas fa-arrow-left"></i> 返回
+          </button>
+          <h1>
+            <i class="fas fa-bug"></i> 病虫害专项防控监测
+          </h1>
+        </div>
         <div class="role-tag">
           <i class="fas fa-user-md"></i> 植保专员 · 防控负责人 · 全流程监控
         </div>
@@ -136,6 +141,14 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+// 返回上一页功能
+const goBack = () => {
+  router.back()
+}
 
 // KPI数据
 const kpiData = ref([
@@ -233,6 +246,7 @@ body {
 .pest-dashboard {
   max-width: 1440px;
   width: 100%;
+  margin: 0 auto;
   background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -249,6 +263,44 @@ body {
   margin-bottom: 28px;
   flex-wrap: wrap;
   gap: 20px;
+}
+
+.title-section {
+  flex: 1;
+}
+
+.title-with-back {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 8px;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #60b282;
+  color: #174d31;
+  font-size: 1rem;
+  font-weight: 500;
+  padding: 10px 20px;
+  border-radius: 40px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+.back-btn:hover {
+  background: #60b282;
+  color: white;
+  transform: translateX(-3px);
+  box-shadow: 0 6px 12px rgba(96, 178, 130, 0.3);
+}
+
+.back-btn i {
+  font-size: 1rem;
 }
 
 .title-section h1 {
@@ -290,6 +342,7 @@ body {
   color: #216b40;
   border: 1px solid #abd8b8;
   font-size: 1rem;
+  white-space: nowrap;
 }
 
 .kpi-row {
@@ -599,5 +652,35 @@ body {
   padding-top: 12px;
   display: flex;
   gap: 30px;
+}
+
+@media (max-width: 1200px) {
+  .kpi-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .two-col {
+    grid-template-columns: 1fr;
+  }
+  
+  .title-with-back {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 768px) {
+  .kpi-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .update-time {
+    align-self: flex-start;
+  }
 }
 </style>
