@@ -17,7 +17,7 @@
         </div>
       </div>
       <div class="update-time">
-        <i class="fas fa-sync-alt"></i> 最后更新: 2025-04-07 11:15 · 实时
+        <i class="fas fa-sync-alt"></i> 当前时间：{{ currentTime }}
       </div>
     </div>
 
@@ -73,7 +73,7 @@
       <div class="right-panel">
         <!-- 防治任务卡片 -->
         <div class="task-card">
-          <div class="task-header"><i class="fas fa-clipboard-list"></i> 今日防治任务</div>
+          <div class="task-header"><i class="fas fa-clipboard-list"></i> 今日防治任务 ({{ currentTime }})</div>
           <div class="task-progress">
             <div v-for="(task, index) in taskData" :key="index" class="progress-item">
               <span>{{ task.name }}</span><span>{{ task.value }}</span>
@@ -87,7 +87,7 @@
 
         <!-- 药剂使用分析卡片 -->
         <div class="chemical-card">
-          <div class="chemical-title"><i class="fas fa-flask"></i> 药剂使用分析</div>
+          <div class="chemical-title"><i class="fas fa-flask"></i> 药剂使用分析 ({{ currentTime }})</div>
           <div v-for="(chemical, index) in chemicalData" :key="index" class="chemical-row">
             <span class="chemical-name">{{ chemical.name }}</span>
             <span class="chemical-quantity">{{ chemical.quantity }}</span>
@@ -97,7 +97,7 @@
 
         <!-- 防治效果反馈卡片 -->
         <div class="feedback-card">
-          <div class="feedback-title"><i class="fas fa-chart-simple"></i> 防治效果反馈</div>
+          <div class="feedback-title"><i class="fas fa-chart-simple"></i> 防治效果反馈 ({{ currentTime }})</div>
           <div class="feedback-stats">
             <div v-for="(stat, index) in feedbackStats" :key="index" class="stat-item">
               <span class="feedback-value">{{ stat.value }}</span><br>{{ stat.label }}
@@ -124,7 +124,7 @@
     <div class="drill-footer">
       <span><i class="fas fa-link"></i> 跨屏联动: 从宏观总览点击异常株可直达本屏 · 预警每5min更新</span>
       <span><i class="fas fa-database"></i> 数据底层同源 · 植保专项全流程</span>
-      <span><i class="fas fa-chart-pie"></i> 满足文档: 监测/热力/任务/药剂/效果</span>
+      <span><i class="fas fa-clock"></i> 当前时间: {{ currentTime }}</span>
     </div>
 
     <!-- 微型数据标注 -->
@@ -140,7 +140,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -148,6 +148,25 @@ const router = useRouter()
 // 返回上一页功能
 const goBack = () => {
   router.back()
+}
+
+// 实时时间
+const currentTime = ref('')
+
+// 更新时间定时器
+let timeInterval = null
+
+// 更新时间的函数
+const updateTime = () => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  const hours = String(now.getHours()).padStart(2, '0')
+  const minutes = String(now.getMinutes()).padStart(2, '0')
+  const seconds = String(now.getSeconds()).padStart(2, '0')
+  
+  currentTime.value = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
 }
 
 // KPI数据
@@ -224,9 +243,27 @@ const feedbackStats = ref([
   { label: '黄龙病砍除株', value: '9' },
   { label: '天敌数量', value: '↑21%' }
 ])
+
+onMounted(() => {
+  // 立即更新一次时间
+  updateTime()
+  
+  // 每秒更新一次时间
+  timeInterval = setInterval(updateTime, 1000)
+  
+  console.log('病虫害专项防控监测页面加载')
+})
+
+onUnmounted(() => {
+  // 组件卸载时清除定时器，防止内存泄漏
+  if (timeInterval) {
+    clearInterval(timeInterval)
+  }
+})
 </script>
 
 <style scoped>
+/* 样式保持不变，与原来完全一致 */
 * {
   margin: 0;
   padding: 0;

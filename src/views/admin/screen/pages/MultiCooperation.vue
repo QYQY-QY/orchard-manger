@@ -17,7 +17,7 @@
         </div>
       </div>
       <div class="update-time">
-        <i class="fas fa-sync-alt"></i> 最后同步: 2025-04-07 15:10 · 实时
+        <i class="fas fa-sync-alt"></i> 当前时间：{{ currentTime }}
       </div>
     </div>
 
@@ -96,12 +96,12 @@
           <div class="sync-status">
             <span class="led-green"></span>
             <span style="font-weight:600;">多端同步成功率 99.8%</span>
-            <span>最新同步 15:10</span>
+            <span>最新同步 {{ currentTime }}</span>
           </div>
           <div class="sync-details">
             <div v-for="(item, index) in syncData" :key="index" class="data-row">
               <span>{{ item.platform }}</span>
-              <span>{{ item.status }}</span>
+              <span>{{ item.status }} {{ currentTime }}</span>
             </div>
             <div class="sync-warning">
               <i class="fas fa-exclamation-circle"></i> 异常同步记录: 0 (最近24h)
@@ -127,7 +127,7 @@
 
         <!-- 最新同步日志 -->
         <div class="log-card">
-          <div class="section-title" style="font-size:1.1rem;"><i class="fas fa-history"></i> 最新同步日志</div>
+          <div class="section-title" style="font-size:1.1rem;"><i class="fas fa-history"></i> 最新同步日志 (当前时间: {{ currentTime }})</div>
           <div v-for="(log, index) in syncLogs" :key="index" :style="{ color: log.color }">{{ log.message }}</div>
         </div>
       </div>
@@ -136,7 +136,7 @@
     <!-- 底部联动/更新频率说明 -->
     <div class="drill-footer">
       <span><i class="fas fa-link"></i> 跨屏联动: 点击溯源卡片可查看单株全生命周期数据</span>
-      <span><i class="fas fa-clock"></i> 同步状态实时刷新 · 溯源信息每日更新</span>
+      <span><i class="fas fa-clock"></i> 当前时间: {{ currentTime }} · 同步状态实时刷新</span>
     </div>
 
     <!-- 微型数据清单 -->
@@ -145,7 +145,7 @@
       <span>📦 溯源码2340 扫码1872 完整率96%</span>
       <span>🍊 溯源详情: A2-69 (生长/农事/检测)</span>
       <span>💬 反馈23条 处理率91% 满意度4.6</span>
-      <span>📡 同步成功率99.8% 最新15:10</span>
+      <span>📡 同步成功率99.8% 最新{{ currentTime }}</span>
       <span>📊 渠道: 电商54% 批发22% 门店24%</span>
       <span>🌍 地域: 华南48% 华东26%</span>
     </div>
@@ -153,7 +153,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -161,6 +161,25 @@ const router = useRouter()
 // 返回上一页功能
 const goBack = () => {
   router.back()
+}
+
+// 实时时间
+const currentTime = ref('')
+
+// 更新时间定时器
+let timeInterval = null
+
+// 更新时间的函数
+const updateTime = () => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  const hours = String(now.getHours()).padStart(2, '0')
+  const minutes = String(now.getMinutes()).padStart(2, '0')
+  const seconds = String(now.getSeconds()).padStart(2, '0')
+  
+  currentTime.value = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
 }
 
 // KPI数据
@@ -189,9 +208,9 @@ const feedbackStats = ref([
 
 // 同步数据
 const syncData = ref([
-  { platform: '微信小程序', status: '✅ 已同步 15:08' },
-  { platform: 'APP端', status: '✅ 已同步 15:09' },
-  { platform: 'PC管理端', status: '✅ 已同步 15:10' },
+  { platform: '微信小程序', status: '✅ 已同步' },
+  { platform: 'APP端', status: '✅ 已同步' },
+  { platform: 'PC管理端', status: '✅ 已同步' },
   { platform: '大屏端', status: '✅ 实时' }
 ])
 
@@ -205,15 +224,33 @@ const channelData = ref([
 
 // 同步日志
 const syncLogs = ref([
-  { message: '15:10 全端同步成功 (增量23条)', color: 'inherit' },
-  { message: '15:05 APP端同步成功', color: 'inherit' },
-  { message: '14:58 小程序端同步成功', color: 'inherit' },
-  { message: '14:45 PC端批次同步完成', color: 'inherit' },
-  { message: '⚠️ 14:20 重试一次 · 已恢复', color: '#cf5f4a' }
+  { message: '全端同步成功 (增量23条)', color: 'inherit' },
+  { message: 'APP端同步成功', color: 'inherit' },
+  { message: '小程序端同步成功', color: 'inherit' },
+  { message: 'PC端批次同步完成', color: 'inherit' },
+  { message: '⚠️ 重试一次 · 已恢复', color: '#cf5f4a' }
 ])
+
+onMounted(() => {
+  // 立即更新一次时间
+  updateTime()
+  
+  // 每秒更新一次时间
+  timeInterval = setInterval(updateTime, 1000)
+  
+  console.log('多端协同与溯源管理页面加载')
+})
+
+onUnmounted(() => {
+  // 组件卸载时清除定时器，防止内存泄漏
+  if (timeInterval) {
+    clearInterval(timeInterval)
+  }
+})
 </script>
 
 <style scoped>
+/* 样式保持不变，与原来完全一致 */
 * {
   margin: 0;
   padding: 0;
