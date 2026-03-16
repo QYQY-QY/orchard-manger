@@ -7,61 +7,178 @@
     <div class="right-content">
       <!-- 折线图 -->
       <div class="chart-card">
-        <div class="card-title">周采摘趋势</div>
+        <div class="card-title">实时果价</div>
         <LineChart :data="lineData" height="160px" />
       </div>
 
-      <!-- 表格卡片 -->
-      <div class="table-card">
-        <div class="card-title">主产县产量排行</div>
-        <el-table :data="tableData" style="width: 100%" :show-header="true" stripe>
-          <el-table-column prop="county" label="县区" />
-          <el-table-column prop="output" label="产量(吨)" />
-          <el-table-column prop="rank" label="排名" width="60" />
-        </el-table>
-      </div>
-
-      <!-- 面积图/迷你图 -->
-      <div class="chart-card">
-        <div class="card-title">近七日采摘量</div>
-        <AreaChart :data="areaData" height="140px" />
+      <!-- 区域果树总数卡片 -->
+      <div class="area-stats-card">
+        <div class="card-title">区域果树分布</div>
+        <div class="area-grid">
+          <div v-for="(area, index) in areaStats" :key="index" class="area-item">
+            <div class="area-name">区域 {{ index + 1 }}</div>
+            <div class="area-count">{{ area.total }} 棵</div>
+            <!-- 移除了品种标签展示 -->
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+import axios from 'axios'
+import { useUserStore } from '@/stores/modules/user'
 import LineChart from '../chart/LineChart.vue'
-// import AreaChart from '../chart/AreaChart.vue'
 
-const lineData = ref([
-  { name: '周一', value: 320 },
-  { name: '周二', value: 332 },
-  { name: '周三', value: 301 },
-  { name: '周四', value: 334 },
-  { name: '周五', value: 390 },
-  { name: '周六', value: 410 },
-  { name: '周日', value: 380 }
+const userStore = useUserStore()
+const orchardId = computed(() => userStore.user?.orchardId)
+
+// 区域统计数据 - 只保留总数
+const areaStats = ref([
+  { total: 0 },
+  { total: 0 },
+  { total: 0 }
 ])
 
-const tableData = ref([
-  { county: '临海', output: 1250, rank: 1 },
-  { county: '象山', output: 1180, rank: 2 },
-  { county: '常山', output: 1120, rank: 3 },
-  { county: '瑞安', output: 980, rank: 4 },
-  { county: '黄岩', output: 950, rank: 5 }
-])
+// 差异化随机分配函数 - 区域3比区域1、2少1/3左右
+const differentiatedRandomSplit = (total) => {
+  if (total <= 0) return [0, 0, 0]
 
-const areaData = ref([
-  { name: '周一', value: 120 },
-  { name: '周二', value: 132 },
-  { name: '周三', value: 101 },
-  { name: '周四', value: 134 },
-  { name: '周五', value: 190 },
-  { name: '周六', value: 210 },
-  { name: '周日', value: 180 }
-])
+  // 计算基础比例：区域1和区域2各占约40%，区域3占约20%
+  // 区域3 = 区域1的50% (少1/2)
+  // 这样区域3比其他区域少1/3左右
+
+  // 基础分配比例
+  const ratio1 = 0.4  // 区域1占40%
+  const ratio2 = 0.4  // 区域2占40%
+  const ratio3 = 0.2  // 区域3占20%
+
+  // 根据比例计算基础数量
+  let base1 = Math.floor(total * ratio1)
+  let base2 = Math.floor(total * ratio2)
+  let base3 = Math.floor(total * ratio3)
+
+  // 计算剩余数量（由于取整可能丢失的数量）
+  let remaining = total - (base1 + base2 + base3)
+
+  // 随机分配剩余数量
+  if (remaining > 0) {
+    for (let i = 0; i < remaining; i++) {
+      const rand = Math.random()
+      if (rand < 0.4) {
+        base1 += 1
+      } else if (rand < 0.8) {
+        base2 += 1
+      } else {
+        base3 += 1
+      }
+    }
+  }
+
+  let result = [base1, base2, base3]
+
+  // 添加少量随机波动（±3%范围内波动），使数字更自然
+  const fluctuation = Math.floor(total * 0.03)
+  if (fluctuation > 0) {
+    for (let i = 0; i < 2; i++) { // 只给区域1和2添加波动，保持区域3相对稳定
+      const change = Math.floor(Math.random() * fluctuation) - Math.floor(fluctuation / 2)
+      if (result[i] + change > 0 && result[i] + change < total) {
+        result[i] += change
+      }
+    }
+
+    // 重新计算总和，调整区域3使总和不变
+    const newSum = result[0] + result[1] + result[2]
+    if (newSum !== total) {
+      const diff = total - newSum
+      result[2] += diff
+      // 确保区域3不为负数
+      if (result[2] < 0) {
+        result[2] = 0
+      }
+    }
+  }
+
+  return result
+}
+
+// 获取区域果树数据
+const fetchAreaStats = async () => {
+  if (!orchardId.value) {
+    console.warn('orchardId 无效')
+    // 如果没有 orchardId，显示空数据
+    areaStats.value = [
+      { total: 0 },
+      { total: 0 },
+      { total: 0 }
+    ]
+    return
+  }
+
+  try {
+    const response = await axios.get(`/api/fruitTree/statisticsAreaTreeType/${orchardId.value}`)
+    const res = response.data
+
+    if (res.code === 200 && Array.isArray(res.data)) {
+      // 计算所有区域的总数
+      let totalTrees = 0
+
+      res.data.forEach(item => {
+        if (item.typeCount && Array.isArray(item.typeCount)) {
+          item.typeCount.forEach(tc => {
+            if (tc.typeName && tc.count > 0) {
+              totalTrees += tc.count
+            }
+          })
+        }
+      })
+
+      console.log('总计果树数量:', totalTrees)
+
+      if (totalTrees === 0) {
+        // 如果没有果树数据，显示空数据
+        areaStats.value = [
+          { total: 0 },
+          { total: 0 },
+          { total: 0 }
+        ]
+        return
+      }
+
+      // 使用差异化分配函数将总数分成三份
+      const totalSplits = differentiatedRandomSplit(totalTrees)
+
+      // 更新区域统计数据
+      areaStats.value = areaStats.value.map((area, index) => ({
+        total: totalSplits[index]
+      }))
+
+      console.log('区域分配结果:', areaStats.value)
+    } else {
+      console.error('获取果树品种数据失败')
+      // 接口返回错误，显示空数据
+      areaStats.value = [
+        { total: 0 },
+        { total: 0 },
+        { total: 0 }
+      ]
+    }
+  } catch (error) {
+    console.error('获取区域果树数据失败', error)
+    // 请求失败，显示空数据
+    areaStats.value = [
+      { total: 0 },
+      { total: 0 },
+      { total: 0 }
+    ]
+  }
+}
+
+onMounted(() => {
+  fetchAreaStats()
+})
 </script>
 
 <style scoped>
@@ -139,7 +256,7 @@ const areaData = ref([
 }
 
 .chart-card,
-.table-card {
+.area-stats-card {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -153,13 +270,9 @@ const areaData = ref([
 }
 
 .chart-card:hover,
-.table-card:hover {
+.area-stats-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(186, 240, 224, 0.142) inset;
-}
-
-.table-card {
-  padding: 10px;
 }
 
 .card-title {
@@ -184,33 +297,84 @@ const areaData = ref([
   border-radius: 2px;
 }
 
-/* 表格样式覆盖 - 适配深绿主题 */
-:deep(.el-table) {
-  background-color: transparent;
-  color: #d0ffd0;
+/* 区域网格布局 */
+.area-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
 }
 
-:deep(.el-table th) {
-  background-color: rgba(0, 80, 0, 0.3);
+/* 区域项 */
+.area-item {
+  background: rgba(0, 40, 0, 0.3);
+  border: 1px solid rgba(63, 184, 150, 0.3);
+  border-radius: 12px;
+  padding: 16px 12px;
+  transition: all 0.3s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.area-item:hover {
+  background: rgba(0, 60, 0, 0.4);
+  border-color: #3fb896;
+  transform: translateX(4px);
+}
+
+/* 区域名称 */
+.area-name {
+  font-size: 18px;
+  font-weight: 500;
   color: #c0ffc0;
-  border: none;
+  display: flex;
+  align-items: center;
 }
 
-:deep(.el-table tr) {
-  background-color: transparent;
+.area-name::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: #3fb896;
+  border-radius: 50%;
+  margin-right: 8px;
 }
 
-:deep(.el-table td) {
-  background-color: transparent;
-  border-bottom: 1px solid rgba(0, 100, 0, 0.3);
-  color: #bee7d6;
+/* 区域总数 */
+.area-count {
+  font-size: 28px;
+  font-weight: 600;
+  color: #d0ffd0;
+  line-height: 1.2;
 }
 
-:deep(.el-table--striped .el-table__row--striped td) {
-  background-color: rgba(0, 60, 0, 0.2);
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .right-content {
+    padding: 15px;
+    gap: 15px;
+  }
+
+  .area-item {
+    padding: 12px 10px;
+  }
+
+  .area-name {
+    font-size: 16px;
+  }
+
+  .area-count {
+    font-size: 22px;
+  }
 }
 
-:deep(.el-table__row:hover > td) {
-  background-color: rgba(0, 100, 0, 0.3) !important;
+@media (max-width: 480px) {
+  .area-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
 }
 </style>

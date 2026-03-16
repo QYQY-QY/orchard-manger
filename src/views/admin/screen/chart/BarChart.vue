@@ -77,8 +77,8 @@ const updateChart = (data) => {
       barWidth: '60%',
       itemStyle: {
         color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: '#ffaa00' },
-          { offset: 1, color: '#ff8c00' }
+          { offset: 0, color: '#bfd1b1' },
+          { offset: 1, color: '#6b8c31' }
         ])
       }
     }]

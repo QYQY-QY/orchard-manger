@@ -13,7 +13,7 @@
           </h1>
         </div>
         <div class="role-tag">
-          <i class="fas fa-user-md"></i> 植保专员 · 防控负责人 · 全流程监控
+          <!-- <i class="fas fa-user-md"></i> 植保专员 · 防控负责人 · 全流程监控 -->
         </div>
       </div>
       <div class="update-time">
