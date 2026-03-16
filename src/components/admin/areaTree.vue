@@ -52,18 +52,25 @@
           </template>
         </el-table-column>
         <!-- 新增：成熟果实数量列 -->
-        <el-table-column label="成熟果实数" min-width="100">
+        <el-table-column label="行" min-width="60">
           <template #default="scope">
-            {{ scope.row.ripeNum || 0 }}
+            {{ getLocationRowAndColumn(scope.row.location).row }}
+          </template>
+        </el-table-column>
+        <el-table-column label="列" min-width="60">
+          <template #default="scope">
+            {{ getLocationRowAndColumn(scope.row.location).col }}
           </template>
         </el-table-column>
         <el-table-column label="成熟度" min-width="100">
           <template #default="scope">
             <el-tag
               size="small"
-              :type="getRipeDegreeTagType(scope.row.ripeDegree)"
+              :type="
+                getRipeDegreeTagType(scope.row.countNum, scope.row.ripeNum)
+              "
             >
-              {{ formatRipeDegree(scope.row.ripeDegree) }}
+              {{ formatRipeDegree(scope.row.countNum, scope.row.ripeNum) }}
             </el-tag>
           </template>
         </el-table-column>
@@ -71,15 +78,9 @@
           <template #default="scope">
             <el-tag
               size="small"
-              :type="
-                scope.row.healthCondition === '健康'
-                  ? 'success'
-                  : scope.row.healthCondition === '异常'
-                  ? 'danger'
-                  : 'warning'
-              "
+              :type="getHealthStatusType(scope.row.healthCondition)"
             >
-              {{ scope.row.healthCondition || "未添加" }}
+              {{ formatHealthStatus(scope.row.healthCondition) }}
             </el-tag>
           </template>
         </el-table-column>
@@ -446,35 +447,110 @@ const sortedTreeList = computed(() => {
     url: tree.url || null, // 二维码地址使用后端返回的url字段
     areaId: tree.areaId || "",
     typeId: tree.typeId || "",
+    location: tree.location || null,
   }));
 });
-// 格式化成熟度
-const formatRipeDegree = (degree) => {
-  // 如果没有数据，返回 "0"
-  if (degree === null || degree === undefined || degree === "") return "0";
+// 获取位置的行和列
+const getLocationRowAndColumn = (location) => {
+  // 如果位置为空，返回默认值
+  if (!location) return { row: "-", col: "-" };
 
-  // 处理 "NaN" 的情况
-  if (degree === "NaN") return "0";
+  // 如果已经是"行-列"格式，直接拆分
+  if (typeof location === "string" && location.includes("-")) {
+    const [row, col] = location.split("-");
+    return { row: row || "-", col: col || "-" };
+  }
 
-  const numDegree = Number(degree);
-  if (isNaN(numDegree)) return "0";
+  // 如果是其他格式，尝试处理
+  try {
+    // 如果location是对象格式 {row: 1, col: 2}
+    if (typeof location === "object" && location !== null) {
+      return {
+        row: location.row || "-",
+        col: location.col || "-",
+      };
+    }
+  } catch {
+    // 忽略错误
+  }
 
-  if (numDegree === 0) return "0";
-  if (numDegree > 0 && numDegree < 100) return `${numDegree}%`;
-  if (numDegree >= 100) return "已成熟";
+  // 默认返回
+  return { row: "-", col: "-" };
+};
+// 计算成熟度（基于countNum和ripeNum）
+const calculateRipeDegree = (countNum, ripeNum) => {
+  // 将字符串转为数字
+  const total = Number(countNum) || 0;
+  const ripe = Number(ripeNum) || 0;
+
+  // 如果总数为0，返回0
+  if (total === 0) return 0;
+
+  // 计算成熟度百分比 (成熟数量 / 总数量) * 100
+  const degree = Math.round((ripe / total) * 100);
+
+  // 确保不超过100%
+  return Math.min(degree, 100);
+};
+
+// 格式化成熟度显示
+const formatRipeDegree = (countNum, ripeNum) => {
+  const calculatedDegree = calculateRipeDegree(countNum, ripeNum);
+
+  if (calculatedDegree === 0) return "0";
+  if (calculatedDegree > 0 && calculatedDegree < 100)
+    return `${calculatedDegree}%`;
+  if (calculatedDegree >= 100) return "已成熟";
   return "0";
 };
 
 // 获取成熟度标签类型
-const getRipeDegreeTagType = (degree) => {
-  if (degree === "NaN" || !degree || degree === null) return "warning";
-  const numDegree = Number(degree);
-  if (numDegree === 0) return "info";
-  if (numDegree > 0 && numDegree < 100) return "primary";
-  if (numDegree >= 100) return "success";
+const getRipeDegreeTagType = (countNum, ripeNum) => {
+  const calculatedDegree = calculateRipeDegree(countNum, ripeNum);
+
+  if (calculatedDegree === 0) return "info";
+  if (calculatedDegree > 0 && calculatedDegree < 100) return "primary";
+  if (calculatedDegree >= 100) return "success";
   return "warning";
 };
+const formatHealthStatus = (healthCondition) => {
+  // 如果为空，返回"未添加"
+  if (
+    healthCondition === null ||
+    healthCondition === undefined ||
+    healthCondition === ""
+  ) {
+    return "未添加";
+  }
 
+  // 转换为字符串进行比较
+  const status = String(healthCondition);
+
+  if (status === "1") return "健康";
+  if (status === "0") return "不健康";
+
+  return "未知";
+};
+
+// 获取健康状态标签类型
+const getHealthStatusType = (healthCondition) => {
+  // 如果为空，返回灰色标签
+  if (
+    healthCondition === null ||
+    healthCondition === undefined ||
+    healthCondition === ""
+  ) {
+    return "info";
+  }
+
+  // 转换为字符串进行比较
+  const status = String(healthCondition);
+
+  if (status === "1") return "success"; // 健康 - 绿色
+  if (status === "0") return "danger"; // 不健康 - 红色
+
+  return "warning"; // 未知 - 黄色
+};
 // 查看果树详情
 const showTreeDetail = async (tree) => {
   try {
