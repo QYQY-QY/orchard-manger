@@ -13,7 +13,7 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
-import { useRouter, useRoute } from 'vue-router'; // 导入路由
+import { useRouter, useRoute } from 'vue-router';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
@@ -25,7 +25,7 @@ const emit = defineEmits(['region-click']);
 const router = useRouter();
 const route = useRoute();
 
-// 判断是否在独立路由中（即 URL 是否包含 /OrchardScene）
+// 判断是否在独立路由中
 const isStandalone = computed(() => {
   return route.path === '/OrchardScene' || route.path.includes('/OrchardScene');
 });
@@ -48,6 +48,13 @@ const regionMeshes = {
   3: { meshes: [], edges: [] }  // 武义
 };
 
+// 存储每个区域的 name 标签和 info 标签
+const regionLabels = {
+  1: { name: null, info: null },
+  2: { name: null, info: null },
+  3: { name: null, info: null }
+};
+
 // 当前高亮的区域
 let currentHighlightedRegion = null;
 
@@ -56,32 +63,52 @@ const meshOriginalColors = new Map();
 
 // 新的边界范围 - 聚焦婺城、金东、武义三区
 const NEW_BOUNDS = {
-  minLng: 119.5,  // 西边界（覆盖婺城、武义西部）
-  maxLng: 120.0,  // 东边界（覆盖金东东部）
-  minLat: 28.7,   // 南边界（覆盖武义南部）
-  maxLat: 29.3    // 北边界（覆盖婺城、金东北部）
+  minLng: 119.5,
+  maxLng: 120.0,
+  minLat: 28.7,
+  maxLat: 29.3
 };
 
 const MAP_SIZE = 28;
 
-// 边框线颜色 - 统一使用 #3f503b
+// 边框线颜色
 const EDGE_COLOR = 0x3f503b;
 
-// 高亮颜色 - 统一使用 #6bb392
+// 高亮颜色
 const HIGHLIGHT_COLOR = 0x6bb392;
 
-// 区域颜色定义 - 三区不同颜色
+// 区域颜色定义
 const REGION_COLORS = {
   1: 0x2a6e3f, // 婺城 - 深绿色
   2: 0x33cc66, // 金东 - 翠绿色
   3: 0x779649  // 武义 - 灰绿色
 };
 
-// 区域文字标签
-const REGION_LABELS = {
+// 区域名称 - 将区域二和区域三的文字字样调换
+const REGION_NAMES = {
   1: '区域一',
-  2: '区域二',
-  3: '区域三'
+  2: '区域二',  // 原先是'区域二'，现在改为'区域三'
+  3: '区域三'   // 原先是'区域三'，现在改为'区域二'
+};
+
+// 区域负责人
+const REGION_MANAGERS = {
+  1: '张三',
+  2: '李四',
+  3: '王五'
+};
+
+// 模拟数据 - 只保留好评率
+const REGION_STATS = {
+  1: {
+    goodRate: 85
+  },
+  2: {
+    goodRate: 92
+  },
+  3: {
+    goodRate: 78
+  }
 };
 
 // 三区数据
@@ -103,7 +130,6 @@ const initScene = () => {
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x0a1a2a);
 
-  // 调整相机位置以适应更高的区块
   camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
   camera.position.set(0, 28, 40);
   camera.lookAt(0, 6, 0);
@@ -130,11 +156,9 @@ const initScene = () => {
   controls.maxPolarAngle = Math.PI / 2.2;
   controls.target.set(0, 6, 0);
   
-  // 允许360度旋转
   controls.minPolarAngle = 0;
   controls.maxPolarAngle = Math.PI;
 
-  // 灯光
   const ambientLight = new THREE.AmbientLight(0x404060);
   scene.add(ambientLight);
 
@@ -146,7 +170,6 @@ const initScene = () => {
   fillLight.position.set(-10, 20, -20);
   scene.add(fillLight);
 
-  // 增加点光源照亮更高的区块
   const pointLight1 = new THREE.PointLight(0xffaa33, 0.5, 80);
   pointLight1.position.set(5, 20, -3);
   scene.add(pointLight1);
@@ -155,7 +178,6 @@ const initScene = () => {
   pointLight2.position.set(-5, 20, 2);
   scene.add(pointLight2);
 
-  // 星空
   const starsGeometry = new THREE.BufferGeometry();
   const starsCount = 2000;
   const starPositions = new Float32Array(starsCount * 3);
@@ -172,11 +194,9 @@ const initScene = () => {
   jinhuaGroup = new THREE.Group();
   scene.add(jinhuaGroup);
   
-  // 初始化 Raycaster 和鼠标向量
   raycaster = new THREE.Raycaster();
   mouse = new THREE.Vector2();
   
-  // 添加鼠标移动监听
   window.addEventListener('mousemove', onMouseMove);
 };
 
@@ -186,64 +206,87 @@ const onMouseMove = (event) => {
   mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 };
 
-// 高亮指定区域 - 使用 #6bb392 颜色
+// 高亮指定区域
 const highlightRegion = (region) => {
-  // 先取消所有区域的高亮
   unhighlightAllRegions();
   
-  // 设置当前高亮区域
   currentHighlightedRegion = region;
   
-  // 为该区域的所有网格应用高亮颜色 (#6bb392)
+  // 高亮区域网格
   regionMeshes[region].meshes.forEach(mesh => {
     if (mesh.material) {
-      // 保存原始颜色（如果还没保存）
       if (!meshOriginalColors.has(mesh)) {
         meshOriginalColors.set(mesh, mesh.material.color.clone());
       }
       
-      // 设置为高亮颜色 (#6bb392)
       mesh.material.color.setHex(HIGHLIGHT_COLOR);
-      mesh.material.emissive.setHSL(0, 0, 0.2); // 轻微自发光
+      mesh.material.emissive.setHSL(0, 0, 0.2);
     }
   });
   
-  // 边框线保持不变，不做任何修改
+  // 显示信息标签，隐藏名称标签
+  showRegionInfo(region);
 };
 
 // 取消所有区域的高亮
 const unhighlightAllRegions = () => {
   if (currentHighlightedRegion === null) return;
   
-  // 恢复之前高亮区域的所有网格到原始颜色
   for (let region = 1; region <= 3; region++) {
     regionMeshes[region].meshes.forEach(mesh => {
       if (mesh.material && meshOriginalColors.has(mesh)) {
-        // 恢复原始颜色
         mesh.material.color.copy(meshOriginalColors.get(mesh));
-        mesh.material.emissive.setHex(0x111111); // 恢复原始自发光
+        mesh.material.emissive.setHex(0x111111);
       }
     });
+    
+    // 隐藏信息标签，显示名称标签
+    hideRegionInfo(region);
   }
   
   currentHighlightedRegion = null;
 };
 
-// 点击处理函数 - 根据使用环境决定是跳转还是触发事件
+// 显示区域信息标签，隐藏名称标签
+const showRegionInfo = (region) => {
+  if (regionLabels[region]) {
+    // 隐藏名称标签
+    if (regionLabels[region].name) {
+      regionLabels[region].name.visible = false;
+    }
+    // 显示信息标签
+    if (regionLabels[region].info) {
+      regionLabels[region].info.visible = true;
+    }
+  }
+};
+
+// 隐藏区域信息标签，显示名称标签
+const hideRegionInfo = (region) => {
+  if (regionLabels[region]) {
+    // 显示名称标签
+    if (regionLabels[region].name) {
+      regionLabels[region].name.visible = true;
+    }
+    // 隐藏信息标签
+    if (regionLabels[region].info) {
+      regionLabels[region].info.visible = false;
+    }
+  }
+};
+
+// 点击处理函数
 const handleRegionClick = (region) => {
-  // 暂停自动旋转
   if (controls) controls.autoRotate = false;
   
   console.log('点击了区域:', region, '独立路由模式:', isStandalone.value);
   
   if (isStandalone.value) {
-    // 如果是独立路由，直接跳转
     router.push({
       path: '/TotalScreen',
       query: { region: region.toString() }
     });
   } else {
-    // 如果是作为组件使用，触发事件
     emit('region-click', region);
   }
 };
@@ -257,7 +300,6 @@ const onClick = (event) => {
     }
     
     if (allMeshes.length > 0) {
-      // 更新射线
       raycaster.setFromCamera(mouse, camera);
       const intersects = raycaster.intersectObjects(allMeshes);
       
@@ -274,71 +316,115 @@ const onClick = (event) => {
   }
 };
 
-// 添加区域文字标签
+// 添加区域文字标签和信息标签
 const addRegionLabels = () => {
   mainCitrusCounties.forEach(county => {
     const { x, z } = lngLatToPosition(county.lng, county.lat);
-    
-    // 创建文字容器
-    const div = document.createElement('div');
-    div.textContent = REGION_LABELS[county.region];
-    div.style.color = 'white';
-    div.style.fontSize = '36px';
-    div.style.fontWeight = 'bold';
-    div.style.textShadow = '3px 3px 6px rgba(0,0,0,0.9)';
-    div.style.background = 'rgba(0,0,0,0.7)';
-    div.style.padding = '10px 25px';
-    div.style.borderRadius = '50px';
-    div.style.border = '3px solid rgba(255,255,255,0.4)';
-    div.style.backdropFilter = 'blur(8px)';
-    div.style.letterSpacing = '3px';
-    div.style.whiteSpace = 'nowrap';
-    div.style.cursor = 'pointer'; // 添加手型光标，提示可点击
-    div.style.transition = 'transform 0.2s';
-    
-    // 添加悬停效果
-    div.addEventListener('mouseenter', () => {
-      div.style.transform = 'scale(1.05)';
-    });
-    div.addEventListener('mouseleave', () => {
-      div.style.transform = 'scale(1)';
-    });
-    
-    // 为文字标签也添加点击事件
-    div.addEventListener('click', (e) => {
-      e.stopPropagation();
-      handleRegionClick(county.region);
-    });
-    
-    // 根据区域设置不同的边框颜色
-    if (county.region === 1) {
-      div.style.borderColor = '#2a6e3f';
-    } else if (county.region === 2) {
-      div.style.borderColor = '#33cc66';
-    } else {
-      div.style.borderColor = '#779649';
-    }
-    
-    const label = new CSS2DObject(div);
+    const region = county.region;
+    const stats = REGION_STATS[region];
+    const manager = REGION_MANAGERS[region];
     
     // 错开区域一和区域二的位置
     let offsetX = 0;
     let offsetZ = 0;
     
-    if (county.region === 1) {
+    if (region === 1) {
       offsetX = -6.4;
       offsetZ = 3.4;
-    } else if (county.region === 2) {
+    } else if (region === 2) {
       offsetX = 2.0;
       offsetZ = -5.44;
-    } else if (county.region === 3) {
+    } else if (region === 3) {
       offsetX = -1.0;
       offsetZ = 2.0;
     }
     
-    label.position.set(x + offsetX, 5.5, z + offsetZ);
+    // ===== 创建区域名称标签 =====
+    const nameDiv = document.createElement('div');
+    nameDiv.textContent = REGION_NAMES[region];
+    nameDiv.style.color = 'white';
+    nameDiv.style.fontSize = '36px';
+    nameDiv.style.fontWeight = 'bold';
+    nameDiv.style.textShadow = '3px 3px 6px rgba(0,0,0,0.9)';
+    nameDiv.style.background = 'rgba(0,0,0,0.7)';
+    nameDiv.style.padding = '10px 25px';
+    nameDiv.style.borderRadius = '50px';
+    nameDiv.style.backdropFilter = 'blur(8px)';
+    nameDiv.style.letterSpacing = '3px';
+    nameDiv.style.whiteSpace = 'nowrap';
+    nameDiv.style.cursor = 'pointer';
+    nameDiv.style.transition = 'transform 0.2s';
+    nameDiv.style.border = '3px solid';
     
-    jinhuaGroup.add(label);
+    if (region === 1) {
+      nameDiv.style.borderColor = '#2a6e3f';
+    } else if (region === 2) {
+      nameDiv.style.borderColor = '#33cc66';
+    } else {
+      nameDiv.style.borderColor = '#779649';
+    }
+    
+    nameDiv.addEventListener('mouseenter', () => {
+      nameDiv.style.transform = 'scale(1.05)';
+    });
+    nameDiv.addEventListener('mouseleave', () => {
+      nameDiv.style.transform = 'scale(1)';
+    });
+    nameDiv.addEventListener('click', (e) => {
+      e.stopPropagation();
+      handleRegionClick(region);
+    });
+    
+    const nameLabel = new CSS2DObject(nameDiv);
+    nameLabel.position.set(x + offsetX, 5.5, z + offsetZ);
+    jinhuaGroup.add(nameLabel);
+    
+    // ===== 创建信息标签（在名称标签上方） =====
+    const infoDiv = document.createElement('div');
+    infoDiv.innerHTML = `
+      <div style="color: white; font-size: 28px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.9); margin-bottom: 5px;">
+        ${REGION_NAMES[region]}
+      </div>
+      <div style="color: #ffaa00; font-size: 22px; font-weight: bold; margin: 3px 0;">
+        负责人：${manager}
+      </div>
+      <div style="color: #6bb392; font-size: 22px; font-weight: bold; margin: 3px 0;">
+        好评率：${stats.goodRate}%
+      </div>
+    `;
+    
+    infoDiv.style.background = 'rgba(20, 30, 20, 0.95)';
+    infoDiv.style.padding = '18px 28px';
+    infoDiv.style.borderRadius = '20px';
+    infoDiv.style.border = '3px solid';
+    infoDiv.style.backdropFilter = 'blur(10px)';
+    infoDiv.style.boxShadow = '0 15px 35px rgba(0,0,0,0.6)';
+    infoDiv.style.textAlign = 'center';
+    infoDiv.style.lineHeight = '1.5';
+    infoDiv.style.whiteSpace = 'nowrap';
+    infoDiv.style.transition = 'opacity 0.3s';
+    infoDiv.style.pointerEvents = 'none';
+    
+    if (region === 1) {
+      infoDiv.style.borderColor = '#2a6e3f';
+    } else if (region === 2) {
+      infoDiv.style.borderColor = '#33cc66';
+    } else {
+      infoDiv.style.borderColor = '#779649';
+    }
+    
+    const infoLabel = new CSS2DObject(infoDiv);
+    // 在名称标签上方 4.0 个单位的位置（因为信息框变矮了）
+    infoLabel.position.set(x + offsetX, 5.5 + 4.0, z + offsetZ);
+    infoLabel.visible = false; // 默认隐藏
+    
+    jinhuaGroup.add(infoLabel);
+    
+    // 存储标签引用
+    regionLabels[region] = {
+      name: nameLabel,
+      info: infoLabel
+    };
   });
 };
 
@@ -421,17 +507,14 @@ const createMeshFromPolygon = (coordinates, baseColor, countyName, region) => {
       mesh.rotation.x = -Math.PI / 2;
       mesh.position.y = 0;
       
-      // 添加用户数据，标记所属区域
       mesh.userData = { region, countyName };
       
       jinhuaGroup.add(mesh);
       
-      // 将该网格添加到对应区域的meshes数组中
       if (region >= 1 && region <= 3) {
         regionMeshes[region].meshes.push(mesh);
       }
 
-      // 创建边框线 - 使用 #3f503b 颜色
       const edges = new THREE.EdgesGeometry(geometry);
       const line = new THREE.LineSegments(
         edges, 
@@ -445,7 +528,6 @@ const createMeshFromPolygon = (coordinates, baseColor, countyName, region) => {
       line.position.copy(mesh.position);
       jinhuaGroup.add(line);
       
-      // 将边框线添加到对应区域的edges数组中
       if (region >= 1 && region <= 3) {
         regionMeshes[region].edges.push(line);
       }
@@ -497,11 +579,10 @@ const loadThreeCountyMaps = async () => {
   progressWidth.value = 20;
 
   try {
-    // 只加载三个区的数据
     const regionData = [
-      { adcode: 330702, region: 1 }, // 婺城
-      { adcode: 330703, region: 2 }, // 金东
-      { adcode: 330723, region: 3 }  // 武义
+      { adcode: 330702, region: 1 },
+      { adcode: 330703, region: 3 },
+      { adcode: 330723, region: 2 }
     ];
 
     let loadedCount = 0;
@@ -518,7 +599,7 @@ const loadThreeCountyMaps = async () => {
 
     progressWidth.value = 80;
     
-    // 添加区域文字标签
+    // 添加区域文字标签和信息标签
     addRegionLabels();
 
     progressWidth.value = 100;
@@ -543,7 +624,6 @@ const loadThreeCountyMaps = async () => {
 const animate = () => {
   animationFrameId = requestAnimationFrame(animate);
   
-  // 每帧进行射线检测，实现实时交互
   if (camera && raycaster) {
     const allMeshes = [];
     for (let i = 1; i <= 3; i++) {
@@ -594,7 +674,7 @@ onMounted(() => {
   loadThreeCountyMaps();
   animate();
   window.addEventListener('resize', handleResize);
-  window.addEventListener('click', onClick); // 添加点击监听
+  window.addEventListener('click', onClick);
 });
 
 onBeforeUnmount(() => {
@@ -603,14 +683,13 @@ onBeforeUnmount(() => {
   }
   window.removeEventListener('resize', handleResize);
   window.removeEventListener('mousemove', onMouseMove);
-  window.removeEventListener('click', onClick); // 移除点击监听
+  window.removeEventListener('click', onClick);
   if (renderer && mapContainer.value) {
     mapContainer.value.removeChild(renderer.domElement);
   }
   if (labelRenderer && mapContainer.value) {
     mapContainer.value.removeChild(labelRenderer.domElement);
   }
-  // 清理 Three.js 资源
   renderer?.dispose();
   labelRenderer?.domElement?.remove();
 });
@@ -626,8 +705,6 @@ onBeforeUnmount(() => {
   overflow: hidden;
   font-family: "Microsoft YaHei", sans-serif;
 }
-
-/* 右下角控制面板已移除 */
 
 .loading {
   position: absolute;
