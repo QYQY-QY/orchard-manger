@@ -19,7 +19,27 @@
               @click="previewImage(item.imageUrl)">
               <img :src="item.imageUrl" alt="用户上传">
             </div>
-            <div v-html="formatMessage(item.content)"></div>
+
+            <!-- AI消息逐行显示 -->
+            <div v-if="item.type === 'ai' && item.lines && item.lines.length > 0">
+              <div v-for="(line, lineIndex) in item.lines" :key="lineIndex" class="ai-line"
+                :class="{ 'line-visible': line.visible }">
+                <span v-html="formatMessage(line.text)"></span>
+              </div>
+            </div>
+
+            <!-- 普通消息显示 -->
+            <div v-else-if="item.content" v-html="formatMessage(item.content)"></div>
+
+            <!-- AI返回的图片 -->
+            <div v-if="item.type === 'ai' && item.imageUrl" class="ai-image-container">
+              <div class="ai-image-preview" @click="previewImage(item.imageUrl)">
+                <img :src="item.imageUrl" alt="AI生成图片" @load="handleImageLoad(item)" @error="handleImageError(item)">
+              </div>
+              <div v-if="item.imageError" class="image-error-tip">
+                图片加载失败，请重试
+              </div>
+            </div>
           </div>
         </div>
 
@@ -105,7 +125,7 @@
 
       <!-- 图片预览弹窗 -->
       <el-dialog v-model="previewVisible" title="图片预览" width="50%" destroy-on-close>
-        <img :src="previewImageUrl" style="width: 100%;" alt="预览">
+        <img :src="previewImageUrl" style="width: 100%;" alt="预览" @error="handlePreviewError">
       </el-dialog>
     </div>
   </CommonLayout>
@@ -144,6 +164,99 @@ const formatMessage = (content) => {
 const previewImage = (url) => {
   previewImageUrl.value = url
   previewVisible.value = true
+}
+
+// 处理图片加载成功
+const handleImageLoad = (item) => {
+  console.log('图片加载成功')
+  item.imageError = false
+}
+
+// 处理图片加载错误
+const handleImageError = (item) => {
+  console.error('图片加载失败:', item.imageUrl)
+  item.imageError = true
+}
+
+// 处理预览图片错误
+const handlePreviewError = () => {
+  ElMessage.error('图片加载失败')
+  previewVisible.value = false
+}
+
+/**
+ * 将16进制字符串转换为Blob URL
+ * @param {string} hexString - 16进制字符串 (例如 "ffd8ffe0...")
+ * @returns {string} - Blob URL 或空字符串
+ */
+const hexToImageUrl = (hexString) => {
+  if (!hexString || typeof hexString !== 'string') {
+    console.error('无效的图片数据')
+    return ''
+  }
+
+  try {
+    console.log('原始图片数据长度:', hexString.length)
+    console.log('图片数据开头:', hexString.substring(0, 20))
+
+    // 检查是否已经是Data URL
+    if (hexString.startsWith('data:image')) {
+      console.log('已经是Data URL格式')
+      return hexString
+    }
+
+    // 检查是否是Base64格式的JPEG
+    if (hexString.startsWith('/9j/')) {
+      console.log('检测到Base64格式JPEG')
+      return `data:image/jpeg;base64,${hexString}`
+    }
+
+    // 处理16进制字符串
+    // 确保字符串长度为偶数
+    if (hexString.length % 2 !== 0) {
+      console.warn('16进制字符串长度不是偶数，添加前导0')
+      hexString = '0' + hexString
+    }
+
+    // 将16进制字符串转换为字节数组
+    const bytes = []
+    for (let i = 0; i < hexString.length; i += 2) {
+      const byte = parseInt(hexString.substring(i, i + 2), 16)
+      if (isNaN(byte)) {
+        console.error(`在第 ${i} 位置解析16进制失败: ${hexString.substring(i, i + 2)}`)
+        continue
+      }
+      bytes.push(byte)
+    }
+
+    if (bytes.length === 0) {
+      console.error('没有有效的字节数据')
+      return ''
+    }
+
+    console.log('解析后的字节数:', bytes.length)
+    console.log('前20个字节:', bytes.slice(0, 20))
+
+    // 检查JPEG文件头
+    if (bytes[0] === 0xFF && bytes[1] === 0xD8) {
+      console.log('检测到有效的JPEG文件头')
+    } else {
+      console.warn('不是标准的JPEG文件头:', bytes[0].toString(16), bytes[1].toString(16))
+    }
+
+    // 创建Blob对象
+    const uint8Array = new Uint8Array(bytes)
+    const blob = new Blob([uint8Array], { type: 'image/jpeg' })
+
+    // 创建Blob URL
+    const url = URL.createObjectURL(blob)
+    console.log('生成的Blob URL:', url)
+
+    return url
+  } catch (error) {
+    console.error('图片数据转换失败:', error)
+    return ''
+  }
 }
 
 // 选择图片
@@ -237,6 +350,7 @@ const handleImageRecognition = async (type) => {
 
       let aiContent = data.answer || '识别完成'
 
+      // 如果返回了 ripe_stats 数据，格式化显示
       if (type === 'maturity' && data.ripe_stats) {
         const stats = data.ripe_stats
         aiContent += `\n\n📊 详细统计：\n`
@@ -246,13 +360,35 @@ const handleImageRecognition = async (type) => {
           aiContent += `转色期：${stats.maturity_distribution['转色期（着色期）'] || 0} 个\n`
           aiContent += `成熟期：${stats.maturity_distribution['成熟期（商品采收期）'] || 0} 个\n`
         }
-        aiContent += `熟果率：${(stats.ripe_rate * 100).toFixed(1)}%`
+
+        // 保留小数点后两位
+        const ripeRate = stats.ripe_rate.toFixed(2)
+        aiContent += `熟果率：${ripeRate}%`
       }
 
-      messages.value.push({
+      // 创建AI回复消息对象
+      const aiMessage = {
         type: 'ai',
-        content: aiContent
-      })
+        content: aiContent,
+        imageError: false
+      }
+
+      // 如果有图片数据，添加到消息中
+      if (data.image_data) {
+        console.log('收到图片数据，长度:', data.image_data.length)
+        console.log('图片数据开头:', data.image_data.substring(0, 50))
+
+        const imageUrl = hexToImageUrl(data.image_data)
+        if (imageUrl) {
+          aiMessage.imageUrl = imageUrl
+          console.log('图片URL已生成:', imageUrl)
+        } else {
+          console.error('图片URL生成失败')
+          aiMessage.imageError = true
+        }
+      }
+
+      messages.value.push(aiMessage)
     } else {
       ElMessage.error(response.data.msg || '识别失败')
       messages.value.push({
@@ -270,6 +406,34 @@ const handleImageRecognition = async (type) => {
   } finally {
     loading.value = false
     clearSelectedImage()
+  }
+}
+
+// 逐行显示AI回复
+const displayAIMessageLineByLine = async (fullContent) => {
+  // 按行分割文本
+  const lines = fullContent.split('\n').filter(line => line.trim() !== '' || line === '\n')
+
+  // 创建新的消息对象，包含行数组
+  const newMessage = {
+    type: 'ai',
+    lines: lines.map(text => ({
+      text,
+      visible: false
+    }))
+  }
+
+  messages.value.push(newMessage)
+
+  // 逐行显示
+  for (let i = 0; i < newMessage.lines.length; i++) {
+    await new Promise(resolve => {
+      setTimeout(() => {
+        newMessage.lines[i].visible = true
+        scrollToBottom() // 每显示一行就滚动到底部
+        resolve()
+      }, 80)
+    })
   }
 }
 
@@ -296,10 +460,10 @@ const handleSendMessage = async (e) => {
         sessionId.value = response.data.data.sessionId
       }
 
-      messages.value.push({
-        type: 'ai',
-        content: response.data.data?.reply || response.data.data || '抱歉，我现在无法回答这个问题。'
-      })
+      const reply = response.data.data?.reply || response.data.data || '抱歉，我现在无法回答这个问题。'
+
+      // 使用逐行显示
+      await displayAIMessageLineByLine(reply)
     } else {
       ElMessage.error(response.data.message || '请求失败')
       messages.value.push({
@@ -393,14 +557,25 @@ watch(selectedImage, (newVal, oldVal) => {
     URL.revokeObjectURL(oldVal.preview)
   }
 })
+
+// 清理AI生成的图片URL
+watch(messages, (newMessages, oldMessages) => {
+  // 清理旧消息中的图片URL
+  if (oldMessages) {
+    oldMessages.forEach(msg => {
+      if (msg.type === 'ai' && msg.imageUrl && msg.imageUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(msg.imageUrl)
+      }
+    })
+  }
+}, { deep: true })
 </script>
 
 <style scoped>
-/* 核心布局：固定高度，弹性布局 */
+/* 样式保持不变 */
 .ai-chat-fullscreen {
   width: 100%;
   height: calc(100vh - 120px);
-  /* 使用视口高度 */
   display: flex;
   flex-direction: column;
   background: transparent;
@@ -408,7 +583,6 @@ watch(selectedImage, (newVal, oldVal) => {
   position: relative;
 }
 
-/* 聊天内容区域：固定高度，可滚动 */
 .chat-content {
   flex: 1;
   padding: 24px;
@@ -416,12 +590,8 @@ watch(selectedImage, (newVal, oldVal) => {
   background: transparent;
   scrollbar-width: thin;
   scrollbar-color: #c0c4cc transparent;
-  /* 设置最大高度，保证输入区域固定在底部 */
-  /* max-height: calc(100vh - 280px); */
-  /* 减去输入区域高度 */
 }
 
-/* 自定义滚动条样式 */
 .chat-content::-webkit-scrollbar {
   width: 2px;
 }
@@ -440,14 +610,6 @@ watch(selectedImage, (newVal, oldVal) => {
   background-color: #909399;
 }
 
-/* 消息列表容器 */
-.messages-container {
-  display: flex;
-  flex-direction: column;
-  min-height: 90%;
-}
-
-/* 消息项样式 */
 .message-item {
   display: flex;
   margin-bottom: 20px;
@@ -499,7 +661,47 @@ watch(selectedImage, (newVal, oldVal) => {
   border-bottom-left-radius: 6px;
 }
 
-/* 加载中样式 */
+.ai-line {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.ai-line.line-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.ai-image-container {
+  margin-top: 12px;
+  max-width: 100%;
+}
+
+.ai-image-preview {
+  max-width: 300px;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid #e4e7ed;
+  transition: transform 0.2s;
+}
+
+.ai-image-preview img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.ai-image-preview:hover {
+  transform: scale(1.02);
+}
+
+.image-error-tip {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #f56c6c;
+}
+
 .loading-bubble {
   display: flex;
   align-items: center;
@@ -536,14 +738,11 @@ watch(selectedImage, (newVal, oldVal) => {
   }
 }
 
-/* 输入区域容器：固定在底部 */
 .chat-input-wrapper {
   padding: 14px 10px;
-  /* border-top: 1px solid #e4e7ed; */
   background: white;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.03);
   flex-shrink: 0;
-  /* 防止压缩 */
 }
 
 .chat-input-area {
@@ -557,7 +756,6 @@ watch(selectedImage, (newVal, oldVal) => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
-/* 功能按钮栏 */
 .function-bar {
   display: flex;
   align-items: center;
@@ -581,13 +779,6 @@ watch(selectedImage, (newVal, oldVal) => {
   background-color: #f5f5f5;
 }
 
-.divider {
-  width: 1px;
-  height: 20px;
-  background-color: #e4e7ed;
-}
-
-/* 图片预览消息 */
 .image-preview {
   margin-bottom: 8px;
   max-width: 200px;
@@ -608,7 +799,6 @@ watch(selectedImage, (newVal, oldVal) => {
   transform: scale(1.02);
 }
 
-/* 图片识别选项 */
 .image-options {
   display: flex;
   gap: 8px;
@@ -637,7 +827,6 @@ watch(selectedImage, (newVal, oldVal) => {
   background-color: #fef0f0;
 }
 
-/* 选中的图片预览 */
 .selected-image-preview {
   display: flex;
   align-items: center;
@@ -664,7 +853,6 @@ watch(selectedImage, (newVal, oldVal) => {
   flex: 1;
 }
 
-/* 输入框容器 */
 .input-with-send {
   position: relative;
   width: 100%;
@@ -694,7 +882,6 @@ watch(selectedImage, (newVal, oldVal) => {
   color: #999;
 }
 
-/* 发送按钮 */
 .send-btn-inner {
   position: absolute;
   right: 8px;
@@ -721,7 +908,6 @@ watch(selectedImage, (newVal, oldVal) => {
   transform: scale(1.05);
 }
 
-/* 弹窗样式 */
 :deep(.el-dialog__body) {
   padding: 20px;
   text-align: center;
@@ -732,7 +918,6 @@ watch(selectedImage, (newVal, oldVal) => {
   max-height: 70vh;
 }
 
-/* 响应式适配 */
 @media (max-width: 768px) {
   .chat-content {
     padding: 16px;
@@ -757,6 +942,10 @@ watch(selectedImage, (newVal, oldVal) => {
 
   .option-btn span {
     display: none;
+  }
+
+  .ai-image-preview {
+    max-width: 250px;
   }
 }
 </style>
