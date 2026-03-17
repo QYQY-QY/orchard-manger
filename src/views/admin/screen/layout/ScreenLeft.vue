@@ -13,6 +13,7 @@
             :class="{ 'error': statCards[0].value.includes('失败') || statCards[0].value.includes('无') }">
             {{ statCards[0].value }}
           </div>
+          
           <div class="card-label">{{ statCards[0].label }}</div>
         </div>
 
