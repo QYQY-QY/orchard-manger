@@ -27,6 +27,32 @@
             }}
           </p>
         </div>
+        <!-- 批量生成二维码按钮 -->
+        <div
+          style="
+            margin-top: 20px;
+            text-align: right;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+          "
+        >
+          <el-button
+            type="primary"
+            @click="batchGenerateQRCode"
+            :loading="generateQRLoading"
+          >
+            批量生成二维码
+          </el-button>
+          <el-button
+            type="success"
+            @click="batchDownloadQRCode"
+            :loading="downloadQRLoading"
+            :disabled="!sortedTreeList.some((item) => item.url)"
+          >
+            批量下载二维码
+          </el-button>
+        </div>
       </div>
 
       <!-- 果树表格（已修复闭合标签） -->
@@ -127,33 +153,6 @@
         </el-table-column>
       </el-table>
       <!-- 这里是修复的闭合标签 -->
-
-      <!-- 批量生成二维码按钮 -->
-      <div
-        style="
-          margin-top: 20px;
-          text-align: right;
-          display: flex;
-          gap: 10px;
-          justify-content: flex-end;
-        "
-      >
-        <el-button
-          type="primary"
-          @click="batchGenerateQRCode"
-          :loading="generateQRLoading"
-        >
-          批量生成二维码
-        </el-button>
-        <el-button
-          type="success"
-          @click="batchDownloadQRCode"
-          :loading="downloadQRLoading"
-          :disabled="!sortedTreeList.some((item) => item.url)"
-        >
-          批量下载二维码
-        </el-button>
-      </div>
     </div>
 
     <!-- 果树详情弹窗 -->
