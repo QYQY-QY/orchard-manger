@@ -17,7 +17,7 @@
         </div>
       </div>
       <div class="time-weather">
-        <i class="fas fa-sun"></i> 2025-04-07 10:28 晴 24℃ | 东南风2级
+        <i class="fas fa-sun"></i> {{ currentTime }} 晴 24℃ | 东南风2级
       </div>
     </div>
 
@@ -92,7 +92,7 @@
             </div>
           </div>
           <div class="alert-footer">
-            <i class="fas fa-clock"></i> 待处理状态: 18株未处置 · 更新于10:25
+            <i class="fas fa-clock"></i> 待处理状态: 18株未处置 · 更新于{{ currentTime }}
           </div>
         </div>
 
@@ -120,7 +120,7 @@
             <span><i class="fas fa-microchip"></i> 238/245</span>
           </div>
           <div class="device-stats">
-            <span><i class="fas fa-database"></i> 最后采集: 10:28</span>
+            <span><i class="fas fa-database"></i> 最后采集: {{ currentTime }}</span>
             <span><i class="fas fa-clock"></i> 延迟 2s</span>
           </div>
           <div class="device-footer">
@@ -144,7 +144,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -152,6 +152,24 @@ const router = useRouter()
 // 返回上一页功能
 const goBack = () => {
   router.back()
+}
+
+// 实时时间
+const currentTime = ref('')
+
+// 更新时间定时器
+let timeInterval = null
+
+// 更新时间的函数
+const updateTime = () => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  const hours = String(now.getHours()).padStart(2, '0')
+  const minutes = String(now.getMinutes()).padStart(2, '0')
+  
+  currentTime.value = `${year}-${month}-${day} ${hours}:${minutes}`
 }
 
 // 预警数据
@@ -224,6 +242,21 @@ const getPlotLabel = (index) => {
   const col = ((index - 1) % 10) + 1
   return `${row}${col}`
 }
+
+onMounted(() => {
+  // 立即更新一次时间
+  updateTime()
+  
+  // 每分钟更新一次时间（只显示到分钟，不需要秒）
+  timeInterval = setInterval(updateTime, 60000)
+})
+
+onUnmounted(() => {
+  // 组件卸载时清除定时器，防止内存泄漏
+  if (timeInterval) {
+    clearInterval(timeInterval)
+  }
+})
 </script>
 
 <style scoped>

@@ -17,7 +17,7 @@
         </div> -->
       </div>
       <div class="update-time">
-        <i class="fas fa-sync-alt"></i> 基于多光谱 {{ analysisDate }}
+        <i class="fas fa-sync-alt"></i>当前时间：{{ analysisDate }}
       </div>
     </div>
 
@@ -154,7 +154,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -167,8 +167,24 @@ const goBack = () => {
 // 从Excel数据中提取的统计信息
 const totalSamples = 989
 
-// 分析日期
-const analysisDate = '2025-04-07 11:40'
+// 分析日期 - 改为实时时间
+const analysisDate = ref('')
+
+// 更新时间定时器
+let timeInterval = null
+
+// 更新时间的函数
+const updateTime = () => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  const hours = String(now.getHours()).padStart(2, '0')
+  const minutes = String(now.getMinutes()).padStart(2, '0')
+  const seconds = String(now.getSeconds()).padStart(2, '0')
+  
+  analysisDate.value = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+}
 
 // VI指数统计表数据
 const viStatsData = {
@@ -330,7 +346,7 @@ const costData = ref([
   { label: '🚿 总用水量', value: '2,380 m³ <span style="color:#308a59;">(同比-11%)</span>' },
   { label: '🧪 总施肥量', value: '1,640 kg <span style="color:#308a59;">(同比-8%)</span>' },
   { label: '💰 成本对比', value: 'B区 ¥3,420 &nbsp;&nbsp; C区 ¥2,980' },
-  { label: '<i class="fas fa-leaf"></i> 节本增效金额', value: '<span style="font-size:2rem; color:#1d7342;">¥4,260</span>' }
+  { label: '💰 节本增效金额', value: '<span style="font-size:2rem; color:#1d7342;">¥4,260</span>' }
 ])
 
 // 任务进度 (保持不变)
@@ -344,8 +360,20 @@ const taskProgress = ref([
 const scatterColors = ['#1b7b44', '#3ba363', '#308254', '#56a06b', '#71ba83', '#c45d32', '#7ac48a']
 
 onMounted(() => {
-  // 这里可以添加API调用获取真实数据
+  // 立即更新一次时间
+  updateTime()
+  
+  // 每秒更新一次时间
+  timeInterval = setInterval(updateTime, 1000)
+  
   console.log('加载多光谱数据，总采样点:', totalSamples)
+})
+
+onUnmounted(() => {
+  // 组件卸载时清除定时器，防止内存泄漏
+  if (timeInterval) {
+    clearInterval(timeInterval)
+  }
 })
 </script>
 
