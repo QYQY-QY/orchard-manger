@@ -44,6 +44,11 @@ const router = createRouter({
       name: 'Aichat',
       component: () => import('../views/admin/AI.vue')
     },
+    {
+      path: '/weather-alert',
+      name: 'WeatherAlert',
+      component: () => import('../views/admin/WeatherAlert.vue')
+    },
 
     // 超级管理员路由
     {

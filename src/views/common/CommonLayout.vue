@@ -4,10 +4,20 @@
     <!-- 左侧侧边栏 -->
     <el-aside width="200px">
       <div class="el-aside__logo"></div>
-      <img src="@/assets/images/logo.png" alt="一树一码——果园管理平台" style="width: 200px; height: auto;" />
+      <img
+        src="@/assets/images/logo.png"
+        alt="一树一码——果园管理平台"
+        style="width: 200px; height: auto"
+      />
       <!-- 核心：default-active 绑定当前路由path + unique-opened 保证高亮唯一 -->
-      <el-menu active-text-color="#ffd04b" background-color="#000000" :default-active="activeMenuPath" text-color="#fff"
-        router unique-opened>
+      <el-menu
+        active-text-color="#ffd04b"
+        background-color="#000000"
+        :default-active="activeMenuPath"
+        text-color="#fff"
+        router
+        unique-opened
+      >
         <!-- 根据真实角色显示不同菜单 -->
 
         <!-- 普通管理员 (admin) 菜单 -->
@@ -72,8 +82,6 @@
           </el-menu-item>
         </template>
 
-
-
         <!-- 超级管理员 (superAdmin) 菜单 -->
         <template v-else-if="realRole === 'superAdmin'">
           <el-menu-item index="/superadminindex">
@@ -130,6 +138,22 @@
           <span>个人中心</span>
         </el-menu-item>
 
+        <el-menu-item
+          index="/weather-alert"
+          :class="{ 'has-badge': hasWeatherAlert }"
+          @click="clearWeatherAlert"
+        >
+          <el-icon>
+            <Warning />
+          </el-icon>
+          <span>天气预警</span>
+          <el-badge
+            v-if="hasWeatherAlert"
+            :value="weatherAlertCount"
+            :hidden="!hasWeatherAlert"
+            class="menu-badge"
+          />
+        </el-menu-item>
       </el-menu>
     </el-aside>
 
@@ -149,7 +173,9 @@
           </span>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item command="logout" :icon="SwitchButton">退出登录</el-dropdown-item>
+              <el-dropdown-item command="logout" :icon="SwitchButton"
+                >退出登录</el-dropdown-item
+              >
             </el-dropdown-menu>
           </template>
         </el-dropdown>
@@ -172,54 +198,67 @@
 
 <script setup>
 // 1. 导入核心依赖
-import { useUserStore } from '@/stores/modules/user'
-import { computed } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-
-
+import { useUserStore } from "@/stores/modules/user";
+import { ref, onMounted, onUnmounted } from "vue";
+import { computed } from "vue";
+import { useRouter, useRoute } from "vue-router";
+import axios from "axios";
+import { Warning, Close } from "@element-plus/icons-vue";
 // 2. 初始化路由和用户仓库
-const userStore = useUserStore()
-const router = useRouter()
-const route = useRoute()
-
+const userStore = useUserStore();
+const router = useRouter();
+const route = useRoute();
+const hasWeatherAlert = ref(false);
+const weatherAlertCount = ref(0);
+const weatherAlertData = ref(null);
+let timer = null;
+const showWeatherAlert = ref(false);
 // 3. 定义 props：role（保留，兼容手动传参）
 const props = defineProps({
   role: {
     type: String,
-    default: 'admin',
+    default: "admin",
     validator: (value) => {
-      return ['admin', 'superAdmin'].includes(value)
-    }
-  }
-})
+      return ["admin", "superAdmin"].includes(value);
+    },
+  },
+});
 
 // 4. 核心：从Pinia解析真实角色
 const realRole = computed(() => {
   if (userStore.user?.isAdmin !== undefined) {
-    return userStore.user.isAdmin === 1 ? 'superAdmin' : 'admin'
+    return userStore.user.isAdmin === 1 ? "superAdmin" : "admin";
   }
-  return props.role
-})
+  return props.role;
+});
 
 // 5. 角色名称（显示用）
 const realRoleName = computed(() => {
-  return realRole.value === 'superAdmin' ? '超级管理员' : '管理员'
-})
+  return realRole.value === "superAdmin" ? "超级管理员" : "管理员";
+});
 
 // 6. 真实用户名
 const realUserName = computed(() => {
-  return userStore.user?.name || userStore.user?.username || (realRole.value === 'superAdmin' ? '超级管理员' : '管理员')
-})
+  return (
+    userStore.user?.name ||
+    userStore.user?.username ||
+    (realRole.value === "superAdmin" ? "超级管理员" : "管理员")
+  );
+});
 
 // 7. 真实用户头像
 const realUserAvatar = computed(() => {
-  return userStore.user?.headImg || userStore.user?.user_pic || '@/assets/default.png'
-})
+  return (
+    userStore.user?.headImg ||
+    userStore.user?.user_pic ||
+    "@/assets/default.png"
+  );
+});
 
 // 8. 当前激活菜单路径（绑定当前路由path）
 const activeMenuPath = computed(() => {
-  return route.path
-})
+  return route.path;
+});
 
 // 9. 导入所有用到的图标
 import {
@@ -231,22 +270,71 @@ import {
   EditPen,
   SwitchButton,
   CaretBottom,
-  Setting
-} from '@element-plus/icons-vue'
+  Setting,
+} from "@element-plus/icons-vue";
 
 // 10. 下拉菜单命令处理
 const handleCommand = (command) => {
-  if (command === 'logout') {
+  if (command === "logout") {
     // 清空用户信息
-    userStore.clearUser()
-    localStorage.removeItem('token')
-    router.push('/login')
+    userStore.clearUser();
+    localStorage.removeItem("token");
+    router.push("/login");
   } else {
     // 适配角色的跳转路径
-    const rolePrefix = realRole.value === 'superAdmin' ? 'superadmin/' : ''
-    router.push(`/${rolePrefix}user/${command}`)
+    const rolePrefix = realRole.value === "superAdmin" ? "superadmin/" : "";
+    router.push(`/${rolePrefix}user/${command}`);
   }
-}
+};
+const getWeatherAlert = async () => {
+  try {
+    const orchardId = userStore.user?.orchardId;
+    if (!orchardId) {
+      console.warn("未获取到果园ID");
+      return;
+    }
+
+    const response = await axios.get("/AI/weather-alert", {
+      params: { orchardId },
+    });
+
+    if (response.data && response.data.code === 200 && response.data.data) {
+      weatherAlertData.value = response.data.data;
+      hasWeatherAlert.value = true;
+      weatherAlertCount.value = 1;
+      console.log("天气预警数据：", weatherAlertData.value);
+    } else {
+      hasWeatherAlert.value = false;
+      weatherAlertCount.value = 0;
+      weatherAlertData.value = null;
+    }
+  } catch (error) {
+    console.error("获取天气预警失败：", error);
+    hasWeatherAlert.value = false;
+    weatherAlertCount.value = 0;
+    weatherAlertData.value = null;
+  }
+};
+
+// 清除预警红点（进入页面后调用）
+const clearWeatherAlert = () => {
+  hasWeatherAlert.value = false;
+  weatherAlertCount.value = 0;
+};
+
+// 组件挂载时获取预警
+onMounted(() => {
+  getWeatherAlert();
+  // 每30分钟检查一次
+  timer = setInterval(getWeatherAlert, 30 * 60 * 1000);
+});
+
+// 组件卸载时清除定时器
+onUnmounted(() => {
+  if (timer) {
+    clearInterval(timer);
+  }
+});
 </script>
 
 <style lang="scss" scoped>
@@ -262,7 +350,7 @@ const handleCommand = (command) => {
 
     &__logo {
       height: 120px;
-      background: url('@/assets/logo.png') no-repeat center / 120px auto;
+      background: url("@/assets/logo.png") no-repeat center / 120px auto;
       background-color: #000000;
     }
 
@@ -277,12 +365,12 @@ const handleCommand = (command) => {
         color: #fff !important;
       }
 
-      &-submenu.is-active>.el-menu-item {
+      &-submenu.is-active > .el-menu-item {
         color: #ffd04b !important;
       }
 
       // 子菜单展开时标题高亮
-      &-submenu.is-opened>.el-menu-submenu__title {
+      &-submenu.is-opened > .el-menu-submenu__title {
         color: #ffd04b !important;
       }
     }
@@ -354,6 +442,28 @@ const handleCommand = (command) => {
       box-sizing: border-box;
       margin-top: auto;
       /* 自动顶到最底部，不管内容多少 */
+    }
+  }
+}
+.el-menu-item {
+  position: relative;
+
+  .menu-badge {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+
+    :deep(.el-badge__content) {
+      background-color: #f56c6c;
+      border: none;
+    }
+  }
+
+  &.has-badge {
+    .el-icon,
+    span {
+      color: #ffd04b;
     }
   }
 }
