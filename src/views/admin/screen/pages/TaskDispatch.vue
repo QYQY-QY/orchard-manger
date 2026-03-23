@@ -17,7 +17,7 @@
         </div>
       </div>
       <div class="update-time">
-        <i class="fas fa-sync-alt"></i> 最后更新: 2025-04-07 14:20 · 实时
+        <i class="fas fa-sync-alt"></i> 当前时间：{{ currentTime }}
       </div>
     </div>
 
@@ -36,7 +36,7 @@
       <div>
         <!-- 任务分布统计 -->
         <div class="distrib-card">
-          <div class="section-title"><i class="fas fa-chart-pie"></i> 任务分布统计 · 地块热力</div>
+          <div class="section-title"><i class="fas fa-chart-pie"></i> 任务分布统计 · 地块热力 ({{ currentTime }})</div>
           <div class="pie-sim">
             <div class="pie"></div>
             <div class="pie-labels">
@@ -54,7 +54,7 @@
 
         <!-- 人员绩效排行 -->
         <div class="rank-card">
-          <div class="section-title"><i class="fas fa-medal"></i> 人员绩效排行</div>
+          <div class="section-title"><i class="fas fa-medal"></i> 人员绩效排行 ({{ currentTime }})</div>
           <div v-for="(person, index) in rankData" :key="index" class="rank-item">
             <span class="rank-number">{{ index + 1 }}</span> {{ person.name }}
             <span>{{ person.tasks }}任务 {{ person.rate }}</span>
@@ -70,7 +70,7 @@
       <div>
         <!-- 任务执行进度 -->
         <div class="progress-card">
-          <div class="section-title"><i class="fas fa-map-marked-alt"></i> 任务执行进度 · 实时位置</div>
+          <div class="section-title"><i class="fas fa-map-marked-alt"></i> 任务执行进度 · 实时位置 ({{ currentTime }})</div>
           <div v-for="(task, index) in progressData" :key="index" class="plot-item">
             <span>{{ task.name }}</span><span>{{ task.progress }}%</span>
             <div class="bar-bg"><div class="bar-fill" :style="{ width: task.progress + '%' }"></div></div>
@@ -87,7 +87,7 @@
 
         <!-- 逾期任务预警 -->
         <div class="overdue-card">
-          <div class="section-title"><i class="fas fa-bell"></i> 逾期任务预警</div>
+          <div class="section-title"><i class="fas fa-bell"></i> 逾期任务预警 ({{ currentTime }})</div>
           <div v-for="(task, index) in overdueData" :key="index" class="overdue-item">
             <span><i class="fas fa-clock" style="color:#cf5f4a;"></i> {{ task.name }}</span>
             <span>{{ task.desc }}</span>
@@ -100,7 +100,7 @@
 
         <!-- 任务历史趋势 -->
         <div class="trend-card">
-          <div class="section-title"><i class="fas fa-chart-line"></i> 任务历史趋势 (近7天)</div>
+          <div class="section-title"><i class="fas fa-chart-line"></i> 任务历史趋势 (近7天) 当前时间: {{ currentTime }}</div>
           <div class="trend-line">
             <span v-for="n in 7" :key="n" :class="'line' + n"></span>
           </div>
@@ -119,7 +119,7 @@
     <!-- 底部联动 -->
     <div class="drill-footer">
       <span><i class="fas fa-link"></i> 跨屏联动: 点击地块/人员可跳转至病虫害/水肥/历史分析屏</span>
-      <span><i class="fas fa-clock"></i> 实时任务每2分钟更新 · 逾期预警实时推送</span>
+      <span><i class="fas fa-clock"></i> 当前时间: {{ currentTime }} · 实时任务每2分钟更新</span>
     </div>
 
     <!-- 数据清单 -->
@@ -135,7 +135,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -143,6 +143,25 @@ const router = useRouter()
 // 返回上一页功能
 const goBack = () => {
   router.back()
+}
+
+// 实时时间
+const currentTime = ref('')
+
+// 更新时间定时器
+let timeInterval = null
+
+// 更新时间的函数
+const updateTime = () => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  const hours = String(now.getHours()).padStart(2, '0')
+  const minutes = String(now.getMinutes()).padStart(2, '0')
+  const seconds = String(now.getSeconds()).padStart(2, '0')
+  
+  currentTime.value = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
 }
 
 // KPI数据
@@ -185,9 +204,27 @@ const overdueData = ref([
   { name: '防控 E5', desc: '逾期1天 · 责任人赵欣', level: '中', badgeColor: '#e68a3a' },
   { name: '施肥 F2', desc: '逾期6h · 责任人李国', level: '中', badgeColor: '#e68a3a' }
 ])
+
+onMounted(() => {
+  // 立即更新一次时间
+  updateTime()
+  
+  // 每秒更新一次时间
+  timeInterval = setInterval(updateTime, 1000)
+  
+  console.log('农事任务调度管理页面加载')
+})
+
+onUnmounted(() => {
+  // 组件卸载时清除定时器，防止内存泄漏
+  if (timeInterval) {
+    clearInterval(timeInterval)
+  }
+})
 </script>
 
 <style scoped>
+/* 样式保持不变，与原来完全一致 */
 * {
   margin: 0;
   padding: 0;

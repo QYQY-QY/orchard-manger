@@ -17,7 +17,7 @@
         </div>
       </div>
       <div class="update-time">
-        <i class="fas fa-calendar-alt"></i> 数据截至 2025-Q1 · 每日更新
+        <i class="fas fa-calendar-alt"></i> 当前时间：{{ currentTime }}
       </div>
     </div>
 
@@ -127,7 +127,7 @@
     <!-- 底部联动 -->
     <div class="drill-footer">
       <span><i class="fas fa-link"></i> 跨屏联动: 点击图表点可钻取至病虫害/水肥历史明细</span>
-      <span><i class="fas fa-clock"></i> 历史趋势数据每日02:00更新 · 长期存储</span>
+      <span><i class="fas fa-clock"></i> 当前时间: {{ currentTime }} · 历史趋势数据每日02:00更新</span>
     </div>
 
     <!-- 微型数据清单 -->
@@ -143,7 +143,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -151,6 +151,25 @@ const router = useRouter()
 // 返回上一页功能
 const goBack = () => {
   router.back()
+}
+
+// 实时时间
+const currentTime = ref('')
+
+// 更新时间定时器
+let timeInterval = null
+
+// 更新时间的函数
+const updateTime = () => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  const hours = String(now.getHours()).padStart(2, '0')
+  const minutes = String(now.getMinutes()).padStart(2, '0')
+  const seconds = String(now.getSeconds()).padStart(2, '0')
+  
+  currentTime.value = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
 }
 
 // KPI数据
@@ -201,9 +220,25 @@ const yearCompareData = ref([
   { label: '健康度', year2024: '88%', year2025: '94%' },
   { label: '异常株', year2024: '142', year2025: '87' }
 ])
+
+onMounted(() => {
+  // 立即更新一次时间
+  updateTime()
+  
+  // 每秒更新一次时间
+  timeInterval = setInterval(updateTime, 1000)
+})
+
+onUnmounted(() => {
+  // 组件卸载时清除定时器，防止内存泄漏
+  if (timeInterval) {
+    clearInterval(timeInterval)
+  }
+})
 </script>
 
 <style scoped>
+/* 样式保持不变，与原来完全一致 */
 * {
   margin: 0;
   padding: 0;

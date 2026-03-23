@@ -126,7 +126,7 @@
 
       <!-- 图片预览弹窗 -->
       <el-dialog v-model="previewVisible" title="图片预览" width="50%" destroy-on-close>
-        <img :src="previewImageUrl" style="width: 100%;" alt="预览" @error="handlePreviewError">
+        <img :src="previewImageUrl" style="width: 100%;" alt="预览">
       </el-dialog>
     </div>
   </CommonLayout>
@@ -449,7 +449,6 @@ const handleImageRecognition = async (type) => {
 
       let aiContent = data.answer || '识别完成'
 
-      // 如果返回了 ripe_stats 数据，格式化显示
       if (type === 'maturity' && data.ripe_stats) {
         const stats = data.ripe_stats
         aiContent += `\n\n📊 详细统计：\n`
@@ -465,12 +464,11 @@ const handleImageRecognition = async (type) => {
         aiContent += `熟果率：${ripeRate}%`
       }
 
-      // 创建AI回复消息对象
-      const aiMessage = {
+      messages.value.push({
         type: 'ai',
         content: aiContent,
         imageError: false
-      }
+      })
 
       // 如果有图片数据，添加到消息中
       if (data.image_data) {
@@ -512,34 +510,6 @@ const handleImageRecognition = async (type) => {
   }
 }
 
-// 逐行显示AI回复
-const displayAIMessageLineByLine = async (fullContent) => {
-  // 按行分割文本
-  const lines = fullContent.split('\n').filter(line => line.trim() !== '' || line === '\n')
-
-  // 创建新的消息对象，包含行数组
-  const newMessage = {
-    type: 'ai',
-    lines: lines.map(text => ({
-      text,
-      visible: false
-    }))
-  }
-
-  messages.value.push(newMessage)
-
-  // 逐行显示
-  for (let i = 0; i < newMessage.lines.length; i++) {
-    await new Promise(resolve => {
-      setTimeout(() => {
-        newMessage.lines[i].visible = true
-        scrollToBottom() // 每显示一行就滚动到底部
-        resolve()
-      }, 80)
-    })
-  }
-}
-
 // 发送消息
 const handleSendMessage = async (e) => {
   if (e) e.preventDefault()
@@ -563,10 +533,10 @@ const handleSendMessage = async (e) => {
         sessionId.value = response.data.data.sessionId
       }
 
-      const reply = response.data.data?.reply || response.data.data || '抱歉，我现在无法回答这个问题。'
-
-      // 使用逐行显示
-      await displayAIMessageLineByLine(reply)
+      messages.value.push({
+        type: 'ai',
+        content: response.data.data?.reply || response.data.data || '抱歉，我现在无法回答这个问题。'
+      })
     } else {
       ElMessage.error(response.data.message || '请求失败')
       messages.value.push({
@@ -672,6 +642,7 @@ onUnmounted(() => {
 .ai-chat-fullscreen {
   width: 100%;
   height: calc(100vh - 120px);
+  /* 使用视口高度 */
   display: flex;
   flex-direction: column;
   background: transparent;
@@ -679,6 +650,7 @@ onUnmounted(() => {
   position: relative;
 }
 
+/* 聊天内容区域：固定高度，可滚动 */
 .chat-content {
   flex: 1;
   padding: 24px;
@@ -686,8 +658,12 @@ onUnmounted(() => {
   background: transparent;
   scrollbar-width: thin;
   scrollbar-color: #c0c4cc transparent;
+  /* 设置最大高度，保证输入区域固定在底部 */
+  /* max-height: calc(100vh - 280px); */
+  /* 减去输入区域高度 */
 }
 
+/* 自定义滚动条样式 */
 .chat-content::-webkit-scrollbar {
   width: 2px;
 }
@@ -706,6 +682,14 @@ onUnmounted(() => {
   background-color: #909399;
 }
 
+/* 消息列表容器 */
+.messages-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 90%;
+}
+
+/* 消息项样式 */
 .message-item {
   display: flex;
   margin-bottom: 20px;
@@ -757,47 +741,7 @@ onUnmounted(() => {
   border-bottom-left-radius: 6px;
 }
 
-.ai-line {
-  opacity: 0;
-  transform: translateY(10px);
-  transition: opacity 0.3s ease, transform 0.3s ease;
-}
-
-.ai-line.line-visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.ai-image-container {
-  margin-top: 12px;
-  max-width: 100%;
-}
-
-.ai-image-preview {
-  max-width: 300px;
-  border-radius: 8px;
-  overflow: hidden;
-  cursor: pointer;
-  border: 1px solid #e4e7ed;
-  transition: transform 0.2s;
-}
-
-.ai-image-preview img {
-  width: 100%;
-  height: auto;
-  display: block;
-}
-
-.ai-image-preview:hover {
-  transform: scale(1.02);
-}
-
-.image-error-tip {
-  margin-top: 4px;
-  font-size: 12px;
-  color: #f56c6c;
-}
-
+/* 加载中样式 */
 .loading-bubble {
   display: flex;
   align-items: center;
@@ -834,11 +778,14 @@ onUnmounted(() => {
   }
 }
 
+/* 输入区域容器：固定在底部 */
 .chat-input-wrapper {
   padding: 14px 10px;
+  /* border-top: 1px solid #e4e7ed; */
   background: white;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.03);
   flex-shrink: 0;
+  /* 防止压缩 */
 }
 
 .chat-input-area {
@@ -852,6 +799,7 @@ onUnmounted(() => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
+/* 功能按钮栏 */
 .function-bar {
   display: flex;
   align-items: center;
@@ -875,6 +823,13 @@ onUnmounted(() => {
   background-color: #f5f5f5;
 }
 
+.divider {
+  width: 1px;
+  height: 20px;
+  background-color: #e4e7ed;
+}
+
+/* 图片预览消息 */
 .image-preview {
   margin-bottom: 8px;
   max-width: 200px;
@@ -895,6 +850,7 @@ onUnmounted(() => {
   transform: scale(1.02);
 }
 
+/* 图片识别选项 */
 .image-options {
   display: flex;
   gap: 8px;
@@ -923,6 +879,7 @@ onUnmounted(() => {
   background-color: #fef0f0;
 }
 
+/* 选中的图片预览 */
 .selected-image-preview {
   display: flex;
   align-items: center;
@@ -949,6 +906,7 @@ onUnmounted(() => {
   flex: 1;
 }
 
+/* 输入框容器 */
 .input-with-send {
   position: relative;
   width: 100%;
@@ -978,6 +936,7 @@ onUnmounted(() => {
   color: #999;
 }
 
+/* 发送按钮 */
 .send-btn-inner {
   position: absolute;
   right: 8px;
@@ -1004,6 +963,7 @@ onUnmounted(() => {
   transform: scale(1.05);
 }
 
+/* 弹窗样式 */
 :deep(.el-dialog__body) {
   padding: 20px;
   text-align: center;
@@ -1014,6 +974,7 @@ onUnmounted(() => {
   max-height: 70vh;
 }
 
+/* 响应式适配 */
 @media (max-width: 768px) {
   .chat-content {
     padding: 16px;
@@ -1037,10 +998,6 @@ onUnmounted(() => {
 
   .option-btn span {
     display: none;
-  }
-
-  .ai-image-preview {
-    max-width: 250px;
   }
 }
 </style>
