@@ -17,7 +17,8 @@
             <!-- 如果是用户消息且包含图片，显示图片预览 -->
             <div v-if="item.type === 'user' && item.imageUrl" class="image-preview"
               @click="previewImage(item.imageUrl)">
-              <img :src="item.imageUrl" alt="用户上传">
+              <img :src="item.imageUrl" alt="用户上传" @load="() => console.log('用户图片加载成功:', item.imageUrl)"
+                @error="(e) => console.error('用户图片加载失败:', item.imageUrl, e)">
             </div>
 
             <!-- AI消息逐行显示 -->
@@ -34,7 +35,7 @@
             <!-- AI返回的图片 -->
             <div v-if="item.type === 'ai' && item.imageUrl" class="ai-image-container">
               <div class="ai-image-preview" @click="previewImage(item.imageUrl)">
-                <img :src="item.imageUrl" alt="AI生成图片" @load="handleImageLoad(item)" @error="handleImageError(item)">
+                <img :src="item.imageUrl" alt="AI生成图片" @load="handleImageLoad(item)" @error="handleImageError(item)" />
               </div>
               <div v-if="item.imageError" class="image-error-tip">
                 图片加载失败，请重试
@@ -133,7 +134,7 @@
 
 <script setup>
 import CommonLayout from '@/views/common/CommonLayout.vue'
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch, nextTick, onUnmounted } from 'vue'
 import axios from 'axios'
 import { ElMessage, ElDialog } from 'element-plus'
 
@@ -154,6 +155,9 @@ const selectedImage = ref(null)
 const previewVisible = ref(false)
 const previewImageUrl = ref('')
 
+// 存储所有生成的Blob URL，用于统一清理
+const blobUrls = ref(new Set())
+
 // 格式化消息
 const formatMessage = (content) => {
   if (!content) return ''
@@ -166,9 +170,18 @@ const previewImage = (url) => {
   previewVisible.value = true
 }
 
+// 添加调试代码 - 监控消息中的图片URL
+watch(messages, (newMsgs) => {
+  newMsgs.forEach((msg, index) => {
+    if (msg.type === 'user' && msg.imageUrl) {
+      console.log(`用户消息 ${index} 的图片URL:`, msg.imageUrl)
+    }
+  })
+}, { deep: true })
+
 // 处理图片加载成功
 const handleImageLoad = (item) => {
-  console.log('图片加载成功')
+  console.log('图片加载成功:', item.imageUrl)
   item.imageError = false
 }
 
@@ -176,6 +189,21 @@ const handleImageLoad = (item) => {
 const handleImageError = (item) => {
   console.error('图片加载失败:', item.imageUrl)
   item.imageError = true
+
+  // 如果Blob URL加载失败，立即尝试转换为Data URL
+  if (item.imageUrl && item.imageUrl.startsWith('blob:')) {
+    console.log('尝试使用Data URL备选方案...')
+    if (item.hexData) {
+      const dataUrl = hexToDataUrl(item.hexData)
+      if (dataUrl) {
+        console.log('切换到Data URL成功')
+        item.imageUrl = dataUrl
+        item.imageError = false
+      } else {
+        console.error('Data URL转换失败')
+      }
+    }
+  }
 }
 
 // 处理预览图片错误
@@ -185,9 +213,43 @@ const handlePreviewError = () => {
 }
 
 /**
+ * 十六进制字符串转Data URL（备选方案）
+ */
+const hexToDataUrl = (hexString, mimeType = 'image/jpeg') => {
+  if (!hexString) return ''
+
+  try {
+    // 清理十六进制字符串
+    const cleanHex = hexString.replace(/\s/g, '').replace(/^0x/, '')
+
+    // 确保长度为偶数
+    const paddedHex = cleanHex.length % 2 === 0 ? cleanHex : '0' + cleanHex
+
+    // 转换为字节数组
+    const bytes = []
+    for (let i = 0; i < paddedHex.length; i += 2) {
+      bytes.push(parseInt(paddedHex.substring(i, i + 2), 16))
+    }
+
+    // 转换为二进制字符串
+    const byteArray = new Uint8Array(bytes)
+    let binary = ''
+    for (let i = 0; i < byteArray.length; i++) {
+      binary += String.fromCharCode(byteArray[i])
+    }
+
+    // 转换为base64
+    const base64 = btoa(binary)
+
+    return `data:${mimeType};base64,${base64}`
+  } catch (error) {
+    console.error('转换为Data URL失败:', error)
+    return ''
+  }
+}
+
+/**
  * 将16进制字符串转换为Blob URL
- * @param {string} hexString - 16进制字符串 (例如 "ffd8ffe0...")
- * @returns {string} - Blob URL 或空字符串
  */
 const hexToImageUrl = (hexString) => {
   if (!hexString || typeof hexString !== 'string') {
@@ -211,19 +273,18 @@ const hexToImageUrl = (hexString) => {
       return `data:image/jpeg;base64,${hexString}`
     }
 
-    // 处理16进制字符串
-    // 确保字符串长度为偶数
-    if (hexString.length % 2 !== 0) {
-      console.warn('16进制字符串长度不是偶数，添加前导0')
-      hexString = '0' + hexString
-    }
+    // 清理十六进制字符串
+    const cleanHex = hexString.replace(/\s/g, '').replace(/^0x/, '')
+
+    // 确保长度为偶数
+    const paddedHex = cleanHex.length % 2 === 0 ? cleanHex : '0' + cleanHex
 
     // 将16进制字符串转换为字节数组
     const bytes = []
-    for (let i = 0; i < hexString.length; i += 2) {
-      const byte = parseInt(hexString.substring(i, i + 2), 16)
+    for (let i = 0; i < paddedHex.length; i += 2) {
+      const byte = parseInt(paddedHex.substring(i, i + 2), 16)
       if (isNaN(byte)) {
-        console.error(`在第 ${i} 位置解析16进制失败: ${hexString.substring(i, i + 2)}`)
+        console.error(`在第 ${i} 位置解析16进制失败: ${paddedHex.substring(i, i + 2)}`)
         continue
       }
       bytes.push(byte)
@@ -250,6 +311,10 @@ const hexToImageUrl = (hexString) => {
 
     // 创建Blob URL
     const url = URL.createObjectURL(blob)
+
+    // 记录这个URL以便后续清理
+    blobUrls.value.add(url)
+
     console.log('生成的Blob URL:', url)
 
     return url
@@ -257,6 +322,26 @@ const hexToImageUrl = (hexString) => {
     console.error('图片数据转换失败:', error)
     return ''
   }
+}
+
+/**
+ * 清理单个Blob URL
+ */
+const revokeBlobUrl = (url) => {
+  if (url && url.startsWith('blob:')) {
+    URL.revokeObjectURL(url)
+    blobUrls.value.delete(url)
+  }
+}
+
+/**
+ * 清理所有Blob URL
+ */
+const revokeAllBlobUrls = () => {
+  blobUrls.value.forEach(url => {
+    URL.revokeObjectURL(url)
+  })
+  blobUrls.value.clear()
 }
 
 // 选择图片
@@ -274,7 +359,10 @@ const handleImageSelect = (e) => {
     return
   }
 
+  // 创建预览URL
   const preview = URL.createObjectURL(file)
+  console.log('生成的预览URL:', preview) // 添加日志
+
   selectedImage.value = {
     file,
     preview,
@@ -286,9 +374,13 @@ const handleImageSelect = (e) => {
 
 // 清除选中的图片
 const clearSelectedImage = () => {
-  if (selectedImage.value?.preview) {
-    URL.revokeObjectURL(selectedImage.value.preview)
-  }
+  console.log('清除选中的图片:', selectedImage.value)
+  // if (selectedImage.value?.preview) {
+  //   // ⚠️ 注意：这里释放了预览URL，但这个消息已经在 messages 中了
+  //   // 所以需要在消息中也保存一份
+  //   console.log('释放预览URL:', selectedImage.value.preview)
+  //   URL.revokeObjectURL(selectedImage.value.preview)
+  // }
   selectedImage.value = null
   if (imageInput.value) {
     imageInput.value.value = ''
@@ -330,10 +422,17 @@ const handleImageRecognition = async (type) => {
 
   formData.append(paramName, selectedImage.value.file)
 
+  // 保存预览URL到消息，稍后不要清理这个URL
+  const previewUrl = selectedImage.value.preview
+  console.log('用户图片预览URL:', previewUrl) // 添加日志
   messages.value.push({
     type: 'user',
     content: `[${displayType}]`,
-    imageUrl: selectedImage.value.preview
+    imageUrl: previewUrl,  // 使用选中的图片预览URL
+    // 添加一个标记，表示这是用户上传的图片
+    isUserUpload: true,
+    // 保存原始文件信息，便于调试
+    fileName: selectedImage.value.file.name
   })
 
   loading.value = true
@@ -362,7 +461,7 @@ const handleImageRecognition = async (type) => {
         }
 
         // 保留小数点后两位
-        const ripeRate = stats.ripe_rate.toFixed(2)
+        const ripeRate = stats.ripe_rate ? stats.ripe_rate.toFixed(2) : '0.00'
         aiContent += `熟果率：${ripeRate}%`
       }
 
@@ -378,6 +477,10 @@ const handleImageRecognition = async (type) => {
         console.log('收到图片数据，长度:', data.image_data.length)
         console.log('图片数据开头:', data.image_data.substring(0, 50))
 
+        // 保存原始十六进制数据，用于备选方案
+        aiMessage.hexData = data.image_data
+
+        // 生成图片URL
         const imageUrl = hexToImageUrl(data.image_data)
         if (imageUrl) {
           aiMessage.imageUrl = imageUrl
@@ -551,28 +654,21 @@ watch(messages, async () => {
   scrollToBottom()
 }, { deep: true })
 
-// 清理预览URL
-watch(selectedImage, (newVal, oldVal) => {
-  if (oldVal?.preview) {
-    URL.revokeObjectURL(oldVal.preview)
-  }
-})
+// // 清理预览URL - 只清理选中的图片预览
+// watch(selectedImage, (newVal, oldVal) => {
+//   if (oldVal?.preview && oldVal.preview.startsWith('blob:')) {
+//     URL.revokeObjectURL(oldVal.preview)
+//   }
+// })
 
-// 清理AI生成的图片URL
-watch(messages, (newMessages, oldMessages) => {
-  // 清理旧消息中的图片URL
-  if (oldMessages) {
-    oldMessages.forEach(msg => {
-      if (msg.type === 'ai' && msg.imageUrl && msg.imageUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(msg.imageUrl)
-      }
-    })
-  }
-}, { deep: true })
+// 组件卸载时清理所有Blob URL
+onUnmounted(() => {
+  revokeAllBlobUrls()
+})
 </script>
 
 <style scoped>
-/* 样式保持不变 */
+/* 样式保持不变，和原来一样 */
 .ai-chat-fullscreen {
   width: 100%;
   height: calc(100vh - 120px);
@@ -865,8 +961,8 @@ watch(messages, (newMessages, oldMessages) => {
   font-size: 15px;
   line-height: 1.5;
   min-height: 40px;
-  max-height: 12px;
-  overflow-y: hidden;
+  max-height: 120px;
+  overflow-y: auto;
   background: transparent;
   padding-right: 60px;
   width: 100%;
@@ -921,7 +1017,6 @@ watch(messages, (newMessages, oldMessages) => {
 @media (max-width: 768px) {
   .chat-content {
     padding: 16px;
-    max-height: calc(100vh - 160px);
   }
 
   .message-item {
