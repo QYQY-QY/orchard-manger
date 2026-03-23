@@ -275,19 +275,37 @@ const hideRegionInfo = (region) => {
   }
 };
 
-// 点击处理函数
+// 点击处理函数 - 修改为直接跳转到 WaterFertilizer
 const handleRegionClick = (region) => {
   if (controls) controls.autoRotate = false;
   
   console.log('点击了区域:', region, '独立路由模式:', isStandalone.value);
+
+  // 获取区域对应的实际编号和名称
+  const regionMap = {
+    1: { id: '一', name: '婺城' },
+    2: { id: '二', name: '金东' },
+    3: { id: '三', name: '武义' }
+  };
+  
   
   if (isStandalone.value) {
+    // 直接跳转到 WaterFertilizer 水肥管控决策页面
     router.push({
-      path: '/TotalScreen',
-      query: { region: region.toString() }
+      path: '/WaterFertilizer',
+      query: { 
+        region: region.toString(),
+        regionName: regionMap[region].name,
+        regionId: regionMap[region].id,
+       }
     });
   } else {
-    emit('region-click', region);
+    // 如果是在 Index.vue 中嵌入使用，发出事件
+    emit('region-click', {
+      region,
+      regionName: regionMap[region].name,
+      regionId: regionMap[region].id
+    });
   }
 };
 

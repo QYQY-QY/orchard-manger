@@ -23,16 +23,16 @@ import ScreenRight from '@/views/admin/screen/layout/ScreenRight.vue'
 
 const router = useRouter()
 
-// 处理区域点击事件
+// 处理区域点击事件 - 修改为直接跳转到 WaterFertilizer
 const handleRegionClick = (region) => {
   console.log('点击了区域:', region)
   
   // 暂停自动旋转（如果需要）
   // 这里可以添加其他逻辑，比如显示加载状态等
   
-  // 执行路由跳转到总览大屏，并传递区域参数
+  // 直接跳转到 WaterFertilizer 水肥管控决策页面
   router.push({
-    path: '/TotalScreen',
+    path: '/WaterFertilizer',
     query: { region: region.toString() }
   }).catch(err => {
     console.error('路由跳转失败:', err)
