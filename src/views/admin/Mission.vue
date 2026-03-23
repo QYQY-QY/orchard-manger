@@ -75,17 +75,17 @@
             <template #default="{ row }">
               <el-tag
                 :type="
-                  row.status === 2
+                  row.status === 3
                     ? 'success'
-                    : row.status === 1
+                    : row.status === 2
                     ? 'primary'
                     : 'warning'
                 "
               >
                 {{
-                  row.status === 0
+                  row.status === 1
                     ? "未完成"
-                    : row.status === 1
+                    : row.status === 2
                     ? "进行中"
                     : "已完成"
                 }}
