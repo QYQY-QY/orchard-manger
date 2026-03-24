@@ -9,11 +9,7 @@
     <div class="tree-list-container" v-if="activeAreaId">
       <div class="zone-info">
         <div>
-          <h3>
-            区域{{ fullZoneInfo.number || activeZone.number }}：{{
-              fullZoneInfo.name || activeZone.name
-            }}
-          </h3>
+          <h3>区域：{{ fullZoneInfo.name || activeZone.name }}</h3>
           <p class="zone-desc">
             负责人：{{ fullZoneInfo.areaManagerName || "未设置" }} | 品种：{{
               fullZoneInfo.type || activeZone.type || "-"
@@ -67,11 +63,11 @@
         <!-- 果树编号 -->
         <el-table-column label="果树编号" min-width="120">
           <template #default="scope">
-            {{ scope.row.id }}
+            {{ fullZoneInfo.name || activeZone.name }}-{{
+              scope.row.location || "-"
+            }}
           </template>
         </el-table-column>
-        <!-- 新增：果树品种列 -->
-        <!-- 新增：果实数量列 -->
         <el-table-column label="果实总数" min-width="100">
           <template #default="scope">
             {{ scope.row.countNum || 0 }}
@@ -356,11 +352,11 @@
                 </div>
               </div>
               <el-rate
-                v-model="comment.goodRate"
+                :model-value="getRateValue(comment.choice)"
                 disabled
+                show-score
                 :colors="['#99A9BF', '#F7BA2A', '#FF9900']"
                 :texts="['很差', '较差', '一般', '较好', '很好']"
-                show-text
                 :size="14"
               />
             </div>
@@ -513,6 +509,7 @@ const sortedTreeList = computed(() => {
     url: tree.url || null, // 二维码地址使用后端返回的url字段
     areaId: tree.areaId || "",
     typeId: tree.typeId || "",
+    location: tree.location || null,
   }));
 });
 // 格式化成熟度
@@ -944,6 +941,12 @@ watch(
   },
   { deep: true, immediate: true }
 );
+// 计算评分值（0-5星）
+const getRateValue = (score) => {
+  if (!score && score !== 0) return 0;
+  // 确保返回数字类型，并保留一位小数
+  return Number((score / 6).toFixed(1));
+};
 </script>
 
 <style scoped>

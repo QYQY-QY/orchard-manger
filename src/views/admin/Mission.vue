@@ -12,8 +12,10 @@
               class="filter-select"
             >
               <el-option label="全部类型" value="" />
-              <el-option label="日常任务" value="0" />
-              <el-option label="紧急任务" value="1" />
+              <el-option label="浇水" value="浇水" />
+              <el-option label="修剪" value="修剪" />
+              <el-option label="除草" value="除草" />
+              <el-option label="采摘" value="采摘" />
             </el-select>
           </div>
           <div class="filter-item">
@@ -24,21 +26,25 @@
               class="filter-select"
             >
               <el-option label="全部状态" value="" />
-              <el-option label="未完成" value="0" />
-              <el-option label="进行中" value="1" />
-              <el-option label="已完成" value="2" />
+              <el-option label="未完成" value="1" />
+              <!-- <el-option label="进行中" value="1" /> -->
+              <el-option label="已完成" value="3" />
             </el-select>
           </div>
           <div class="filter-item">
-            <label class="filter-label">任务范围：</label>
+            <label class="filter-label">负责人：</label>
             <el-select
-              v-model="filterParams.taskScope"
-              placeholder="请选择任务范围"
+              v-model="filterParams.receiverName"
+              placeholder="请选择负责人"
               class="filter-select"
             >
-              <el-option label="全部范围" value="" />
-              <el-option label="全园" value="0" />
-              <el-option label="分区" value="1" />
+              <el-option label="全部负责人" value="" />
+              <el-option
+                v-for="emp in employeeList"
+                :key="emp.id"
+                :label="emp.name"
+                :value="emp.name"
+              />
             </el-select>
           </div>
           <el-button type="primary" @click="handleFilter" class="filter-btn"
@@ -57,18 +63,24 @@
       <!-- 任务列表 - 保持不变 -->
       <div class="task-list-wrapper">
         <el-table :data="filteredTaskList" stripe style="width: 100%">
-          <el-table-column
+          <!-- <el-table-column
             prop="taskTitle"
             label="任务标题"
             min-width="150px"
-          />
-          <el-table-column prop="taskInfo" label="任务内容" min-width="200px" />
-          <el-table-column prop="orchardName" label="所属果园" width="150px" />
+          /> -->
+          <el-table-column label="任务内容" min-width="200px">
+            <template #default="{ row }">
+              <template v-if="row.areaName"> 区域 {{ row.areaName }} </template>
+              {{ row.taskInfo }}。截止时间：
+              {{ formatIsoTime(row.deadline) }}
+              <template v-if="row.areaName">
+                。薪资：{{ row.salary }}元
+              </template>
+            </template>
+          </el-table-column>
           <el-table-column label="任务类型" width="120px">
             <template #default="{ row }">
-              <el-tag :type="row.taskType === '1' ? 'danger' : 'info'">
-                {{ row.taskType === "0" ? "日常任务" : "紧急任务" }}
-              </el-tag>
+              {{ row.taskType }}
             </template>
           </el-table-column>
           <el-table-column prop="status" label="任务状态" width="120px">
@@ -92,9 +104,19 @@
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="deadline" label="截止时间" width="180px">
+          <!-- <el-table-column prop="deadline" label="截止时间" width="180px">
             <template #default="{ row }">
               {{ formatIsoTime(row.deadline) }}
+            </template>
+          </el-table-column> -->
+          <el-table-column label="负责人" width="100px">
+            <template #default="{ row }">
+              {{ row.receiverName }}
+            </template>
+          </el-table-column>
+          <el-table-column label="薪资" width="100px">
+            <template #default="{ row }">
+              {{ row.salary }}
             </template>
           </el-table-column>
           <el-table-column prop="username" label="发布人" width="120px" />
@@ -192,6 +214,16 @@
               />
             </el-select>
           </el-form-item>
+          <el-form-item label="任务薪资" prop="salary">
+            <el-input-number
+              v-model="publishForm.salary"
+              :min="0"
+              :precision="2"
+              placeholder="请输入任务薪资"
+              style="width: 40%"
+            />
+            <span style="margin-left: 8px; color: #999">元</span>
+          </el-form-item>
           <!-- 隐藏字段 - 自动填充 -->
           <el-form-item label="所属果园ID" v-show="false">
             <el-input v-model="publishForm.orchardId" />
@@ -244,17 +276,17 @@
               <el-descriptions-item label="任务状态">
                 <el-tag
                   :type="
-                    currentTask.status === 2
+                    currentTask.status === 3
                       ? 'success'
-                      : currentTask.status === 1
+                      : currentTask.status === 2
                       ? 'primary'
                       : 'warning'
                   "
                 >
                   {{
-                    currentTask.status === 0
+                    currentTask.status === 1
                       ? "未完成"
-                      : currentTask.status === 1
+                      : currentTask.status === 2
                       ? "进行中"
                       : "已完成"
                   }}
@@ -266,7 +298,7 @@
               <el-descriptions-item label="发布时间">{{
                 formatIsoTime(currentTask.postTime)
               }}</el-descriptions-item>
-              <el-descriptions-item label="截止时间">{{
+              <el-descriptions-item label="任务截止时间">{{
                 formatIsoTime(currentTask.deadline)
               }}</el-descriptions-item>
               <el-descriptions-item label="完成时间">{{
@@ -361,6 +393,7 @@ const filterParams = ref({
   taskType: "", // 保持字符串格式传给后端
   status: "", // 保持字符串格式传给后端
   taskScope: "", // 保持字符串格式传给后端
+  receiverName: "",
   orchardId: orchardId.value, // 必传果园ID
   creatorId: creatorId.value, // 必传创建者ID
   username: username.value, // 发布人名称
@@ -376,6 +409,7 @@ const publishForm = ref({
   taskScope: [], // 多选数组
   deadline: "", // 无时区格式
   empIds: [], // 多选数组
+  salary: null,
   // 自动填充字段
   orchardId: orchardId.value,
   creatorId: creatorId.value,
@@ -396,20 +430,31 @@ const taskList = ref([]);
 const filteredTaskList = computed(() => {
   let list = [...taskList.value];
 
+  // 任务类型筛选
   if (filterParams.value.taskType) {
     list = list.filter((item) => item.taskType === filterParams.value.taskType);
   }
 
+  // 任务状态筛选
   if (filterParams.value.status) {
     list = list.filter(
       (item) => item.status === Number(filterParams.value.status)
     );
   }
 
+  // 任务范围筛选
   if (filterParams.value.taskScope) {
     list = list.filter(
       (item) => item.taskScope === Number(filterParams.value.taskScope)
     );
+  }
+
+  // 负责人筛选（根据 receiverName 前端筛选）
+  if (filterParams.value.receiverName) {
+    list = list.filter((item) => {
+      // 直接匹配 receiverName
+      return item.receiverName === filterParams.value.receiverName;
+    });
   }
 
   return list;
@@ -564,6 +609,7 @@ const fetchTaskList = async () => {
       status: filterParams.value.status || "", // 字符串格式
       taskScope: filterParams.value.taskScope || "", // 字符串格式
       taskType: filterParams.value.taskType || "", // 字符串格式
+      receiverId: filterParams.value.receiverName || "",
     };
 
     console.log("查询任务参数：", queryParams);
@@ -615,6 +661,7 @@ const resetFilter = () => {
     taskType: "",
     status: "",
     taskScope: "",
+    receiverName: "",
     orchardId: orchardId.value,
     creatorId: creatorId.value,
   };
@@ -736,6 +783,7 @@ const handlePublish = async () => {
       taskInfo: publishForm.value.taskInfo, // 任务信息
       taskTitle: publishForm.value.taskTitle, // 任务标题
       taskType: Number(publishForm.value.taskType), // 任务类型（数字）
+      salary: publishForm.value.salary || null,
     };
 
     console.log("发布任务提交参数：", submitData);

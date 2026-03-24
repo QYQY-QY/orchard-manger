@@ -12,7 +12,7 @@
         :class="{ active: activeAreaId === zone.id }"
         @click="handleZoneSelect(zone.id)"
       >
-        <div class="zone-name">区域{{ zone.number }}：{{ zone.name }}</div>
+        <div class="zone-name">区域：{{ zone.name }}区</div>
         <div class="zone-remark">{{ zone.description || "无备注" }}</div>
         <!-- 详情/删除按钮 -->
         <div class="zone-actions">
