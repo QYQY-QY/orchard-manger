@@ -21,7 +21,7 @@ export default defineConfig({
     proxy: {
       // 用 /api 前缀代理后端接口
       '/api': {
-        target: 'https://192.168.123.93:3388', // 你的后端接口地址
+        target: 'http://192.168.123.93:3388', // 你的后端接口地址
         changeOrigin: true, // 开启跨域伪装（核心解决跨域）
         secure: false, // 忽略HTTPS证书错误（解决证书拦截）
         rewrite: (path) => path.replace(/^\/api/, '')
