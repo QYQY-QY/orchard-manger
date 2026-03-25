@@ -16,12 +16,10 @@
 
     <!-- 六个大屏网格 -->
     <div class="grid-6">
-      <!-- 大屏1 宏观监控总览 (保持不变) -->
+      <!-- 大屏1 宏观监控总览 -->
       <div class="subscreen" @click="navigateToScreen('Overview')">
         <div class="card-header">
           <div class="card-title"><i class="fas fa-globe-asia"></i> 果园宏观监控总览</div>
-          <!-- <span class="role-pill">园区负责人 · 运营总监</span> -->
-          <!-- <div class="core-mission">全局态势 · 健康度热力</div> -->
         </div>
         <div class="card-body">
           <table class="spec-table">
@@ -58,7 +56,7 @@
                   <span class="dot-red"></span> 高危预警株: {{ regionData.highRisk }} (黄龙病疑似) · 红蜘蛛爆发区 {{
                     regionData.spiderOutbreak }}个
                   <span style="background:#f0b27a; border-radius:20px; padding:2px 8px;">待处理{{ regionData.pending
-                    }}</span>
+                  }}</span>
                 </div>
               </td>
             </tr>
@@ -75,24 +73,14 @@
                 </div>
               </td>
             </tr>
-            <!-- <tr>
-              <td class="cat-col">设备在线状态</td>
-              <td class="data-col">
-                <i class="fas fa-circle" style="color:#3bba6f;"></i> 在线率 {{ regionData.deviceOnlineRate }}% · 采集时间 {{
-                  regionData.collectTime }}
-              </td>
-            </tr> -->
           </table>
         </div>
       </div>
 
-      <!-- 大屏3 水肥精准管控决策 - 使用Excel真实数据 -->
-      <!-- 与大屏2调换位置 突出水肥 -->
+      <!-- 大屏2 水肥精准管控决策 -->
       <div class="subscreen" @click="navigateToScreen('WaterFertilizer')">
         <div class="card-header">
           <div class="card-title"><i class="fas fa-tint"></i> 水肥精准管控决策</div>
-          <!-- <span class="role-pill">农艺师 · 水肥专员</span> -->
-          <!-- <div class="core-mission">多光谱诊断 · 节本增效</div> -->
         </div>
         <div class="card-body">
           <table class="spec-table">
@@ -115,26 +103,15 @@
                 <span class="deficit-badge other">其他 {{ nutrientCounts.other }}株</span>
               </td>
             </tr>
-           <tr>
+            <tr>
               <td class="cat-col">精准施肥建议</td>
               <td class="data-col">
-                 {{ regionData.fertilizer.recommendation }}
+                {{ regionData.fertilizer.recommendation }}
                 <div style="margin-top:4px; font-size:0.75rem; color:#497a5a;">
                   基于多光谱反演 NDVI={{ viStats.ndvi.mean.toFixed(2) }}
                 </div>
               </td>
             </tr>
-            <!-- <tr>
-              <td class="cat-col">水肥任务进度</td>
-              <td class="data-col">
-                <div class="flex-between"><span>灌溉完成</span><span>{{ regionData.fertilizer.irrigationProgress }}%</span>
-                </div>
-                <div class="progress">
-                  <div class="progress-fill" :style="{ width: regionData.fertilizer.irrigationProgress + '%' }"></div>
-                </div>
-                未执行地块: {{ regionData.fertilizer.pendingBlocks }}
-              </td>
-            </tr> -->
             <tr>
               <td class="cat-col">养分趋势分析</td>
               <td class="data-col">
@@ -151,7 +128,6 @@
               </td>
             </tr>
           </table>
-          <!-- 添加采样点信息 -->
           <div
             style="margin-top:8px; background:#e6f3ea; border-radius:16px; padding:8px; text-align:center; font-size:0.75rem;">
             <i class="fas fa-satellite"></i> 基于989个多光谱采样点 · 反演精度94%
@@ -159,13 +135,10 @@
         </div>
       </div>
 
-
-      <!-- 大屏2 病虫害专项防控 -->
+      <!-- 大屏3 病虫害专项防控 -->
       <div class="subscreen" @click="navigateToScreen('PestControl')">
         <div class="card-header">
           <div class="card-title"><i class="fas fa-bug"></i> 病虫害专项防控</div>
-          <!-- <span class="role-pill">植保专员 · 防控负责人</span> -->
-          <!-- <div class="core-mission">精准防控 · 全流程监控</div> -->
         </div>
         <div class="card-body">
           <table class="spec-table">
@@ -218,8 +191,6 @@
       <div class="subscreen" @click="navigateToScreen('TaskDispatch')">
         <div class="card-header">
           <div class="card-title"><i class="fas fa-tasks"></i> 农事任务调度管理</div>
-          <!-- <span class="role-pill">生产主管 · 调度员</span> -->
-          <!-- <div class="core-mission">全流程执行 · 人员绩效</div> -->
         </div>
         <div class="card-body">
           <table class="spec-table">
@@ -259,22 +230,14 @@
                 <span class="dot-red"></span> {{ regionData.task.overdueWarning }}
               </td>
             </tr>
-            <!-- <tr>
-              <td class="cat-col">任务历史趋势</td>
-              <td class="data-col">
-                {{ regionData.task.historyTrend }}
-              </td>
-            </tr> -->
           </table>
         </div>
       </div>
 
-      <!-- 大屏5 历史数据趋势分析 - 更新为VI指数趋势 -->
+      <!-- 大屏5 植被指数趋势分析 -->
       <div class="subscreen" @click="navigateToScreen('HistoricalTrend')">
         <div class="card-header">
           <div class="card-title"><i class="fas fa-chart-line"></i> 植被指数趋势分析</div>
-          <!-- <span class="role-pill">技术人员 · 数据分析师</span> -->
-          <!-- <div class="core-mission">多光谱时序 · 长势评估</div> -->
         </div>
         <div class="card-body">
           <table class="spec-table">
@@ -319,10 +282,6 @@
               </td>
             </tr>
           </table>
-          <!-- 模拟小面积堆叠图 -->
-          <!-- <div style="background:#f2faf0; border-radius:24px; padding:12px; margin-top:8px;">
-            <i class="fas fa-chart-area"></i> 堆叠面积 · 健康/亚健康/异常趋势
-          </div> -->
         </div>
       </div>
 
@@ -330,8 +289,6 @@
       <div class="subscreen" @click="navigateToScreen('MultiCooperation')">
         <div class="card-header">
           <div class="card-title"><i class="fas fa-handshake"></i> 多端协同&溯源</div>
-          <!-- <span class="role-pill">运营 · 溯源管理员</span> -->
-          <!-- <div class="core-mission">多端互通 · 追溯信息</div> -->
         </div>
         <div class="card-body">
           <table class="spec-table">
@@ -494,11 +451,11 @@ const viStats = {
 
 // 营养状态统计（从Excel简化状态字段估算）
 const nutrientCounts = {
-  n: 44,     // 缺氮
-  p: 16,     // 缺磷
-  k: 31,     // 缺钾
-  water: 19, // 缺水
-  other: 8   // 其他缺失（钙、镁等）
+  n: 44,
+  p: 16,
+  k: 31,
+  water: 19,
+  other: 8
 }
 
 const totalSamples = 989
@@ -509,9 +466,9 @@ const region = computed(() => route.query.region || '1')
 // 区域名称映射
 const regionName = computed(() => {
   const names = {
-    '1': '汤村',
-    '2': '武义区',
-    '3': '金东区'
+    '1': '婺城',
+    '2': '金东',
+    '3': '武义'
   }
   return names[region.value] || '未知区域'
 })
@@ -546,7 +503,11 @@ const navigateToScreen = (screenName) => {
   if (path) {
     router.push({
       path: path,
-      query: { region: region.value }
+      query: {
+        region: region.value,
+        regionName: regionName.value,
+        regionId: region.value
+      }
     }).catch(err => {
       console.error('路由跳转失败:', err)
       ElMessage.error('页面跳转失败')
@@ -828,9 +789,8 @@ const regionData = computed(() => {
 .back-button {
   position: sticky;
   top: 20px;
-  /* 将left改为right，实现右侧定位 */
   right: 20px;
-  left: auto; /* 确保left属性被重置 */
+  left: auto;
   background: white;
   padding: 10px 20px;
   border-radius: 40px;
@@ -845,11 +805,9 @@ const regionData = computed(() => {
   margin-bottom: 20px;
   transition: all 0.2s;
   z-index: 100;
-  /* 添加float:right使其靠右浮动，并清除浮动影响 */
   float: right;
 }
 
-/* 清除浮动影响，防止布局错乱 */
 .dashboard-wrap::after {
   content: "";
   display: table;
@@ -858,7 +816,7 @@ const regionData = computed(() => {
 
 .back-button:hover {
   background: #f0f9f0;
-  transform: translateX(4px); /* 改为向右移动，符合右侧按钮的习惯 */
+  transform: translateX(4px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
 }
 
@@ -871,7 +829,6 @@ h1 {
   gap: 12px;
   letter-spacing: -0.5px;
   flex-wrap: wrap;
-  /* 增加标题与下方卡片的间距 */
   margin-bottom: 32px;
 }
 
@@ -884,27 +841,13 @@ h1 {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.sub-header {
-  background: #eff9f0;
-  border-radius: 40px;
-  padding: 12px 28px;
-  margin: 16px 0 28px 0;
-  border-left: 8px solid #2e8b57;
-  font-size: 1.0rem;
-  color: #235f3a;
-  box-shadow: 0 4px 8px rgba(0, 40, 20, 0.05);
-  font-weight: 400;
-}
-
 .grid-6 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 24px;
-  /* 确保网格在清除浮动的元素下方 */
   clear: both;
 }
 
-/* 卡片设计 */
 .subscreen {
   background: white;
   border-radius: 32px;
@@ -924,7 +867,7 @@ h1 {
 
 .card-header {
   background: linear-gradient(135deg, #e5f4e5, #cee9d4);
-  padding: 26px 22px 26px 22px; /* 修改这里：上内边距从18px增加到24px，下内边距从12px增加到18px */
+  padding: 26px 22px 26px 22px;
   border-bottom: 2px solid #a0c9ab;
 }
 
@@ -942,50 +885,28 @@ h1 {
   color: #2b7d4e;
 }
 
-.role-pill {
-  display: inline-block;
-  background: #1d6e41;
-  color: white;
-  font-size: 0.7rem;
-  border-radius: 50px;
-  padding: 3px 14px;
-  margin-top: 8px;
-  letter-spacing: 0.3px;
-}
-
-.core-mission {
-  font-size: 0.78rem;
-  color: #286b40;
-  margin-top: 4px;
-  font-style: italic;
-}
-
 .card-body {
   padding: 22px 20px 24px 20px;
   background: #fefefd;
   flex: 1;
 }
 
-/* 数据表格风格 */
 .spec-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.82rem;
 }
 
-/* 修改左右单元格的对齐方式 */
 .spec-table td {
   padding: 10px 6px;
   border-bottom: 1px dashed #bcddca;
-  vertical-align: middle; /* 修改这里：让所有单元格内容垂直居中 */
+  vertical-align: middle;
 }
 
-/* 修改表格行的显示方式 */
 .spec-table tr {
   display: table-row;
 }
 
-/* 优化左侧类别列的样式 */
 .cat-col {
   font-weight: 700;
   color: #1b613c;
@@ -993,20 +914,18 @@ h1 {
   background: #f2fcf5;
   border-radius: 12px 0 0 12px;
   padding-left: 16px;
-  text-align: center; /* 水平居中 */
-  vertical-align: middle; /* 垂直居中 */
-  display: table-cell; /* 确保作为表格单元格显示 */
-  font-size: 1.05rem; /* 添加这行来调整字体大小，可以根据需要修改数值 */
+  text-align: center;
+  vertical-align: middle;
+  display: table-cell;
+  font-size: 1.05rem;
 }
 
-/* 右侧数据列 */
 .data-col {
   color: #1f4f33;
   line-height: 1.5;
-  vertical-align: middle; /* 垂直居中 */
+  vertical-align: middle;
 }
 
-/* 新增样式：VI指数标签 */
 .vi-badge {
   background: #e0efe5;
   border-radius: 20px;
@@ -1019,7 +938,6 @@ h1 {
   color: #1d5f3a;
 }
 
-/* 缺失诊断标签 */
 .deficit-badge {
   border-radius: 20px;
   padding: 4px 10px;
@@ -1050,7 +968,6 @@ h1 {
   background: #b58f5a;
 }
 
-/* 相关性标签 */
 .corr-tag {
   background: #ecf9f0;
   border-radius: 16px;
@@ -1147,33 +1064,21 @@ h1 {
   margin-right: 4px;
 }
 
-.dot-orange {
-  background: #e68a3a;
-}
-
-.dot-green {
-  background: #389e6b;
-}
-
-.inline-icon {
-  margin-right: 6px;
-  color: #2b8a55;
-}
-
-hr {
-  border: 0.5px solid #cde0d3;
-  margin: 14px 0;
-}
-
-.chip-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
 .trend-up {
   color: #1f9b5a;
   font-weight: 600;
   font-size: 0.7rem;
+}
+
+@media (max-width: 1200px) {
+  .grid-6 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .grid-6 {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

@@ -84,7 +84,7 @@
 
         <!-- 超级管理员 (superAdmin) 菜单 -->
         <template v-else-if="realRole === 'superAdmin'">
-          <el-menu-item index="/superadminindex">
+          <el-menu-item index="/Adminindex">
             <el-icon>
               <Promotion />
             </el-icon>

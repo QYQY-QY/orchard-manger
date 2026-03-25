@@ -2,23 +2,11 @@
   <div ref="mapContainer" class="map-container"></div>
   <!-- 左上角文字已移除 -->
   <!-- 右下角控制面板已移除 -->
-  <div
-    id="loading"
-    class="loading"
-    :style="{ display: loadingVisible ? 'flex' : 'none' }"
-  >
+  <div id="loading" class="loading" :style="{ display: loadingVisible ? 'flex' : 'none' }">
     <span>🗺️ 果园数据加载中...</span>
   </div>
-  <div
-    id="progress-bar"
-    class="progress-bar"
-    :style="{ display: showProgressBar ? 'block' : 'none' }"
-  >
-    <div
-      id="progress-fill"
-      class="progress-fill"
-      :style="{ width: progressWidth + '%' }"
-    ></div>
+  <div id="progress-bar" class="progress-bar" :style="{ display: showProgressBar ? 'block' : 'none' }">
+    <div id="progress-fill" class="progress-fill" :style="{ width: progressWidth + '%' }"></div>
   </div>
   <!-- 左下角调试信息已移除 -->
 </template>
@@ -94,9 +82,9 @@ const HIGHLIGHT_COLOR = 0x6bb392;
 
 // 区域颜色定义
 const REGION_COLORS = {
-  1: 0x2a6e3f, // 婺城 - 深绿色
-  2: 0x33cc66, // 金东 - 翠绿色
-  3: 0x779649, // 武义 - 灰绿色
+  1: 0x2a6e3f, //  - 深绿色
+  2: 0x33cc66, //  - 翠绿色
+  3: 0x779649, //  - 灰绿色
 };
 
 // 区域名称 - 将区域二和区域三的文字字样调换
@@ -137,11 +125,11 @@ const mainCitrusCounties = [
 const lngLatToPosition = (lng, lat) => {
   const x =
     ((lng - NEW_BOUNDS.minLng) / (NEW_BOUNDS.maxLng - NEW_BOUNDS.minLng)) *
-      MAP_SIZE -
+    MAP_SIZE -
     MAP_SIZE / 2;
   const z =
     ((NEW_BOUNDS.maxLat - lat) / (NEW_BOUNDS.maxLat - NEW_BOUNDS.minLat)) *
-      MAP_SIZE -
+    MAP_SIZE -
     MAP_SIZE / 2;
   return { x, z };
 };
@@ -307,35 +295,35 @@ const hideRegionInfo = (region) => {
   }
 };
 
-// 点击处理函数 - 修改为直接跳转到 WaterFertilizer
+// 点击处理函数 - 修改为跳转到 TotalScreen
 const handleRegionClick = (region) => {
   if (controls) controls.autoRotate = false;
 
-  console.log("点击了区域:", region, "独立路由模式:", isStandalone.value);
+  console.log('点击了区域:', region, '独立路由模式:', isStandalone.value);
 
   // 获取区域对应的实际编号和名称
   const regionMap = {
-    1: { id: "一", name: "婺城" },
-    2: { id: "二", name: "金东" },
-    3: { id: "三", name: "武义" },
+    1: { id: '一', name: '婺城' },
+    2: { id: '二', name: '金东' },
+    3: { id: '三', name: '武义' }
   };
 
   if (isStandalone.value) {
-    // 直接跳转到 WaterFertilizer 水肥管控决策页面
+    // 跳转到 TotalScreen 总览大屏
     router.push({
-      path: "/WaterFertilizer",
+      path: '/TotalScreen',
       query: {
         region: region.toString(),
         regionName: regionMap[region].name,
         regionId: regionMap[region].id,
-      },
+      }
     });
   } else {
     // 如果是在 Index.vue 中嵌入使用，发出事件
-    emit("region-click", {
+    emit('region-click', {
       region,
       regionName: regionMap[region].name,
-      regionId: regionMap[region].id,
+      regionId: regionMap[region].id
     });
   }
 };
@@ -522,14 +510,14 @@ const createMeshFromPolygon = (coordinates, baseColor, countyName, region) => {
         try {
           const shape = new THREE.Shape(points);
           shapes.push(shape);
-        } catch (e) {}
+        } catch (e) { }
       } else {
         if (shapes.length > 0) {
           try {
             const lastShape = shapes[shapes.length - 1];
             const holePath = new THREE.Path(points);
             lastShape.holes.push(holePath);
-          } catch (e) {}
+          } catch (e) { }
         }
       }
     });
