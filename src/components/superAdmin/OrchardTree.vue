@@ -20,6 +20,7 @@
         <!-- 表格头部（圆角） -->
         <div class="tree-table-header">
           <div class="table-cell">果树编号</div>
+          <div class="table-cell">行列</div>
           <div class="table-cell">果实总数</div>
           <div class="table-cell">成熟实数</div>
           <div class="table-cell">成熟度</div>
@@ -30,10 +31,15 @@
         <div class="tree-table-body">
           <div class="tree-table-row" v-for="tree in treeList" :key="tree.id">
             <div class="table-cell">{{ tree.id || "-" }}</div>
+            <div class="table-cell">{{ tree.location || "-" }}</div>
             <div class="table-cell">{{ tree.countNum || 0 }}</div>
             <div class="table-cell">{{ tree.ripeNum || 0 }}</div>
-            <div class="table-cell">{{ tree.ripeDegree || 0 }}%</div>
-            <div class="table-cell">{{ tree.healthCondition || "健康" }}</div>
+            <div class="table-cell">
+              {{ formatRipeDegree(tree.countNum, tree.ripeNum) }}
+            </div>
+            <div class="table-cell">
+              {{ formatHealthStatus(tree.healthCondition) }}
+            </div>
             <div class="table-cell">
               <div class="action-buttons">
                 <el-button link size="small" @click="$emit('tree-detail', tree)"
@@ -58,12 +64,41 @@
 <script setup>
 import { computed } from "vue";
 import { ElMessageBox, ElMessage } from "element-plus";
+
 const props = defineProps({
   areaId: { type: String, default: "" },
   activeArea: { type: Object, default: () => ({}) },
   treeList: { type: Array, default: () => [] },
 });
+
 const emit = defineEmits(["tree-detail", "tree-delete"]);
+
+// 计算成熟度百分比
+const calculateRipeDegree = (countNum, ripeNum) => {
+  const total = Number(countNum) || 0;
+  const ripe = Number(ripeNum) || 0;
+  if (total === 0) return 0;
+  const degree = Math.round((ripe / total) * 100);
+  return Math.min(degree, 100);
+};
+
+// 格式化成熟度显示
+const formatRipeDegree = (countNum, ripeNum) => {
+  const degree = calculateRipeDegree(countNum, ripeNum);
+  if (degree === 0) return "0%";
+  if (degree >= 100) return "已成熟";
+  return `${degree}%`;
+};
+
+// 格式化健康状态
+const formatHealthStatus = (healthCondition) => {
+  if (!healthCondition) return "未添加";
+  const status = String(healthCondition);
+  if (status === "1") return "健康";
+  if (status === "0") return "不健康";
+  return "未知";
+};
+
 const formattedArea = computed(() => {
   const firstTree = props.treeList[0];
   const cropType = firstTree?.type || props.activeArea.cropType || "-";
@@ -75,6 +110,7 @@ const formattedArea = computed(() => {
     totalTrees,
   };
 });
+
 const handleDelete = (tree) => {
   console.log("删除果树:", tree);
   ElMessageBox.confirm("确定要删除这棵果树吗？", "提示", {
@@ -83,12 +119,10 @@ const handleDelete = (tree) => {
     type: "warning",
   })
     .then(() => {
-      // 用户确认删除
-      emit("tree-delete", tree.id); // 向父组件发送删除事件
+      emit("tree-delete", tree.id);
       ElMessage.success("删除成功");
     })
     .catch(() => {
-      // 用户取消删除
       ElMessage.info("已取消删除");
     });
 };

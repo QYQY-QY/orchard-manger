@@ -9,11 +9,7 @@
     <div class="tree-list-container" v-if="activeAreaId">
       <div class="zone-info">
         <div>
-          <h3>
-            区域{{ fullZoneInfo.number || activeZone.number }}：{{
-              fullZoneInfo.name || activeZone.name
-            }}
-          </h3>
+          <h3>区域：{{ fullZoneInfo.name || activeZone.name }}</h3>
           <p class="zone-desc">
             负责人：{{ fullZoneInfo.areaManagerName || "未设置" }} | 品种：{{
               fullZoneInfo.type || activeZone.type || "-"
@@ -67,25 +63,20 @@
         <!-- 果树编号 -->
         <el-table-column label="果树编号" min-width="120">
           <template #default="scope">
-            {{ scope.row.id }}
+            {{ fullZoneInfo.name || activeZone.name }}-{{
+              scope.row.location || "-"
+            }}
           </template>
         </el-table-column>
-        <!-- 新增：果树品种列 -->
-        <!-- 新增：果实数量列 -->
         <el-table-column label="果实总数" min-width="100">
           <template #default="scope">
             {{ scope.row.countNum || 0 }}
           </template>
         </el-table-column>
         <!-- 新增：成熟果实数量列 -->
-        <el-table-column label="行" min-width="60">
+        <el-table-column label="成熟果实数" min-width="100">
           <template #default="scope">
-            {{ getLocationRowAndColumn(scope.row.location).row }}
-          </template>
-        </el-table-column>
-        <el-table-column label="列" min-width="60">
-          <template #default="scope">
-            {{ getLocationRowAndColumn(scope.row.location).col }}
+            {{ scope.row.ripeNum || 0 }}
           </template>
         </el-table-column>
         <el-table-column label="成熟度" min-width="100">
@@ -159,7 +150,7 @@
     <!-- 果树日志详情弹窗 -->
     <el-dialog
       v-model="showTreeDetailDialog"
-      title="果树操作日志"
+      title="果树详情"
       width="800px"
       center
       :close-on-click-modal="false"
@@ -190,7 +181,7 @@
 
         <!-- 日志统计卡片 -->
         <el-row :gutter="20" style="margin-bottom: 20px">
-          <el-col :span="8">
+          <el-col :span="6">
             <el-card shadow="hover" style="text-align: center">
               <h3 style="margin: 0; color: #409eff">
                 {{ currentTree.logs?.length || 0 }}
@@ -198,26 +189,41 @@
               <div style="font-size: 12px; color: #666">总日志数</div>
             </el-card>
           </el-col>
-          <el-col :span="8">
+          <el-col :span="6">
             <el-card shadow="hover" style="text-align: center">
               <h3 style="margin: 0; color: #67c23a">
                 {{
-                  currentTree.logs?.filter((log) => log.type === "1").length ||
-                  0
+                  currentTree.logs?.filter(
+                    (log) => getLogTypeCode(log.type) === "1"
+                  ).length || 0
                 }}
               </h3>
               <div style="font-size: 12px; color: #666">浇水次数</div>
             </el-card>
           </el-col>
-          <el-col :span="8">
+          <el-col :span="6">
             <el-card shadow="hover" style="text-align: center">
               <h3 style="margin: 0; color: #e6a23c">
                 {{
-                  currentTree.logs?.filter((log) => log.type === "2").length ||
-                  0
+                  currentTree.logs?.filter(
+                    (log) => getLogTypeCode(log.type) === "2"
+                  ).length || 0
                 }}
               </h3>
               <div style="font-size: 12px; color: #666">施肥次数</div>
+            </el-card>
+          </el-col>
+          <el-col :span="6">
+            <!-- 新增农药次数卡片 -->
+            <el-card shadow="hover" style="text-align: center">
+              <h3 style="margin: 0; color: #f56c6c">
+                {{
+                  currentTree.logs?.filter(
+                    (log) => getLogTypeCode(log.type) === "3"
+                  ).length || 0
+                }}
+              </h3>
+              <div style="font-size: 12px; color: #666">农药次数</div>
             </el-card>
           </el-col>
         </el-row>
@@ -229,20 +235,8 @@
             :key="log.id"
             :timestamp="log.createTime"
             placement="top"
-            :type="
-              log.type === '1'
-                ? 'primary'
-                : log.type === '2'
-                ? 'success'
-                : 'info'
-            "
-            :color="
-              log.type === '1'
-                ? '#409eff'
-                : log.type === '2'
-                ? '#67c23a'
-                : '#909399'
-            "
+            :type="getLogTypeTag(log.type)"
+            :color="getLogColor(log.type)"
           >
             <el-card shadow="hover" style="margin-bottom: 10px">
               <div
@@ -262,13 +256,7 @@
                   "
                   size="small"
                 >
-                  {{
-                    log.type === "1"
-                      ? "浇水"
-                      : log.type === "2"
-                      ? "施肥"
-                      : "其他操作"
-                  }}
+                  {{ formatLogType(log.type) }}
                 </el-tag>
                 <span style="font-size: 12px; color: #999"
                   >日志ID: {{ log.id }}</span
@@ -321,6 +309,80 @@
           description="暂无操作日志"
           :image-size="100"
         ></el-empty>
+      </div>
+      <div class="comment-section" style="margin-top: 30px">
+        <h4
+          style="
+            margin-bottom: 15px;
+            color: #333;
+            border-left: 4px solid #409eff;
+            padding-left: 12px;
+          "
+        >
+          果树评论
+          <el-badge
+            :value="commentList.length"
+            :hidden="commentList.length === 0"
+            style="margin-left: 10px"
+          />
+        </h4>
+
+        <div v-if="commentList.length > 0" class="comment-list">
+          <div
+            v-for="comment in commentList"
+            :key="comment.id"
+            class="comment-item"
+          >
+            <div class="comment-header">
+              <div class="comment-user">
+                <el-avatar
+                  :src="
+                    comment.createUserImg ||
+                    'https://avatars.dicebear.com/api/pixel-art/avatar1.svg'
+                  "
+                  :size="40"
+                />
+                <div class="user-info">
+                  <span class="user-name">{{
+                    comment.createUserName || "匿名用户"
+                  }}</span>
+                  <span class="comment-time">{{
+                    formatTime(comment.createTime)
+                  }}</span>
+                </div>
+              </div>
+              <el-rate
+                :model-value="getRateValue(comment.choice)"
+                disabled
+                show-score
+                :colors="['#99A9BF', '#F7BA2A', '#FF9900']"
+                :texts="['很差', '较差', '一般', '较好', '很好']"
+                :size="14"
+              />
+            </div>
+            <div class="comment-content">{{ comment.content }}</div>
+            <div
+              v-if="comment.multipleImgs && comment.multipleImgs.length > 0"
+              class="comment-imgs"
+            >
+              <el-image
+                v-for="(img, idx) in comment.multipleImgs"
+                :key="idx"
+                :src="img"
+                fit="cover"
+                style="
+                  width: 80px;
+                  height: 80px;
+                  margin-right: 10px;
+                  border-radius: 4px;
+                "
+                :preview-src-list="comment.multipleImgs"
+              />
+            </div>
+          </div>
+        </div>
+
+        <el-empty v-else description="暂无评论" :image-size="80" />
       </div>
       <template #footer>
         <el-button @click="showTreeDetailDialog = false">关闭</el-button>
@@ -377,7 +439,8 @@ import JSZip from "jszip";
 import { saveAs } from "file-saver";
 
 const downloadQRLoading = ref(false); // 加这一行
-
+const commentList = ref([]); // 评论列表
+const commentLoading = ref(false); // 评论加载状态
 // 定义props
 const props = defineProps({
   activeAreaId: {
@@ -449,53 +512,10 @@ const sortedTreeList = computed(() => {
     location: tree.location || null,
   }));
 });
-// 获取位置的行和列
-const getLocationRowAndColumn = (location) => {
-  // 如果位置为空，返回默认值
-  if (!location) return { row: "-", col: "-" };
-
-  // 如果已经是"行-列"格式，直接拆分
-  if (typeof location === "string" && location.includes("-")) {
-    const [row, col] = location.split("-");
-    return { row: row || "-", col: col || "-" };
-  }
-
-  // 如果是其他格式，尝试处理
-  try {
-    // 如果location是对象格式 {row: 1, col: 2}
-    if (typeof location === "object" && location !== null) {
-      return {
-        row: location.row || "-",
-        col: location.col || "-",
-      };
-    }
-  } catch {
-    // 忽略错误
-  }
-
-  // 默认返回
-  return { row: "-", col: "-" };
-};
-// 计算成熟度（基于countNum和ripeNum）
-const calculateRipeDegree = (countNum, ripeNum) => {
-  // 将字符串转为数字
-  const total = Number(countNum) || 0;
-  const ripe = Number(ripeNum) || 0;
-
-  // 如果总数为0，返回0
-  if (total === 0) return 0;
-
-  // 计算成熟度百分比 (成熟数量 / 总数量) * 100
-  const degree = Math.round((ripe / total) * 100);
-
-  // 确保不超过100%
-  return Math.min(degree, 100);
-};
-
+// 格式化成熟度
 // 格式化成熟度显示
 const formatRipeDegree = (countNum, ripeNum) => {
   const calculatedDegree = calculateRipeDegree(countNum, ripeNum);
-
   if (calculatedDegree === 0) return "0";
   if (calculatedDegree > 0 && calculatedDegree < 100)
     return `${calculatedDegree}%`;
@@ -506,50 +526,12 @@ const formatRipeDegree = (countNum, ripeNum) => {
 // 获取成熟度标签类型
 const getRipeDegreeTagType = (countNum, ripeNum) => {
   const calculatedDegree = calculateRipeDegree(countNum, ripeNum);
-
   if (calculatedDegree === 0) return "info";
   if (calculatedDegree > 0 && calculatedDegree < 100) return "primary";
   if (calculatedDegree >= 100) return "success";
   return "warning";
 };
-const formatHealthStatus = (healthCondition) => {
-  // 如果为空，返回"未添加"
-  if (
-    healthCondition === null ||
-    healthCondition === undefined ||
-    healthCondition === ""
-  ) {
-    return "未添加";
-  }
 
-  // 转换为字符串进行比较
-  const status = String(healthCondition);
-
-  if (status === "1") return "健康";
-  if (status === "0") return "不健康";
-
-  return "未知";
-};
-
-// 获取健康状态标签类型
-const getHealthStatusType = (healthCondition) => {
-  // 如果为空，返回灰色标签
-  if (
-    healthCondition === null ||
-    healthCondition === undefined ||
-    healthCondition === ""
-  ) {
-    return "info";
-  }
-
-  // 转换为字符串进行比较
-  const status = String(healthCondition);
-
-  if (status === "1") return "success"; // 健康 - 绿色
-  if (status === "0") return "danger"; // 不健康 - 红色
-
-  return "warning"; // 未知 - 黄色
-};
 // 查看果树详情
 const showTreeDetail = async (tree) => {
   try {
@@ -581,6 +563,7 @@ const showTreeDetail = async (tree) => {
         createTime: treeDetail.createTime,
         updateTime: treeDetail.updateTime,
       });
+      await getTreeComments(tree.id);
 
       showTreeDetailDialog.value = true;
     } else {
@@ -811,6 +794,123 @@ const downloadQRCode = async (imgUrl, treeId) => {
   }
 };
 
+// 提取日志类型（去除乱码，只取第一个有效字符）
+const getLogTypeCode = (type) => {
+  if (!type) return null;
+  const typeStr = String(type);
+  for (let i = 0; i < typeStr.length; i++) {
+    const char = typeStr[i];
+    if (char !== "\u0000" && char !== "\0" && char !== "") {
+      return char;
+    }
+  }
+  return null;
+};
+
+// 格式化日志类型显示
+const formatLogType = (type) => {
+  const typeCode = getLogTypeCode(type);
+  if (typeCode === "1") return "浇水";
+  if (typeCode === "2") return "施肥";
+  if (typeCode === "3") return "农药";
+  return "其他操作";
+};
+
+// 获取日志类型标签样式
+const getLogTypeTag = (type) => {
+  const typeCode = getLogTypeCode(type);
+  if (typeCode === "1") return "primary"; // 浇水 - 蓝色
+  if (typeCode === "2") return "success"; // 施肥 - 绿色
+  if (typeCode === "3") return "danger"; // 农药 - 红色
+  return "info";
+};
+
+// 获取日志时间轴颜色
+const getLogColor = (type) => {
+  const typeCode = getLogTypeCode(type);
+  if (typeCode === "1") return "#409eff"; // 浇水 - 蓝色
+  if (typeCode === "2") return "#67c23a"; // 施肥 - 绿色
+  if (typeCode === "3") return "#f56c6c"; // 农药 - 红色
+  return "#909399";
+};
+
+// 获取果树评论
+const getTreeComments = async (treeId) => {
+  try {
+    commentLoading.value = true;
+    const response = await axios.get(`api/comment/query/${treeId}`);
+
+    console.log("评论接口完整返回：", response);
+    console.log("response.data：", response.data);
+    console.log("response.data.code：", response.data?.code);
+    console.log("response.data.data：", response.data?.data);
+    if (response.data && response.data.code === 200) {
+      commentList.value = response.data.data || [];
+      console.log("评论列表加载成功：", commentList.value);
+    } else {
+      commentList.value = [];
+      console.warn("获取评论失败：", response.data?.msg);
+    }
+  } catch (error) {
+    console.error("获取评论失败：", error);
+    commentList.value = [];
+  } finally {
+    commentLoading.value = false;
+  }
+};
+
+// 格式化时间
+const formatTime = (time) => {
+  if (!time) return "-";
+  const date = new Date(time);
+  return date.toLocaleString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+// 计算成熟度（基于countNum和ripeNum）
+const calculateRipeDegree = (countNum, ripeNum) => {
+  const total = Number(countNum) || 0;
+  const ripe = Number(ripeNum) || 0;
+  if (total === 0) return 0;
+  const degree = Math.round((ripe / total) * 100);
+  return Math.min(degree, 100);
+};
+
+// 格式化健康状态显示
+const formatHealthStatus = (healthCondition) => {
+  if (
+    healthCondition === null ||
+    healthCondition === undefined ||
+    healthCondition === ""
+  ) {
+    return "未添加";
+  }
+  const status = String(healthCondition);
+  if (status === "1") return "健康";
+  if (status === "0") return "不健康";
+  return "未知";
+};
+
+// 获取健康状态标签类型
+const getHealthStatusType = (healthCondition) => {
+  if (
+    healthCondition === null ||
+    healthCondition === undefined ||
+    healthCondition === ""
+  ) {
+    return "info";
+  }
+  const status = String(healthCondition);
+  if (status === "1") return "success";
+  if (status === "0") return "danger";
+  return "warning";
+};
+
 // 监听activeAreaId变化
 watch(
   () => props.activeAreaId,
@@ -819,6 +919,7 @@ watch(
       showTreeDetailDialog.value = false;
       Object.assign(currentTree, {});
       showQRViewer.value = false;
+      commentList.value = [];
     }
   },
   { immediate: true }
@@ -840,6 +941,12 @@ watch(
   },
   { deep: true, immediate: true }
 );
+// 计算评分值（0-5星）
+const getRateValue = (score) => {
+  if (!score && score !== 0) return 0;
+  // 确保返回数字类型，并保留一位小数
+  return Number((score / 6).toFixed(1));
+};
 </script>
 
 <style scoped>
@@ -974,5 +1081,84 @@ watch(
 :deep(.el-timeline-item__timestamp) {
   color: #666;
   font-size: 12px;
+}
+/* 评论列表样式 */
+.comment-section {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.comment-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.comment-item {
+  padding: 15px;
+  background-color: #fafafa;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  transition: all 0.3s;
+}
+
+.comment-item:hover {
+  background-color: #f5f7fa;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.comment-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-name {
+  font-weight: 500;
+  color: #333;
+  font-size: 14px;
+}
+
+.comment-time {
+  font-size: 12px;
+  color: #999;
+  margin-top: 4px;
+}
+
+.comment-content {
+  color: #666;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 10px 0;
+  padding-left: 52px;
+}
+
+.comment-imgs {
+  padding-left: 52px;
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.comment-imgs :deep(.el-image) {
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.comment-imgs :deep(.el-image:hover) {
+  transform: scale(1.05);
 }
 </style>
