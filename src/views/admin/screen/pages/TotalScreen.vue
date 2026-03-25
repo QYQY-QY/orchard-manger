@@ -56,7 +56,7 @@
                   <span class="dot-red"></span> 高危预警株: {{ regionData.highRisk }} (黄龙病疑似) · 红蜘蛛爆发区 {{
                     regionData.spiderOutbreak }}个
                   <span style="background:#f0b27a; border-radius:20px; padding:2px 8px;">待处理{{ regionData.pending
-                  }}</span>
+                    }}</span>
                 </div>
               </td>
             </tr>
@@ -503,7 +503,7 @@ const navigateToScreen = (screenName) => {
   if (path) {
     router.push({
       path: path,
-      query: {
+      query: { 
         region: region.value,
         regionName: regionName.value,
         regionId: region.value
@@ -948,25 +948,11 @@ h1 {
   color: white;
 }
 
-.deficit-badge.n {
-  background: #5f9ea0;
-}
-
-.deficit-badge.p {
-  background: #e1ad5d;
-}
-
-.deficit-badge.k {
-  background: #c45d32;
-}
-
-.deficit-badge.water {
-  background: #4794b3;
-}
-
-.deficit-badge.other {
-  background: #b58f5a;
-}
+.deficit-badge.n { background: #5f9ea0; }
+.deficit-badge.p { background: #e1ad5d; }
+.deficit-badge.k { background: #c45d32; }
+.deficit-badge.water { background: #4794b3; }
+.deficit-badge.other { background: #b58f5a; }
 
 .corr-tag {
   background: #ecf9f0;
