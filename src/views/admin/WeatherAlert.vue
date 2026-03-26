@@ -35,6 +35,16 @@
             <div class="suggestion-content">{{ alertData.content }}</div>
           </div>
         </div>
+        <div class="ai-solution-section">
+          <el-button
+            type="primary"
+            size="large"
+            @click="handleAISolution"
+            :icon="ChatDotRound"
+          >
+            AI 解决预警
+          </el-button>
+        </div>
       </el-card>
 
       <el-empty v-else description="暂无天气预警" :image-size="120" />
@@ -90,6 +100,31 @@ const formatTime = (time) => {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
+  });
+};
+// 处理 AI 解决预警
+const handleAISolution = () => {
+  if (!alertData.value || !alertData.value.disaster_type) {
+    ElMessage.warning("没有可用的预警信息");
+    return;
+  }
+
+  // 构建要发送给 AI 的消息内容
+  const disasterType = alertData.value.disaster_type;
+  const content = alertData.value.content || "";
+
+  // 构造问题：预警类型 + 要怎么做
+  const aiMessage = `当前遭遇${disasterType}天气预警，${
+    content ? `管理建议：${content}。` : ""
+  }请问我该如何应对？请提供详细的解决方案和措施。`;
+
+  // 跳转到 AI 助手页面（AiChat），通过 query 参数传递消息
+  router.push({
+    path: "/AiChat",
+    query: {
+      autoSend: "true",
+      message: encodeURIComponent(aiMessage),
+    },
   });
 };
 
@@ -178,5 +213,17 @@ onMounted(() => {
   line-height: 1.8;
   white-space: pre-wrap;
   font-size: 14px;
+}
+
+.ai-solution-section {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #ebeef5;
+  text-align: center;
+}
+
+.ai-solution-section .el-button {
+  min-width: 200px;
+  font-size: 16px;
 }
 </style>
