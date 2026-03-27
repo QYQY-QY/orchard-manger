@@ -432,19 +432,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
-import CommonLayout from "@/views/common/CommonLayout.vue";
+import { ref, onMounted, computed, watch } from "vue";
 import { useUserStore } from "@/stores/modules/user";
 import axios from "axios";
-
+import { ElMessage, ElMessageBox } from "element-plus";
+import CommonLayout from "@/views/common/CommonLayout.vue";
+import { useRouter, useRoute } from "vue-router";
 const userStore = useUserStore();
-// 从用户仓库提取核心信息
-const creatorId = computed(() => Number(userStore.user?.id || 0));
-const username = computed(
-  () => userStore.user?.name || userStore.user?.username || ""
-);
-const orchardId = computed(() => Number(userStore.user?.orchardId || 0));
+const router = useRouter();
+const route = useRoute();
+const username = computed(() => userStore.user.username || "");
+const orchardId = computed(() => userStore.user.orchardId || 0);
+const creatorId = computed(() => userStore.user.id || 0);
 // 批量选中的任务 ID 列表
 const selectedTaskIds = ref([]);
 // 新增：果园区域列表（任务范围用）
@@ -603,12 +602,17 @@ const fetchAreaList = async () => {
     if (response.data && response.data.code === 200) {
       // 从data中提取区域数据，映射为前端需要的格式
       const areaData = response.data.data || [];
+      console.log("【区域列表】原始数据:", areaData);
       areaList.value = areaData
         .map((item) => ({
-          id: item.id, // 区域ID（字符串转数字，避免类型问题）
+          id: Number(item.id), // 区域ID（字符串转数字，避免类型问题）
           name: item.name || "未命名区域", // 区域名称
         }))
         .filter((item) => item.id && item.name); // 过滤无效数据
+      console.log(
+        "【区域列表】处理后的数据:",
+        JSON.parse(JSON.stringify(areaList.value))
+      );
     } else {
       ElMessage.error(`获取区域列表失败：${response.data?.msg || "未知错误"}`);
       areaList.value = [];
@@ -668,11 +672,14 @@ const fetchEmployeeList = async () => {
     // 修正核心问题：使用后端返回的id字段（而非不存在的empId）
     const uniqueEmps = {};
     empData.forEach((item) => {
-      const empId = item.id; // 改用后端实际返回的id字段
+      const empId = item.id; // 改用后端实际返回的 id 字段
       if (empId && item.name) {
         uniqueEmps[empId] = {
-          id: Number(empId), // 转数字避免字符串ID的问题
+          id: Number(empId), // 转数字避免字符串 ID 的问题
           name: item.name,
+          areaId: item.areaId ? Number(item.areaId) : null, // 保存 areaId 用于匹配区域负责人
+          username: item.username,
+          phone: item.phone,
         };
       }
     });
@@ -836,7 +843,7 @@ const totalSalary = computed(() => {
 // 核心改造：发布任务（完全匹配后端add接口参数要求）
 const handlePublish = async () => {
   try {
-    // 先校验果园ID有效性
+    // 先校验果园 ID 有效性
     if (!orchardId.value || orchardId.value <= 0) {
       ElMessage.error("当前用户未绑定有效果园，无法发布任务");
       return;
@@ -845,7 +852,7 @@ const handlePublish = async () => {
     // 表单校验
     await publishFormRef.value.validate();
 
-    // 确定区域ID：如果选择了全园则areaId为0，否则取第一个选中的区域ID
+    // 确定区域 ID：如果选择了全园则 areaId 为 0，否则取第一个选中的区域 ID
     let areaId = 0;
     if (
       publishForm.value.taskScope.length > 0 &&
@@ -856,17 +863,17 @@ const handlePublish = async () => {
 
     // 构造后端要求的完整提交数据
     const submitData = {
-      areaId: areaId, // 区域id
+      areaId: areaId, // 区域 id
       completionTime: "", // 完成时间为空
-      creatorId: publishForm.value.creatorId, // 发布者id
-      deadline: formatTimeToCST(publishForm.value.deadline), // 截止时间转ISO格式
+      creatorId: publishForm.value.creatorId, // 发布者 id
+      deadline: formatTimeToCST(publishForm.value.deadline), // 截止时间转 ISO 格式
       empIds: publishForm.value.empIds, // 发送的人数组
       groupContent: publishForm.value.taskTitle, // 组内容
       groupDescription: publishForm.value.taskInfo, // 组描述
       groupName: publishForm.value.taskTitle, // 组名
-      imgsURL: [], // 图片URL空数组
-      orchardId: publishForm.value.orchardId, // 果园id
-      postTime: formatTimeToCST(new Date()), // 发布时间转ISO格式
+      imgsURL: [], // 图片 URL 空数组
+      orchardId: publishForm.value.orchardId, // 果园 id
+      postTime: formatTimeToCST(new Date()), // 发布时间转 ISO 格式
       status: publishForm.value.status, // 状态（数字）
       taskInfo: publishForm.value.taskInfo, // 任务信息
       taskTitle: publishForm.value.taskTitle, // 任务标题
@@ -900,6 +907,66 @@ const handlePublish = async () => {
 
       // 重新拉取任务列表
       fetchTaskList();
+
+      // ✅ 核心修改：从 sessionStorage 读取 reportId（而不是 route.query）
+      const pendingReportId = sessionStorage.getItem("pendingReportId");
+      console.log(
+        "🔍 检查 sessionStorage 中的 pendingReportId:",
+        pendingReportId
+      );
+
+      if (pendingReportId) {
+        console.log(
+          "✅ 检测到待更新的上报 ID:",
+          pendingReportId,
+          "准备更新上报状态"
+        );
+        // 清除存储，避免重复更新
+        sessionStorage.removeItem("pendingReportId");
+
+        // 延迟一点执行，确保任务已经发布成功
+        setTimeout(async () => {
+          try {
+            const updateData = {
+              id: Number(pendingReportId),
+              status: 1,
+            };
+
+            console.log("正在调用更新接口，参数:", updateData);
+            const updateResponse = await axios.post(
+              "/api/report/update",
+              updateData
+            );
+
+            console.log("更新接口返回:", updateResponse.data);
+
+            if (updateResponse.data && updateResponse.data.code === 200) {
+              console.log("✅ 上报状态更新成功:", pendingReportId);
+              ElMessage.success("任务发布成功，上报状态已更新为已处理");
+
+              // 通知 Report.vue 更新本地数据（可选）
+              window.dispatchEvent(
+                new CustomEvent("reportStatusUpdated", {
+                  detail: { reportId: pendingReportId },
+                })
+              );
+            } else {
+              console.warn("上报状态更新失败:", updateResponse.data?.msg);
+              ElMessage.warning("任务发布成功，但上报状态更新失败");
+            }
+          } catch (error) {
+            console.error("更新上报状态失败:", error);
+            console.error("错误详情:", {
+              message: error.message,
+              status: error.response?.status,
+              data: error.response?.data,
+            });
+            ElMessage.warning("任务发布成功，但上报状态更新失败");
+          }
+        }, 500);
+      } else {
+        console.log("⚠️ sessionStorage 中没有待处理的 reportId");
+      }
     } else {
       ElMessage.error(`发布失败：${response.data?.msg || "未知错误"}`);
     }
@@ -1060,12 +1127,174 @@ const handleRejectTask = async (taskId) => {
     }
   }
 };
+// 检查路由参数并处理（从上报管理跳转过来的自动填充）
+const checkRouteParams = () => {
+  const { action, taskType, content, areaId, areaName, reportId } = route.query;
+
+  console.log("=== checkRouteParams 被调用 ===");
+  console.log("路由参数:", route.query);
+  console.log("提取的 reportId:", reportId);
+
+  // ✅ 核心修改：立即保存 reportId 到 sessionStorage，避免被清空
+  if (reportId) {
+    console.log("✅ 检测到 reportId:", reportId, "保存到 sessionStorage");
+    sessionStorage.setItem("pendingReportId", reportId);
+  } else {
+    console.log("⚠️ 未检测到 reportId");
+  }
+
+  if (action === "publish") {
+    console.log("检测到 action=publish，准备打开发布对话框");
+
+    // 打开发布任务对话框
+    setTimeout(() => {
+      showPublishDialog.value = true;
+
+      // 自动填充任务类型
+      if (taskType) {
+        publishForm.value.taskType = taskType;
+      }
+
+      // 自动填充任务内容（如果上报中有内容）
+      if (content) {
+        publishForm.value.taskInfo = content;
+      }
+
+      // 生成默认任务标题
+      if (taskType) {
+        if (areaName) {
+          publishForm.value.taskTitle = `${taskType}任务（${areaName}区 - 来自上报）`;
+        } else {
+          publishForm.value.taskTitle = `${taskType}任务（来自上报）`;
+        }
+      }
+
+      // 设置默认截止时间为明天的现在
+      const now = new Date();
+      const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      const deadlineStr = formatTimeToCST(tomorrow);
+      publishForm.value.deadline = deadlineStr;
+      console.log("✅ 自动设置截止时间:", deadlineStr);
+
+      // 自动填充任务范围（区域）- 核心修改
+      if (areaId) {
+        console.log("需要填充的 areaId:", areaId, "类型:", typeof areaId);
+
+        // 等待 areaList 加载完成后再设置 - 增加延迟时间
+        setTimeout(() => {
+          console.log("=== 开始填充区域和负责人 ===");
+          console.log("此时 areaList 长度:", areaList.value.length);
+          console.log("此时 employeeList 长度:", employeeList.value.length);
+          console.log(
+            "此时 areaList 内容:",
+            JSON.parse(JSON.stringify(areaList.value))
+          );
+          console.log(
+            "此时 employeeList 内容:",
+            JSON.parse(JSON.stringify(employeeList.value))
+          );
+
+          const numericAreaId = Number(areaId);
+          console.log(
+            "转换后的 numericAreaId:",
+            numericAreaId,
+            "类型:",
+            typeof numericAreaId
+          );
+
+          // 检查该 areaId 是否在 areaList 中存在
+          const foundArea = areaList.value.find((area) => {
+            const areaIdNum = Number(area.id);
+            console.log(
+              "比较：area.id =",
+              area.id,
+              "(",
+              areaIdNum,
+              ") vs 查找值 =",
+              numericAreaId,
+              "结果:",
+              areaIdNum === numericAreaId
+            );
+            return areaIdNum === numericAreaId;
+          });
+
+          console.log("是否找到匹配的区域:", foundArea);
+
+          if (foundArea) {
+            publishForm.value.taskScope = [Number(numericAreaId)];
+            console.log("✅ 自动填充区域成功:", numericAreaId);
+            console.log("当前表单的 taskScope:", publishForm.value.taskScope);
+
+            // 根据 areaId 查找对应的负责人
+            const areaManager = employeeList.value.find((emp) => {
+              const empAreaId = emp.areaId ? Number(emp.areaId) : null;
+              console.log(
+                "比较员工 areaId: emp.areaId =",
+                emp.areaId,
+                "(",
+                empAreaId,
+                ") vs 区域 ID =",
+                numericAreaId,
+                "结果:",
+                empAreaId === numericAreaId
+              );
+              return empAreaId === numericAreaId;
+            });
+
+            console.log("是否找到匹配的负责人:", areaManager);
+
+            if (areaManager) {
+              publishForm.value.empIds = [areaManager.id];
+              console.log(
+                "✅ 自动填充负责人成功:",
+                areaManager.name,
+                "ID:",
+                areaManager.id
+              );
+              console.log("当前表单的 empIds:", publishForm.value.empIds);
+            } else {
+              console.warn("⚠️ 未找到该区域的负责人，areaId:", numericAreaId);
+              console.warn(
+                "可用员工列表:",
+                JSON.parse(JSON.stringify(employeeList.value))
+              );
+            }
+          } else {
+            console.warn("❌ 区域 ID 不存在于列表中:");
+            console.warn("查找的 ID:", numericAreaId);
+            console.warn(
+              "可用区域列表:",
+              JSON.parse(JSON.stringify(areaList.value))
+            );
+          }
+        }, 500);
+      }
+
+      // ✅ 延迟清空路由参数（确保已经保存 reportId）
+      setTimeout(() => {
+        console.log("清空路由参数");
+        router.replace({ query: {} });
+      }, 100);
+    }, 200);
+  }
+};
 // 初始化加载
 onMounted(() => {
   fetchAreaList(); // 先加载区域列表
   fetchEmployeeList(); // 加载员工列表
   fetchTaskList(); // 加载任务列表
+
+  // 检查路由参数，判断是否需要打开发布任务对话框
+  checkRouteParams();
 });
+watch(
+  () => route.query,
+  (newQuery) => {
+    if (newQuery.action === "publish") {
+      checkRouteParams();
+    }
+  }
+);
 </script>
 
 <style scoped>
