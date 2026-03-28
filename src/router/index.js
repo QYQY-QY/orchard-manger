@@ -54,7 +54,7 @@ const router = createRouter({
     {
       path: '/superadminindex',
       name: 'SuperAdminIndex',
-      component: () => import('../views/super-admin/Index.vue')
+      component: () => import('@/views/admin/Index.vue')
     },
     {
       path: '/superOrchard',
@@ -201,7 +201,9 @@ router.beforeEach((to, from) => {
       ElMessage.error('用户角色异常，请重新登录')
       return '/login'
     }
-    const targetPath = isAdmin === 1 ? '/superadminindex' : '/adminindex'
+    // 🔥 修改：超级管理员直接跳转到果园数据大屏 OrchardScene
+    // 普通管理员跳转到普通管理员首页 Adminindex
+    const targetPath = isAdmin === 1 ? '/OrchardScene' : '/adminindex'
     return targetPath
   }
 

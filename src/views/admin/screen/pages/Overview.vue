@@ -13,11 +13,11 @@
           </h1>
         </div>
         <div class="role-tag">
-          <i class="fas fa-user-tie"></i> 园区负责人 · 运营总监 · 全局态势
+          <i class="fas fa-user-tie"></i>{{ regionInfo.name }}负责人 · {{ regionInfo.manager }}
         </div>
       </div>
       <div class="time-weather">
-        <i class="fas fa-sun"></i> {{ currentTime }} 晴 24℃ | 东南风2级
+        <i class="fas fa-clock"></i> {{ currentTime }}
       </div>
     </div>
 
@@ -50,7 +50,7 @@
       </div>
     </div>
 
-    <!-- 核心主区域: 热力图 + 右侧预警/农事/设备 -->
+    <!-- 核心主区域: 热力图 + 右侧预警 -->
     <div class="main-panel">
       <!-- 左侧：全园NDVI健康度可视化 -->
       <div class="heatmap-card">
@@ -69,7 +69,7 @@
         </div>
         <!-- 地块标注与钻取 -->
         <div class="plot-label">
-          <span><i class="fas fa-map-pin"></i> 当前地块: 东区 A1~J10 (点击格子钻取详情)</span>
+          <span><i class="fas fa-map-pin"></i> 当前地块: A1~J10 (点击格子钻取详情)</span>
           <span class="drill-hint"><i class="fas fa-mouse-pointer"></i> 支持钻取至病虫害/水肥屏</span>
         </div>
         <div class="stats-row">
@@ -78,7 +78,7 @@
         </div>
       </div>
 
-      <!-- 右侧: 预警 + 农事 + 设备在线 -->
+      <!-- 右侧: 预警卡片 -->
       <div class="right-stats">
         <!-- 实时预警卡片 -->
         <div class="alert-card">
@@ -95,38 +95,6 @@
             <i class="fas fa-clock"></i> 待处理状态: 18株未处置 · 更新于{{ currentTime }}
           </div>
         </div>
-
-        <!-- 核心农事概览 -->
-        <div class="farm-progress">
-          <div class="farm-title"><i class="fas fa-tractor"></i> 农事进度</div>
-          <div v-for="(task, index) in farmTasks" :key="index" class="progress-item">
-            <span>{{ task.name }}</span>
-            <span>{{ task.progress }} ({{ task.completed }}/{{ task.total }})</span>
-            <div class="bar-bg"><div class="bar-fill" :style="{ width: task.percentage + '%' }"></div></div>
-          </div>
-          <div class="progress-footer">
-            <i class="fas fa-clipboard-check"></i> 异常株处理进度: 69株已完成 (79%)
-          </div>
-        </div>
-
-        <!-- 设备在线状态 -->
-        <div class="device-card">
-          <div class="device-header">
-            <i class="fas fa-wifi"></i>
-            <span>物联网设备在线</span>
-          </div>
-          <div class="device-stats">
-            <span><span class="online-led"></span>在线率 97.3%</span>
-            <span><i class="fas fa-microchip"></i> 238/245</span>
-          </div>
-          <div class="device-stats">
-            <span><i class="fas fa-database"></i> 最后采集: {{ currentTime }}</span>
-            <span><i class="fas fa-clock"></i> 延迟 2s</span>
-          </div>
-          <div class="device-footer">
-            <i class="fas fa-check-circle"></i> 气象站 · 土壤墒情 · 虫情测报 均在运行
-          </div>
-        </div>
       </div>
     </div>
 
@@ -138,16 +106,70 @@
 
     <!-- 微标注 -->
     <div class="data-footer">
-      <i class="fas fa-clipboard-list"></i> 数据依据: 总株12850 · 覆盖率98.6% · 健康94.2% · 异常87 · 预警23 · 周均0.7% · NDVI热力·预警闪烁·农事完成率·设备在线
+      <i class="fas fa-clipboard-list"></i> 数据依据: 总株12850 · 覆盖率98.6% · 健康94.2% · 异常87 · 预警23 · 周均0.7% · NDVI热力·预警闪烁
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 
 const router = useRouter()
+const route = useRoute()
+
+// 区域负责人映射（与OrchardScene保持一致）
+const REGION_MANAGERS = {
+  1: '张齐',
+  2: '李昀',
+  3: '王钿'
+}
+
+const REGION_NAMES = {
+  1: '汤村',
+  2: '莲村',
+  3: '桂村'
+}
+
+// 从路由query获取区域信息
+const regionInfo = ref({
+  manager: '园区负责人',
+  name: '运营总监'
+})
+
+// 获取区域负责人信息
+const getRegionInfo = () => {
+  const region = route.query.region
+  const regionName = route.query.regionName
+  const regionId = route.query.regionId
+  
+  if (region && REGION_MANAGERS[region]) {
+    regionInfo.value = {
+      manager: REGION_MANAGERS[region],
+      name: REGION_NAMES[region] || regionName || `区域${regionId || region}`
+    }
+  } else if (regionName) {
+    // 如果有区域名称但没有匹配到负责人，尝试根据名称匹配
+    const matchedRegion = Object.entries(REGION_NAMES).find(([_, name]) => name === regionName)
+    if (matchedRegion) {
+      regionInfo.value = {
+        manager: REGION_MANAGERS[matchedRegion[0]],
+        name: regionName
+      }
+    } else {
+      regionInfo.value = {
+        manager: '园区负责人',
+        name: regionName || '运营总监'
+      }
+    }
+  } else {
+    // 默认值
+    regionInfo.value = {
+      manager: '园区负责人',
+      name: '运营总监'
+    }
+  }
+}
 
 // 返回上一页功能
 const goBack = () => {
@@ -176,7 +198,7 @@ const updateTime = () => {
 const alerts = ref([
   {
     title: '黄龙病疑似',
-    locations: 'A5, C4, E7, H6 等12株',
+    locations: '12株',
     level: '高危',
     color: '#cc5f36',
     dotColor: '#e8604a',
@@ -184,7 +206,7 @@ const alerts = ref([
   },
   {
     title: '红蜘蛛爆发',
-    locations: 'B6, J3 等8株',
+    locations: '8株',
     level: '中危',
     color: '#e68a2e',
     dotColor: '#e68a2e',
@@ -192,19 +214,12 @@ const alerts = ref([
   },
   {
     title: '缺水胁迫',
-    locations: 'F2,G4 等3株',
+    locations: '3株',
     level: '轻微',
     color: '#e68a2e',
     dotColor: '#e68a2e',
     tagColor: '#3b8f5c'
   }
-])
-
-// 农事任务数据
-const farmTasks = ref([
-  { name: '灌溉任务', completed: 41, total: 50, progress: '82%', percentage: 82 },
-  { name: '施肥任务', completed: 22, total: 35, progress: '63%', percentage: 63 },
-  { name: '防控任务', completed: 17, total: 24, progress: '71%', percentage: 71 }
 ])
 
 // NDVI颜色类
@@ -244,6 +259,9 @@ const getPlotLabel = (index) => {
 }
 
 onMounted(() => {
+  // 获取区域负责人信息
+  getRegionInfo()
+  
   // 立即更新一次时间
   updateTime()
   
@@ -381,7 +399,7 @@ body {
 
 .time-weather i {
   margin-right: 8px;
-  color: #f5b342;
+  color: #1e6641;
 }
 
 .kpi-row {
@@ -623,89 +641,6 @@ body {
   border-radius: 40px;
   padding: 8px 16px;
   font-size: 0.85rem;
-}
-
-.farm-progress, .device-card {
-  background: white;
-  border-radius: 32px;
-  padding: 20px 24px;
-  border: 1px solid #cae0cf;
-}
-
-.farm-title {
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: #1b5935;
-  margin-bottom: 10px;
-}
-
-.progress-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin: 10px 0;
-}
-
-.bar-bg {
-  width: 60%;
-  height: 12px;
-  background: #ddeee2;
-  border-radius: 40px;
-}
-
-.bar-fill {
-  height: 12px;
-  background: #369561;
-  border-radius: 40px;
-}
-
-.progress-footer {
-  background: #e2f1e6;
-  border-radius: 40px;
-  padding: 10px;
-  margin-top: 12px;
-}
-
-.device-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 10px;
-}
-
-.device-header i {
-  font-size: 1.8rem;
-  color: #298049;
-}
-
-.device-header span {
-  font-size: 1.2rem;
-  font-weight: 600;
-}
-
-.device-stats {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 8px;
-}
-
-.online-led {
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  background: #3fbb6f;
-  border-radius: 50%;
-  margin-right: 8px;
-  box-shadow: 0 0 8px #44dd88;
-}
-
-.device-footer {
-  margin-top: 16px;
-  background: #eff9f0;
-  border-radius: 40px;
-  padding: 10px 16px;
-  color: #256d46;
 }
 
 .drill-footer {

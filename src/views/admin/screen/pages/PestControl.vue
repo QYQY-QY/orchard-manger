@@ -111,14 +111,14 @@
     </div>
 
     <!-- 底部 明日预警 + 跨屏联动 -->
-    <div class="footer-warning">
+    <!-- <div class="footer-warning">
       <div class="tomorrow-risk">
         <i class="fas fa-cloud-moon"></i> 明日预警: 蚜虫风险中 (地块D3, D7, E5) · 建议巡查
       </div>
       <div class="drill-link">
         <i class="fas fa-expand-arrows-alt"></i> 点击钻取至单株详情
       </div>
-    </div>
+    </div> -->
 
     <!-- 跨屏联动/数据同源提示 -->
     <div class="drill-footer">

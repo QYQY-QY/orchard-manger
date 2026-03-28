@@ -1,4 +1,4 @@
-<!-- TrendAnalysis.vue - 历史数据趋势分析大屏（带返回功能） -->
+<!-- HistoricalTrend.vue - 历史数据趋势分析大屏（带返回功能） -->
 <template>
   <div class="trend-dashboard">
     <!-- 头部 - 添加返回按钮 -->
@@ -13,11 +13,11 @@
           </h1>
         </div>
         <div class="role-tag">
-          <i class="fas fa-user-cog"></i> 技术人员 · 数据分析师 · 长期对比/效果评估
+          <i class="fas fa-user-cog"></i> {{ regionManager }}
         </div>
       </div>
       <div class="update-time">
-        <i class="fas fa-calendar-alt"></i> 当前时间：{{ currentTime }}
+        <i class="fas fa-calendar-alt"></i> 数据统计周期：{{ currentYear }}年 1 月 -3 月
       </div>
     </div>
 
@@ -32,27 +32,88 @@
 
     <!-- 两列核心区 -->
     <div class="two-col">
-      <!-- 左侧大列: NDVI长期趋势 + 健康株占比趋势 -->
+      <!-- 左侧大列：NDVI 长期趋势 + 健康株占比趋势 -->
       <div>
-        <!-- NDVI长期趋势 -->
+        <!-- NDVI 长期趋势 -->
         <div class="card">
-          <div class="section-title"><i class="fas fa-chart-line"></i> NDVI长期趋势 · 月度/季度变化 (2024-2025对比)</div>
+          <div class="section-title"><i class="fas fa-chart-line"></i> NDVI 趋势 · {{ currentYear }}年 1 月 -3 月变化</div>
           <div class="line-chart">
             <div class="chart-grid">
-              <div v-for="(month, index) in months" :key="index" class="month-group">
-                <div class="bar2025" :style="{ height: month.height2025 + 'px' }"></div>
-                <div class="bar2024" :style="{ height: month.height2024 + 'px' }"></div>
+              <!-- Y 轴刻度 -->
+              <div class="y-axis">
+                <span class="y-label">0.80</span>
+                <span class="y-label">0.75</span>
+                <span class="y-label">0.70</span>
+                <span class="y-label">0.65</span>
+                <span class="y-label">0.60</span>
               </div>
+              
+              <!-- 网格线 -->
+              <div class="grid-lines">
+                <div class="grid-line"></div>
+                <div class="grid-line"></div>
+                <div class="grid-line"></div>
+                <div class="grid-line"></div>
+                <div class="grid-line"></div>
+              </div>
+              
+              <!-- 折线图内容 -->
+              <svg class="line-svg" viewBox="0 0 400 200" preserveAspectRatio="none">
+                <!-- 渐变填充 -->
+                <defs>
+                  <linearGradient id="lineGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#4794b3;stop-opacity:0.3" />
+                    <stop offset="100%" style="stop-color:#4794b3;stop-opacity:0" />
+                  </linearGradient>
+                </defs>
+                
+                <!-- 填充区域 -->
+                <polygon 
+                  :points="`0,200 ${linePoints} 400,200`" 
+                  fill="url(#lineGradient)"
+                />
+                
+                <!-- 折线 -->
+                <polyline 
+                  :points="linePoints" 
+                  fill="none" 
+                  stroke="#4794b3" 
+                  stroke-width="3"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                
+                <!-- 数据点 -->
+                <circle v-for="(point, index) in lineDataPoints" :key="index"
+                  :cx="point.x" 
+                  :cy="point.y" 
+                  r="6" 
+                  fill="#4794b3"
+                  stroke="white"
+                  stroke-width="2"
+                />
+                
+                <!-- 数据标签 -->
+                <text v-for="(point, index) in lineDataPoints" :key="index"
+                  :x="point.x" 
+                  :y="point.y - 15" 
+                  text-anchor="middle"
+                  fill="#1f6d40"
+                  font-size="14"
+                  font-weight="bold"
+                >
+                  {{ ndviValues[index] }}
+                </text>
+              </svg>
             </div>
-            <div class="month-label">1月  2月  3月  4月  5月  6月</div>
+            <div class="month-label">1月&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2 月&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3 月</div>
             <div class="legend-line">
-              <span><span class="legend-dot" style="background:#4794b3;"></span> 2025 NDVI</span>
-              <span><span class="legend-dot" style="background:#b0c9b5;"></span> 2024 NDVI</span>
-              <span>📈 2025较2024平均提升 +0.05</span>
+              <span><span class="legend-dot" style="background:#4794b3;"></span> {{ currentYear }} NDVI</span>
+              <span>📈 较年初提升 +0.05</span>
             </div>
           </div>
           <div class="ndvi-hint">
-            <i class="fas fa-map-marker-alt"></i> 地块C7 NDVI增幅最大 (+0.11) · 点击钻取详情
+            <i class="fas fa-map-marker-alt"></i> 地块 C7 NDVI 增幅最大 (+0.11) · 点击钻取详情
           </div>
         </div>
 
@@ -61,7 +122,7 @@
           <div class="section-title"><i class="fas fa-chart-area"></i> 健康株占比趋势 (堆叠面积) · 预测</div>
           <div class="stacked-area">
             <div class="year-labels">
-              <span>2023</span><span>2024</span><span>2025</span><span>2026(预测)</span>
+              <span>1 月</span><span>2 月</span><span>3 月</span><span>4 月 (预测)</span>
             </div>
             <div v-for="(year, index) in healthData" :key="index" class="area-row">
               <div class="area-segment healthy" :style="{ width: year.healthy + '%' }">健康{{ year.healthy }}%</div>
@@ -69,13 +130,13 @@
               <div class="area-segment abnormal" :style="{ width: year.abnormal + '%' }">异{{ year.abnormal }}%</div>
             </div>
             <div class="trend-prediction">
-              📊 趋势预测: 2025 Q3 健康株占比预计 95.5%
+              📊 趋势预测：4 月健康株占比预计 95.5%
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 右侧列: 产量品质相关 + 异常株时序 + 年度对比 -->
+      <!-- 右侧列：产量品质相关 + 异常株时序 -->
       <div>
         <!-- 产量/品质趋势卡片 -->
         <div class="metrics-card">
@@ -84,8 +145,8 @@
             <span>{{ item.label }}</span> <span v-html="item.value"></span>
           </div>
           <div class="scatter-mock">
-            <div class="dot-group"><span class="scatter-dot"></span><span>2024</span></div>
-            <div class="dot-group"><span class="scatter-dot" style="background:#e09f3e;"></span><span>2025</span></div>
+            <div class="dot-group"><span class="scatter-dot"></span><span>1 月</span></div>
+            <div class="dot-group"><span class="scatter-dot" style="background:#e09f3e;"></span><span>3 月</span></div>
             <span>果径分布↗️</span>
           </div>
         </div>
@@ -100,25 +161,10 @@
           </div>
           <div class="abnormal-badges">
             <span class="trend-badge">红蜘蛛周期减弱 ↓62%</span>
-            <span class="trend-badge">黄龙病新发 3例</span>
+            <span class="trend-badge">黄龙病新发 3 例</span>
           </div>
           <div class="trend-indicator">
             <span>📉 异常株下降趋势明显</span> <i class="fas fa-arrow-down" style="color:#cf5f4a;"></i>
-          </div>
-        </div>
-
-        <!-- 年度对比卡片 -->
-        <div class="metrics-card">
-          <div class="section-title"><i class="fas fa-calendar-alt"></i> 年度对比</div>
-          <div class="year-compact">
-            <div v-for="(item, index) in yearCompareData" :key="index" class="compare-item">
-              <span style="font-weight:800;">{{ item.label }}</span><br>
-              <span>2024: {{ item.year2024 }}</span><br>
-              <span>2025: {{ item.year2025 }}</span>
-            </div>
-          </div>
-          <div class="compare-footer">
-            <i class="fas fa-check-circle" style="color:#308a59;"></i> 综合管理效果提升显著
           </div>
         </div>
       </div>
@@ -126,119 +172,108 @@
 
     <!-- 底部联动 -->
     <div class="drill-footer">
-      <span><i class="fas fa-link"></i> 跨屏联动: 点击图表点可钻取至病虫害/水肥历史明细</span>
-      <span><i class="fas fa-clock"></i> 当前时间: {{ currentTime }} · 历史趋势数据每日02:00更新</span>
+      <span><i class="fas fa-link"></i> 跨屏联动：点击图表点可钻取至病虫害/水肥历史明细</span>
+      <span><i class="fas fa-clock"></i> 数据统计周期：{{ currentYear }}年 1 月 -3 月 · 历史趋势数据每日 02:00 更新</span>
     </div>
 
     <!-- 微型数据清单 -->
     <div class="micro-data">
-      <span>🌿 NDVI 2025: 0.73 ( +0.05 )</span>
-      <span>📊 健康占比 94.2% (堆叠面积: 健康/亚/异常)</span>
+      <span>🌿 NDVI 1 月：0.68 → 3 月：0.73 (+0.05)</span>
+      <span>📊 健康占比 91% → 94% (健康/亚/异常)</span>
       <span>🍎 单果重 +7% · 糖度 13.2°Bx</span>
-      <span>📉 异常株峰值107 → 当前62</span>
-      <span>📆 年度对比: NDVI 0.68→0.73, 健康度88%→94%</span>
-      <span>📈 趋势预测 Q3 95.5%</span>
+      <span>📉 异常株峰值 107 → 当前 62</span>
+      <span>📈 趋势预测 4 月 95.5%</span>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
+
+// 区域负责人（直接设置示例数据）
+const regionManager = ref('汤村负责人- 张齐')
+
+// 获取当前年份
+const today = new Date()
+const currentYear = today.getFullYear()
 
 // 返回上一页功能
 const goBack = () => {
   router.back()
 }
 
-// 实时时间
-const currentTime = ref('')
-
-// 更新时间定时器
-let timeInterval = null
-
-// 更新时间的函数
-const updateTime = () => {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-  const hours = String(now.getHours()).padStart(2, '0')
-  const minutes = String(now.getMinutes()).padStart(2, '0')
-  const seconds = String(now.getSeconds()).padStart(2, '0')
-  
-  currentTime.value = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
-}
-
-// KPI数据
+// KPI 数据
 const kpiData = ref([
-  { icon: 'fas fa-leaf', label: 'NDVI (2025 Q1)', value: '0.73', unit: 'vs 0.68', trend: '+0.05 同比' },
-  { icon: 'fas fa-heartbeat', label: '健康株占比', value: '94.2%', unit: 'vs 88%', trend: '+6.2%' },
+  { icon: 'fas fa-leaf', label: `NDVI (3 月)`, value: '0.73', unit: `vs 1 月 0.68`, trend: '+0.05 提升' },
+  { icon: 'fas fa-heartbeat', label: '健康株占比', value: '94.2%', unit: `vs 1 月 91%`, trend: '+3.2%' },
   { icon: 'fas fa-apple-alt', label: '平均糖度', value: '13.2', unit: '°Bx', trend: '+0.7 °Bx' },
-  { icon: 'fas fa-exclamation-triangle', label: '异常株峰值', value: '107', unit: '株 (3月)', trend: '↓ 42% 较峰值' }
+  { icon: 'fas fa-exclamation-triangle', label: '异常株峰值', value: '107', unit: '株 (1 月)', trend: '↓ 42% 较峰值' }
 ])
 
-// 月份数据
+// 月份数据 - 只有 1-3 月
 const months = ref([
-  { height2025: 102, height2024: 88 },
-  { height2025: 108, height2024: 92 },
-  { height2025: 118, height2024: 98 },
-  { height2025: 124, height2024: 104 },
-  { height2025: 132, height2024: 110 },
-  { height2025: 128, height2024: 108 }
+  { heightCurrent: 88 },   // 1 月
+  { heightCurrent: 108 },  // 2 月
+  { heightCurrent: 132 }   // 3 月
 ])
 
-// 健康数据
+// NDVI 数值（用于显示）
+const ndviValues = ref(['0.68', '0.71', '0.73'])
+
+// 计算折线图数据点
+const lineDataPoints = computed(() => {
+  const padding = 40 // 左右边距
+  const chartWidth = 320 // 图表宽度
+  const chartHeight = 180 // 图表高度
+  const pointSpacing = chartWidth / (months.value.length - 1)
+  
+  // NDVI 值映射到 Y 坐标 (NDVI 范围 0.60-0.80)
+  const mapToY = (value) => {
+    const minNdvi = 0.60
+    const maxNdvi = 0.80
+    const normalized = (parseFloat(value) - minNdvi) / (maxNdvi - minNdvi)
+    return chartHeight - (normalized * chartHeight)
+  }
+  
+  return months.value.map((_, index) => ({
+    x: padding + (index * pointSpacing),
+    y: mapToY(ndviValues.value[index])
+  }))
+})
+
+// 生成 SVG 折线点字符串
+const linePoints = computed(() => {
+  return lineDataPoints.value.map(point => `${point.x},${point.y}`).join(' ')
+})
+
+// 健康数据 - 月份顺序：1 月，2 月，3 月，4 月 (预测)
 const healthData = ref([
-  { healthy: 78, subhealthy: 15, abnormal: 7 },
-  { healthy: 84, subhealthy: 11, abnormal: 5 },
-  { healthy: 91, subhealthy: 6, abnormal: 3 },
-  { healthy: 94, subhealthy: 4, abnormal: 2 }
+  { healthy: 91, subhealthy: 6, abnormal: 3 },    // 1 月
+  { healthy: 92.5, subhealthy: 5, abnormal: 2.5 }, // 2 月
+  { healthy: 94, subhealthy: 4, abnormal: 2 },     // 3 月
+  { healthy: 95.5, subhealthy: 3, abnormal: 1.5 }  // 4 月预测
 ])
 
 // 品质数据
 const qualityData = ref([
-  { label: '🍎 单果重年均', value: '236g <span style="color:#308a59;">(+7%)</span>' },
-  { label: '🍬 糖度趋势', value: '12.5 → 13.2 °Bx' },
-  { label: '📦 商品果率', value: '88% → 92%' },
-  { label: '🌿 叶绿素含量', value: '42 SPAD (+3.2)' }
+  { label: '🍎 单果重趋势', value: '1 月：221g → 3 月：236g <span style="color:#308a59;">(+7%)</span>' },
+  { label: '🍬 糖度趋势', value: '1 月：12.5 → 3 月：13.2 °Bx' },
+  { label: '📦 商品果率', value: '1 月：88% → 3 月：92%' },
+  { label: '🌿 叶绿素含量', value: '1 月：38.8 → 3 月：42 SPAD (+3.2)' }
 ])
 
-// 异常数据
+// 异常数据 - 显示当月最可能发生病虫害的日期
 const abnormalData = ref([
-  { label: '3月峰值', count: 107 },
-  { label: '4月', count: 62 },
-  { label: '5月', count: 48 },
-  { label: '6月(至今)', count: 41 }
+  { label: '1 月 15-20 日\n炭疽病高发期', count: 107 },
+  { label: '2 月 10-15 日\n红蜘蛛活跃期', count: 62 },
+  { label: '3 月 5-12 日\n蚜虫爆发期', count: 48 }
 ])
-
-// 年度对比数据
-const yearCompareData = ref([
-  { label: 'NDVI', year2024: '0.68', year2025: '0.73' },
-  { label: '健康度', year2024: '88%', year2025: '94%' },
-  { label: '异常株', year2024: '142', year2025: '87' }
-])
-
-onMounted(() => {
-  // 立即更新一次时间
-  updateTime()
-  
-  // 每秒更新一次时间
-  timeInterval = setInterval(updateTime, 1000)
-})
-
-onUnmounted(() => {
-  // 组件卸载时清除定时器，防止内存泄漏
-  if (timeInterval) {
-    clearInterval(timeInterval)
-  }
-})
 </script>
 
 <style scoped>
-/* 样式保持不变，与原来完全一致 */
 * {
   margin: 0;
   padding: 0;
@@ -429,41 +464,110 @@ body {
   padding: 28px 20px;
   position: relative;
 }
+
 .chart-grid {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-around;
-  height: 180px;
+  position: relative;
+  height: 200px;
   margin-bottom: 12px;
-}
-.month-group {
   display: flex;
-  gap: 8px;
-  align-items: flex-end;
-  width: 60px;
-  justify-content: center;
+  align-items: center;
 }
-.bar2025 {
-  width: 20px;
-  background: #4794b3;
-  border-radius: 12px 12px 6px 6px;
+
+/* Y 轴样式 */
+.y-axis {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 45px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding-right: 8px;
+  z-index: 2;
 }
-.bar2024 {
-  width: 20px;
-  background: #b0c9b5;
-  border-radius: 12px 12px 6px 6px;
+
+.y-label {
+  font-size: 0.75rem;
+  color: #6b8e7a;
+  text-align: right;
+  font-weight: 600;
 }
+
+/* 网格线样式 */
+.grid-lines {
+  position: absolute;
+  left: 45px;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.grid-line {
+  height: 1px;
+  background: linear-gradient(to right, rgba(107, 142, 122, 0.3), rgba(107, 142, 122, 0.1));
+  margin-left: 10px;
+}
+
+/* SVG 折线图样式 */
+.line-svg {
+  position: absolute;
+  left: 45px;
+  right: 20px;
+  top: 10px;
+  bottom: 10px;
+  width: calc(100% - 65px);
+  height: calc(100% - 20px);
+  overflow: visible;
+}
+
+/* 动画效果 */
+.line-svg polyline {
+  animation: drawLine 1.5s ease-out;
+}
+
+/* .line-svg circle {
+  animation: pulseDot 2s ease-in-out infinite;
+} */
+
+@keyframes drawLine {
+  from {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+  }
+  to {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 0;
+  }
+}
+
+/* @keyframes pulseDot {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+} */
+
 .month-label {
   text-align: center;
   margin-top: 8px;
   font-weight: 600;
+  color: #1f6d40;
 }
+
 .legend-line {
   display: flex;
   gap: 24px;
   justify-content: center;
   margin-top: 16px;
 }
+
 .legend-dot {
   display: inline-block;
   width: 16px;
@@ -471,6 +575,7 @@ body {
   border-radius: 4px;
   margin-right: 6px;
 }
+
 .ndvi-hint {
   margin-top: 16px;
   background: #e6f3ea;
@@ -564,6 +669,8 @@ body {
 }
 .timeline-item {
   text-align: center;
+  font-size: 0.9rem;
+  line-height: 1.6;
 }
 .abnormal-badges {
   margin-top: 12px;
@@ -579,24 +686,6 @@ body {
   align-items: center;
   justify-content: space-around;
   padding: 0 12px;
-}
-
-.year-compact {
-  background: #f2fcf5;
-  border-radius: 32px;
-  padding: 18px;
-  display: flex;
-  gap: 20px;
-  justify-content: space-around;
-}
-.compare-item {
-  text-align: center;
-}
-.compare-footer {
-  background: #e2f1e6;
-  border-radius: 40px;
-  padding: 12px;
-  margin-top: 16px;
 }
 
 .drill-footer {

@@ -4,17 +4,18 @@
     <ScreenHeader />
     <div class="dashboard-main">
       <div class="panel-left">
-        <ScreenLeft />
+        <ScreenLeft @data-updated="handleDataUpdated" />
       </div>
       <div class="panel-center"></div>
       <div class="panel-right">
-        <ScreenRight />
+        <ScreenRight :overviewData="sharedData" />
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Bg3D from '@/views/admin/screen/OrchardScene.vue'
 import ScreenHeader from '@/views/admin/screen/layout/ScreenHeader.vue'
@@ -22,13 +23,11 @@ import ScreenLeft from '@/views/admin/screen/layout/ScreenLeft.vue'
 import ScreenRight from '@/views/admin/screen/layout/ScreenRight.vue'
 
 const router = useRouter()
+const sharedData = ref(null)
 
-// 处理区域点击事件 - 修改为直接跳转到 WaterFertilizer
+// 处理区域点击事件
 const handleRegionClick = (region) => {
   console.log('点击了区域:', region)
-  
-  // 暂停自动旋转（如果需要）
-  // 这里可以添加其他逻辑，比如显示加载状态等
   
   // 直接跳转到 WaterFertilizer 水肥管控决策页面
   router.push({
@@ -37,6 +36,12 @@ const handleRegionClick = (region) => {
   }).catch(err => {
     console.error('路由跳转失败:', err)
   })
+}
+
+// 处理左侧面板传递的数据
+const handleDataUpdated = (data) => {
+  sharedData.value = data
+  console.log('接收到总览数据:', data)
 }
 </script>
 
