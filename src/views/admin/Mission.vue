@@ -414,7 +414,7 @@ const publishForm = ref({
   orchardId: orchardId.value,
   creatorId: creatorId.value,
   postTime: "", // 无时区格式，发布时生成
-  status: 0, // 固定未完成
+  status: 1, // 固定未完成
   // 预留groupid存储（后端返回后赋值）
   groupId: "",
 });
@@ -805,7 +805,7 @@ const handlePublish = async () => {
         orchardId: orchardId.value,
         creatorId: creatorId.value,
         postTime: "",
-        status: 0,
+        status: 1,
         groupId: "",
       };
       publishFormRef.value.resetFields();

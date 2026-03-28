@@ -75,9 +75,9 @@
       <el-form :model="updateForm" label-width="120px">
         <el-form-item label="任务状态">
           <el-select v-model="updateForm.status" placeholder="请选择新状态">
-            <el-option label="未完成" :value="0" />
-            <el-option label="进行中" :value="1" />
-            <el-option label="已完成" :value="2" />
+            <el-option label="未完成" :value="1" />
+            <el-option label="进行中" :value="2" />
+            <el-option label="已完成" :value="3" />
           </el-select>
         </el-form-item>
         <el-form-item>
