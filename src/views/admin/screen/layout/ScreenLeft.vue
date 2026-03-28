@@ -69,7 +69,6 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import axios from 'axios'
 import { useUserStore } from '@/stores/modules/user'
-import { ElMessage } from 'element-plus'
 
 const userStore = useUserStore()
 const orchardId = computed(() => userStore.user?.orchardId)
@@ -208,7 +207,7 @@ const fetchFruitTreeHealth = async () => {
   } catch (error) {
     console.error('获取果树健康数据失败:', error)
     setDefaultHealthData()
-    ElMessage.warning('果树健康数据加载失败，使用默认数据')
+    // 移除弹窗提示：ElMessage.warning('果树健康数据加载失败，使用默认数据')
   }
 }
 
@@ -321,7 +320,7 @@ const fetchTaskProgress = async () => {
   } catch (error) {
     console.error('获取农事任务数据失败:', error)
     setDefaultTaskProgress()
-    ElMessage.warning('农事任务数据加载失败，使用默认数据')
+    // 移除弹窗提示：ElMessage.warning('农事任务数据加载失败，使用默认数据')
   }
 }
 
@@ -407,7 +406,7 @@ const fetchDisasterCount = async () => {
   } catch (error) {
     console.error('获取病虫害数据失败:', error)
     disasterData.value = []
-    ElMessage.warning('病虫害数据加载失败，使用默认数据')
+    // 移除弹窗提示：ElMessage.warning('病虫害数据加载失败，使用默认数据')
     disasterData.value = [
       { name: '溃疡病', value: 14 },
       { name: '黄龙病', value: 6 },
@@ -449,6 +448,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* 样式保持不变 */
 .screen-left {
   position: relative;
   width: 100%;
