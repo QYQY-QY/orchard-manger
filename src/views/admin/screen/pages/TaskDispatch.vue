@@ -13,7 +13,7 @@
           </h1>
         </div>
         <div class="role-tag">
-          <i class="fas fa-user-cog"></i> 生产主管 · 农事调度员 · 全流程管控
+          <i class="fas fa-user-cog"></i> {{ regionManager }}
         </div>
       </div>
       <div class="update-time">
@@ -21,7 +21,7 @@
       </div>
     </div>
 
-    <!-- 任务总览 KPI 卡片 -->
+    <!-- 任务总览 KPI 卡片 - 动态数据 -->
     <div class="kpi-row">
       <div v-for="(kpi, index) in kpiData" :key="index" class="kpi-card" :class="'card' + (index + 1)">
         <div class="kpi-label"><i :class="kpi.icon"></i> {{ kpi.label }}</div>
@@ -61,7 +61,7 @@
             <span :style="{ color: person.timeColor }">{{ person.time }}</span>
           </div>
           <div class="rank-footer">
-            <i class="fas fa-chart-line"></i> 今日人均效率 ↑6% · 最快王兴海
+            <i class="fas fa-chart-line"></i> 今日人均效率 ↑6% · 最快王*海
           </div>
         </div>
       </div>
@@ -78,8 +78,8 @@
 
           <!-- 模拟地图点位 -->
           <div class="map-mock">
-            <span><i class="fas fa-map-pin" style="color:#c44242;"></i> 王兴海 @A1</span>
-            <span><i class="fas fa-map-pin" style="color:#4290c4;"></i> 李凤英 @C2</span>
+            <span><i class="fas fa-map-pin" style="color:#c44242;"></i> 王*海 @A1</span>
+            <span><i class="fas fa-map-pin" style="color:#4290c4;"></i> 李*英 @C2</span>
             <span><i class="fas fa-camera"></i> 照片 42张</span>
           </div>
           <div class="photo-feedback">📸 最新反馈: A1灌溉完成图 · C2防控喷药图</div>
@@ -124,9 +124,9 @@
 
     <!-- 数据清单 -->
     <div class="micro-data">
-      <span>📋 待派发24 待执行42 已完成38 逾期7 完成率68%</span>
+      <span>📋 待派发{{ taskStats.pendingDispatchCount }} 待执行{{ taskStats.pendingExecuteCount }} 已完成{{ taskStats.completedCount }} 逾期{{ taskStats.overdueCount }} 完成率{{ taskStats.completionRate }}%</span>
       <span>🥧 灌溉28% 施肥22% 防控18% 修剪20% 采摘12%</span>
-      <span>🏆 绩效: 王兴海32 李凤英29 赵德柱27</span>
+      <span>🏆 绩效: 王*海32 李*英29 赵*柱27</span>
       <span>📍 实时作业: A1, C2, 照片42张</span>
       <span>⚠️ 逾期: B3(2天) E5(1天) F2(6h)</span>
       <span>📈 近7天↑12% 防控效率+8%</span>
@@ -137,6 +137,8 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import axios from 'axios'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 
@@ -145,8 +147,144 @@ const goBack = () => {
   router.back()
 }
 
+// 区域负责人
+const regionManager = ref('汤村负责人 - 张齐')
+
 // 实时时间
 const currentTime = ref('')
+
+// 任务统计数据
+const taskStats = ref({
+  pendingDispatchCount: 0,
+  pendingExecuteCount: 0,
+  pendingExecuteRemainingRate: 0,
+  completedCount: 0,
+  completionRate: 0,
+  overdueCount: 0
+})
+
+// KPI数据 - 动态从接口获取
+const kpiData = ref([
+  { icon: 'fas fa-paper-plane', label: '待派发任务', value: '0', unit: '单', trend: '加载中...' },
+  { icon: 'fas fa-play-circle', label: '待执行任务', value: '0', unit: '单', trend: '加载中...' },
+  { icon: 'fas fa-check-circle', label: '已完成', value: '0', unit: '单', trend: '加载中...' },
+  { icon: 'fas fa-exclamation-triangle', label: '逾期任务数', value: '0', unit: '单', trend: '加载中...' }
+])
+
+// 获取任务统计数据
+const fetchTaskStats = async () => {
+  try {
+    console.log('========== 开始获取任务统计数据 ==========')
+    
+    const apiPaths = [
+      '/api/task/countByStatus',
+      '/task/countByStatus',
+      '/api/task/countByStatus/'
+    ]
+    
+    let response = null
+    let successPath = null
+    
+    for (const path of apiPaths) {
+      try {
+        console.log(`尝试路径: ${path}`)
+        response = await axios.get(path, {
+          params: { _t: Date.now() },
+          headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
+          timeout: 10000
+        })
+        
+        if (response.status === 200 && response.data) {
+          if (typeof response.data === 'string' && response.data.includes('<!DOCTYPE html>')) {
+            console.log(`路径 ${path} 返回HTML，跳过`)
+            continue
+          }
+          successPath = path
+          console.log(`✅ 成功路径: ${path}`)
+          break
+        }
+      } catch (e) {
+        console.log(`路径 ${path} 失败:`, e.message)
+        continue
+      }
+    }
+    
+    if (!response || !successPath) {
+      throw new Error('所有路径都失败')
+    }
+    
+    console.log('任务统计接口响应:', response.data)
+    
+    let statsData = null
+    
+    // 尝试多种响应格式
+    if (response.data && response.data.code === 200 && response.data.data) {
+      statsData = response.data.data
+    } else if (response.data && typeof response.data === 'object' && !response.data.code) {
+      statsData = response.data
+    } else if (response.data && response.data.data) {
+      statsData = response.data.data
+    }
+    
+    if (statsData) {
+      taskStats.value = {
+        pendingDispatchCount: statsData.pendingDispatchCount || 0,
+        pendingExecuteCount: statsData.pendingExecuteCount || 0,
+        pendingExecuteRemainingRate: statsData.pendingExecuteRemainingRate || 0,
+        completedCount: statsData.completedCount || 0,
+        completionRate: statsData.completionRate || 0,
+        overdueCount: statsData.overdueCount || 0
+      }
+      
+      // 更新 KPI 卡片数据
+      kpiData.value[0].value = taskStats.value.pendingDispatchCount
+      kpiData.value[0].trend = `待派发 ${taskStats.value.pendingDispatchCount}单`
+      
+      kpiData.value[1].value = taskStats.value.pendingExecuteCount
+      kpiData.value[1].trend = `剩余 ${taskStats.value.pendingExecuteRemainingRate}%`
+      
+      kpiData.value[2].value = taskStats.value.completedCount
+      kpiData.value[2].trend = `完成率 ${taskStats.value.completionRate}%`
+      
+      kpiData.value[3].value = taskStats.value.overdueCount
+      kpiData.value[3].trend = `逾期 ${taskStats.value.overdueCount}单`
+      
+      console.log('任务统计数据加载成功:', taskStats.value)
+    } else {
+      throw new Error('数据格式错误')
+    }
+  } catch (error) {
+    console.error('获取任务统计数据失败:', error)
+    setDefaultTaskStats()
+    ElMessage.warning('任务统计数据加载失败，使用默认数据')
+  }
+}
+
+// 设置默认任务统计数据
+const setDefaultTaskStats = () => {
+  taskStats.value = {
+    pendingDispatchCount: 24,
+    pendingExecuteCount: 42,
+    pendingExecuteRemainingRate: 32,
+    completedCount: 38,
+    completionRate: 68,
+    overdueCount: 7
+  }
+  
+  kpiData.value[0].value = taskStats.value.pendingDispatchCount
+  kpiData.value[0].trend = `待派发 ${taskStats.value.pendingDispatchCount}单`
+  
+  kpiData.value[1].value = taskStats.value.pendingExecuteCount
+  kpiData.value[1].trend = `剩余 ${taskStats.value.pendingExecuteRemainingRate}%`
+  
+  kpiData.value[2].value = taskStats.value.completedCount
+  kpiData.value[2].trend = `完成率 ${taskStats.value.completionRate}%`
+  
+  kpiData.value[3].value = taskStats.value.overdueCount
+  kpiData.value[3].trend = `逾期 ${taskStats.value.overdueCount}单`
+  
+  console.log('使用默认任务统计数据')
+}
 
 // 更新时间定时器
 let timeInterval = null
@@ -164,13 +302,15 @@ const updateTime = () => {
   currentTime.value = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
 }
 
-// KPI数据
-const kpiData = ref([
-  { icon: 'fas fa-paper-plane', label: '待派发任务', value: '24', unit: '单', trend: '+3 较昨日' },
-  { icon: 'fas fa-play-circle', label: '待执行任务', value: '42', unit: '单', trend: '剩余 32%' },
-  { icon: 'fas fa-check-circle', label: '已完成', value: '38', unit: '单', trend: '完成率 68%' },
-  { icon: 'fas fa-exclamation-triangle', label: '逾期任务数', value: '7', unit: '单', trend: '较昨日+2' }
-])
+// 定时刷新数据
+let refreshInterval = null
+
+const startAutoRefresh = () => {
+  refreshInterval = setInterval(() => {
+    console.log('========== 定时刷新任务统计数据 ==========')
+    fetchTaskStats()
+  }, 30000) // 每30秒刷新一次
+}
 
 // 任务分布
 const taskDistribution = ref([
@@ -183,18 +323,18 @@ const taskDistribution = ref([
 
 // 排名数据
 const rankData = ref([
-  { name: '王兴海', tasks: '32', rate: '100%', time: '2.8h/单', timeColor: '#1f7a48' },
-  { name: '李凤英', tasks: '29', rate: '96%', time: '3.1h/单', timeColor: '#1f7a48' },
-  { name: '赵德柱', tasks: '27', rate: '93%', time: '3.5h/单', timeColor: '#cf5f4a' },
-  { name: '周丽华', tasks: '25', rate: '92%', time: '2.9h/单', timeColor: '#1f7a48' },
-  { name: '吴有才', tasks: '22', rate: '88%', time: '3.3h/单', timeColor: '#1f7a48' }
+  { name: '王*海', tasks: '32', rate: '100%', time: '2.8h/单', timeColor: '#1f7a48' },
+  { name: '李*英', tasks: '29', rate: '96%', time: '3.1h/单', timeColor: '#1f7a48' },
+  { name: '赵*柱', tasks: '27', rate: '93%', time: '3.5h/单', timeColor: '#cf5f4a' },
+  { name: '周*华', tasks: '25', rate: '92%', time: '2.9h/单', timeColor: '#1f7a48' },
+  { name: '吴*才', tasks: '22', rate: '88%', time: '3.3h/单', timeColor: '#1f7a48' }
 ])
 
 // 进度数据
 const progressData = ref([
-  { name: '地块 A1灌溉', progress: 80 },
+  { name: '地块 A1灌溉', progress: 37 },
   { name: '地块 B3施肥', progress: 45 },
-  { name: '地块 C2防控', progress: 100 },
+  { name: '地块 C2防控', progress: 78 },
   { name: '地块 D7修剪', progress: 62 }
 ])
 
@@ -212,6 +352,12 @@ onMounted(() => {
   // 每秒更新一次时间
   timeInterval = setInterval(updateTime, 1000)
   
+  // 获取任务统计数据
+  fetchTaskStats()
+  
+  // 启动自动刷新
+  startAutoRefresh()
+  
   console.log('农事任务调度管理页面加载')
 })
 
@@ -219,6 +365,9 @@ onUnmounted(() => {
   // 组件卸载时清除定时器，防止内存泄漏
   if (timeInterval) {
     clearInterval(timeInterval)
+  }
+  if (refreshInterval) {
+    clearInterval(refreshInterval)
   }
 })
 </script>

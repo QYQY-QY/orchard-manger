@@ -11,7 +11,7 @@
           <h1>
             <i class="fas fa-droplet"></i> 水肥精准管控决策
             <span class="region-badge" v-if="regionInfo.regionId">
-              区域{{ regionInfo.regionId }}
+              汤村
             </span>
           </h1>
         </div>
@@ -103,7 +103,7 @@
         <!-- 地块区块卡片 -->
         <div class="plot-grid-card">
           <div class="section-title">
-            <i class="fas fa-th"></i> 地块分布 · 区域{{ regionInfo.regionId }}
+            <i class="fas fa-th"></i> 地块分布 · 汤村
             <span class="plot-count">{{ plotBlocks.length }}个地块</span>
           </div>
           

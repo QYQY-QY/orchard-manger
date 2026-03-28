@@ -8,7 +8,7 @@
 
     <h1>
       <i class="fas fa-tree" style="color: #256b43;"></i>
-      区域{{ region }} · 山地果园AI单株精准管理
+      {{ region }}号果园 · 山地果园AI单株精准管理
       <span class="region-badge" :style="{ backgroundColor: regionColor }">
         {{ regionName }}
       </span>
@@ -258,8 +258,7 @@
             <tr>
               <td class="cat-col">健康株占比趋势</td>
               <td class="data-col">
-                <div class="flex-between"><span>{{ regionData.history.healthTrend.lastYear }}</span> <span>{{
-                  regionData.history.healthTrend.thisYear }}</span></div>
+                <div class="flex-between"></div>
                 <div class="progress">
                   <div class="progress-fill" :style="{ width: regionData.history.healthTrend.thisYearValue + '%' }">
                   </div>
@@ -275,12 +274,12 @@
                 <span class="corr-tag">NDVI-NDWI r=-0.43</span>
               </td>
             </tr>
-            <tr>
+            <!-- <tr>
               <td class="cat-col">年度对比</td>
               <td class="data-col">
                 {{ regionData.history.yearlyComparison }}
               </td>
-            </tr>
+            </tr> -->
           </table>
         </div>
       </div>
@@ -360,7 +359,7 @@
         </div>
       </div>
       <div style="margin-top:24px; border-top:1px dashed #89ba98; padding-top:16px; font-size:0.9rem; color:#386e4b;">
-        <i class="fas fa-seedling"></i> 基于989个多光谱采样点 · 数据更新于2025-04-07
+        <i class="fas fa-seedling"></i> 基于989个多光谱采样点 · 数据更新于2026-03-08
       </div>
     </div>
 
@@ -466,9 +465,9 @@ const region = computed(() => route.query.region || '1')
 // 区域名称映射
 const regionName = computed(() => {
   const names = {
-    '1': '婺城',
-    '2': '金东',
-    '3': '武义'
+    '1': '汤村',
+    '2': '莲村',
+    '3': '桂村'
   }
   return names[region.value] || '未知区域'
 })
@@ -546,7 +545,7 @@ const regionData = computed(() => {
       irrigationProgress: 82,
       controlProgress: 63,
       deviceOnlineRate: 97,
-      collectTime: '2025-04-07 10:23',
+      collectTime: '2026-03-08 10:23',
       pest: {
         spiderMite: 35,
         huanglongbing: 12,
@@ -580,10 +579,10 @@ const regionData = computed(() => {
         completionRate: 68,
         overdue: 7,
         distribution: '灌溉28% 施肥22% 防控18% 修剪20% 采摘12%',
-        performanceRank: '1. 王兴海 (32任务, 100%) 2. 李凤英 (29, 96%) 3. 赵德柱 (27, 93%)',
+        performanceRank: '1. 王*海 (32任务, 100%) 2. 李*英 (29, 96%) 3. 赵*柱 (27, 93%)',
         currentExecution: '实时作业: 修剪组 @C4',
         feedbackPhotos: 42,
-        overdueWarning: '采摘B3逾期2天 · 责任人张茂',
+        overdueWarning: '采摘B3逾期2天 · 责任人张*',
         historyTrend: '近7天完成↑12% · 防控效率+8%'
       },
       history: {
@@ -624,7 +623,7 @@ const regionData = computed(() => {
       irrigationProgress: 78,
       controlProgress: 59,
       deviceOnlineRate: 96,
-      collectTime: '2025-04-07 10:25',
+      collectTime: '2026-03-08 10:23',
       pest: {
         spiderMite: 32,
         huanglongbing: 10,
@@ -702,7 +701,7 @@ const regionData = computed(() => {
       irrigationProgress: 75,
       controlProgress: 56,
       deviceOnlineRate: 95,
-      collectTime: '2025-04-07 10:28',
+      collectTime: '2026-03-08 10:23',
       pest: {
         spiderMite: 28,
         huanglongbing: 8,

@@ -14,7 +14,7 @@
     <div class="header-left"></div>
 
     <div class="header-title">
-      <span class="title-chinese">果园数据大屏</span>
+      <span class="title-chinese">一树一码智慧管理平台</span>
     </div>
 
     <div class="header-right">
