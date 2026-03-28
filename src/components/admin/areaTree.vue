@@ -2,7 +2,7 @@
   <div class="zone-main">
     <!-- 未选择区域提示 -->
     <div class="map-container" v-if="!activeAreaId">
-      <div class="map-tips">请先选择或添加区域</div>
+      <div class="map-tips">请先选择或</div>
     </div>
 
     <!-- 选中区域后显示表格 -->
@@ -129,7 +129,11 @@
         </el-table-column>
         <el-table-column label="操作" width="auto">
           <template #default="scope">
-            <el-button size="small" link @click="showTreeDetail(scope.row)">
+            <el-button
+              size="small"
+              link
+              @click="handleShowTreeDetail(scope.row)"
+            >
               查看详情
             </el-button>
             <el-button
@@ -143,7 +147,16 @@
           </template>
         </el-table-column>
       </el-table>
-      <!-- 这里是修复的闭合标签 -->
+      <el-pagination
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        :page-sizes="[10, 20, 50, 100]"
+        :total="total"
+        layout="total, sizes, prev, pager, next, jumper"
+        @size-change="handlePageSizeChange"
+        @current-change="handlePageChange"
+        style="margin-top: 20px; justify-content: flex-end"
+      />
     </div>
 
     <!-- 果树详情弹窗 -->
@@ -484,34 +497,41 @@ const showQRViewer = ref(false);
 const qrViewerUrl = ref("");
 const showTreeDetailDialog = ref(false);
 const currentTree = reactive({});
-
-// 核心修复：适配后端返回的字段结构
+// 分页相关
+const currentPage = ref(1);
+const pageSize = ref(10);
+const total = ref(0);
+// 核心修复：适配后端返回的字段结构 + 分页
 const sortedTreeList = computed(() => {
   // 1. 过滤掉无效数据
   const validTrees = (props.treeList || []).filter((tree) => {
     return tree && tree.id !== undefined && tree.id !== null && tree.id !== "";
   });
 
-  // 2. 打印完整数据，方便排查
-  console.log("原始treeList数据：", props.treeList);
-  console.log("过滤后有效数据：", validTrees);
-
-  // 3. 适配后端返回的字段，保留所有原始数据
-  return validTrees.map((tree) => ({
-    ...tree, // 保留所有原始字段
-    // 字段适配：确保数据格式统一
+  // 3. 字段适配
+  const adaptedTrees = validTrees.map((tree) => ({
+    ...tree,
     id: tree.id || "",
     type: tree.type || "",
     countNum: tree.countNum || "0",
     ripeNum: tree.ripeNum || "0",
-    ripeDegree: tree.ripeDegree || null,
-    healthCondition: tree.healthCondition || null,
-    url: tree.url || null, // 二维码地址使用后端返回的url字段
+    url: tree.url || null,
     areaId: tree.areaId || "",
-    typeId: tree.typeId || "",
     location: tree.location || null,
   }));
+  return adaptedTrees;
 });
+const handlePageChange = (page) => {
+  currentPage.value = page;
+  showTreeDetail();
+};
+
+// 每页条数变化处理
+const handlePageSizeChange = (size) => {
+  pageSize.value = size;
+  currentPage.value = 1; // 重置到第一页
+  showTreeDetail(); // 重新加载数据
+};
 // 格式化成熟度
 // 格式化成熟度显示
 const formatRipeDegree = (countNum, ripeNum) => {
@@ -533,12 +553,51 @@ const getRipeDegreeTagType = (countNum, ripeNum) => {
 };
 
 // 查看果树详情
-const showTreeDetail = async (tree) => {
+const showTreeDetail = async () => {
   try {
-    // 显示加载中
+    if (!props.activeAreaId) {
+      ElMessage.warning("请先选择区域");
+      return;
+    }
+
+    ElMessage.info("加载果树列表中...");
+
+    // 调用分页查询接口
+    const response = await axios.get("/api/fruitTree", {
+      params: {
+        areaId: props.activeAreaId,
+        page: currentPage.value,
+        pageSize: pageSize.value,
+      },
+    });
+
+    if (response.data && response.data.code === 200) {
+      const pageData = response.data.data;
+
+      // 更新总数
+      total.value = pageData.total || 0;
+
+      // 将分页数据转换为前端需要的格式
+      const treeDataList = pageData.records || [];
+
+      // 通知父组件更新树列表数据
+      emit("tree-list-update", props.activeAreaId, treeDataList);
+    } else {
+      ElMessage.error(
+        "获取果树列表失败：" + (response.data?.msg || "未知错误")
+      );
+    }
+  } catch (error) {
+    console.error("获取果树列表失败:", error);
+    ElMessage.error("获取果树列表失败，请稍后重试");
+  }
+};
+
+const handleShowTreeDetail = async (tree) => {
+  try {
     ElMessage.info("加载果树详情中...");
 
-    // 调用新接口获取详情
+    // 调用果树详情接口
     const response = await axios.get(`/api/fruitTree/treeInfo/${tree.id}`);
 
     if (response.data && response.data.code === 200) {
@@ -563,8 +622,11 @@ const showTreeDetail = async (tree) => {
         createTime: treeDetail.createTime,
         updateTime: treeDetail.updateTime,
       });
+
+      // 加载果树评论
       await getTreeComments(tree.id);
 
+      // 打开详情弹窗
       showTreeDetailDialog.value = true;
     } else {
       ElMessage.error(
@@ -576,21 +638,18 @@ const showTreeDetail = async (tree) => {
     ElMessage.error("获取果树详情失败，请稍后重试");
   }
 };
-
 // 删除果树
-const handleDeleteTree = (treeId) => {
-  ElMessageBox.confirm("确定要删除该果树吗？", "提示", {
-    confirmButtonText: "确定",
-    cancelButtonText: "取消",
-    type: "warning",
-  })
-    .then(() => {
-      emit("tree-delete", treeId);
-      ElMessage.success("果树删除成功！");
-    })
-    .catch(() => {
-      ElMessage.info("已取消删除");
+const handleDeleteTree = async (treeId) => {
+  try {
+    await ElMessageBox.confirm("确定要删除该果树吗？", "提示", {
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+      type: "warning",
     });
+    emit("tree-delete", treeId);
+  } catch {
+    ElMessage.info("已取消删除");
+  }
 };
 
 // 批量生成二维码（适配新的字段结构）
@@ -911,7 +970,7 @@ const getHealthStatusType = (healthCondition) => {
   return "warning";
 };
 
-// 监听activeAreaId变化
+// 监听 activeAreaId 变化时重置分页
 watch(
   () => props.activeAreaId,
   (newVal) => {
@@ -920,6 +979,13 @@ watch(
       Object.assign(currentTree, {});
       showQRViewer.value = false;
       commentList.value = [];
+    }
+    // 切换区域时重置分页
+    currentPage.value = 1;
+    total.value = 0;
+    // 自动加载新区域的果树列表
+    if (newVal) {
+      showTreeDetail();
     }
   },
   { immediate: true }

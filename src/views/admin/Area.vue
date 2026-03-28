@@ -145,62 +145,12 @@ const handleTreeListUpdate = async (areaId, newTreeList) => {
     // await axios.post('/api/fruitTree/saveTreeList', { areaId, trees: newTreeList })
 
     console.log("✅ 果树列表更新成功", zoneList.value[zoneIndex].trees);
-    ElMessage.success(`成功更新 ${newTreeList.length} 条果树数据`);
   } catch (error) {
     console.error("❌ 果树列表更新失败", error);
     ElMessage.error("果树列表更新失败：" + error.message);
   }
 };
 
-// 获取指定区域的果树列表
-const getTreeList = async (areaId) => {
-  try {
-    loading.value = true;
-    const response = await axios.get(`/api/fruitTree/area/${areaId}`);
-    if (response.data && response.data.code === 200) {
-      const index = zoneList.value.findIndex((zone) => zone.id === areaId);
-      if (index > -1) {
-        // 保留原始返回的所有字段，重点：二维码字段是url
-        zoneList.value[index].trees = response.data.data || [];
-        console.log("果树列表加载成功：", {
-          areaId,
-          数据: zoneList.value[index].trees,
-          // 修正：打印url字段（后端返回的二维码地址）
-          二维码字段: zoneList.value[index].trees.map((t) => ({
-            id: t.id,
-            url: t.url,
-          })),
-        });
-        const firstTree = response.data.data[0];
-        if (firstTree) {
-          zoneList.value[index] = {
-            ...zoneList.value[index],
-            areaManagerName: firstTree.areaManagerName,
-            type: firstTree.type,
-            // 其他区域信息
-          };
-        }
-      }
-    } else {
-      const index = zoneList.value.findIndex((zone) => zone.id === areaId);
-      if (index > -1) {
-        zoneList.value[index].trees = [];
-      }
-      ElMessage.error(
-        "获取果树列表失败：" + (response.data?.msg || "未知错误")
-      );
-    }
-  } catch (error) {
-    const index = zoneList.value.findIndex((zone) => zone.id === areaId);
-    if (index > -1) {
-      zoneList.value[index].trees = [];
-    }
-    console.error("获取果树列表失败：", error);
-    ElMessage.error("获取果树列表失败，请稍后重试");
-  } finally {
-    loading.value = false;
-  }
-};
 // 获取所有区域列表
 const getZoneList = async () => {
   try {
@@ -263,8 +213,11 @@ const getZoneList = async () => {
 };
 
 // 处理果树删除
-const handleTreeDelete = (treeId) => {
+const handleTreeDelete = async (treeId) => {
   try {
+    const response = await axios.delete(`/api/fruitTree/${treeId}`, {
+      headers: { "Content-Type": "application/json" },
+    });
     const zoneIndex = zoneList.value.findIndex(
       (zone) => zone.id === activeAreaId.value
     );
