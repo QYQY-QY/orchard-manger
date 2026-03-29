@@ -58,7 +58,6 @@
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import * as echarts from 'echarts'
 import axios from 'axios'
-import { ElMessage } from 'element-plus'
 
 const props = defineProps({
   overviewData: {
@@ -560,14 +559,6 @@ const updatePieChart = () => {
     container.style.transformStyle = 'preserve-3d'
   }
 }
-
-// 监听父组件传递的数据（不再需要，因为现在从接口直接获取）
-// watch(() => props.overviewData, (newData) => {
-//   if (newData) {
-//     alertData.value.huanglongbing = newData.suspectedHuanglongbing || 0
-//     alertData.value.redSpiderAreas = newData.redSpiderOutbreakAreas || 0
-//   }
-// }, { immediate: true })
 
 // 窗口大小变化时调整图表
 const handleResize = () => {

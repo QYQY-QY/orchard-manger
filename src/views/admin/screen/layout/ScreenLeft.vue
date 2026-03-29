@@ -13,6 +13,7 @@
             :class="{ 'error': statCards[0].value.includes('失败') || statCards[0].value.includes('无') }">
             {{ statCards[0].value }}
           </div>
+          
           <div class="card-label">{{ statCards[0].label }}</div>
         </div>
 
@@ -69,7 +70,6 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import axios from 'axios'
 import { useUserStore } from '@/stores/modules/user'
-import { ElMessage } from 'element-plus'
 
 const userStore = useUserStore()
 const orchardId = computed(() => userStore.user?.orchardId)
@@ -448,6 +448,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* 样式保持不变 */
 .screen-left {
   position: relative;
   width: 100%;
