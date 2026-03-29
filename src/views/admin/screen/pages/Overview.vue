@@ -21,31 +21,31 @@
       </div>
     </div>
 
-    <!-- KPI 核心卡片 -->
+    <!-- KPI 核心卡片 - 动态数据 -->
     <div class="kpi-row">
       <div class="kpi-card">
         <div class="kpi-label"><i class="fas fa-tree"></i> 果园总株数</div>
-        <div class="kpi-value">12,850 <span class="sub-value">株</span></div>
+        <div class="kpi-value">{{ kpiData.totalTrees }} <span class="sub-value">株</span></div>
         <div class="trend up"><i class="fas fa-arrow-up"></i> +2.1% 同比</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label"><i class="fas fa-qrcode"></i> 一树一码覆盖率</div>
-        <div class="kpi-value">98.6%</div>
+        <div class="kpi-value">{{ kpiData.coverageRate }}%</div>
         <div class="trend up"><i class="fas fa-arrow-up"></i> +1.8%</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label"><i class="fas fa-heartbeat"></i> 健康株占比</div>
-        <div class="kpi-value">94.2%</div>
+        <div class="kpi-value">{{ kpiData.healthRate }}%</div>
         <div class="trend up"><i class="fas fa-arrow-up"></i> +0.7%</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label"><i class="fas fa-exclamation-triangle"></i> 实时异常株数</div>
-        <div class="kpi-value">87 <span class="sub-value">株</span></div>
+        <div class="kpi-value">{{ kpiData.abnormalTrees }} <span class="sub-value">株</span></div>
         <div class="trend down"><i class="fas fa-arrow-down"></i> -12 昨日</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label"><i class="fas fa-bell"></i> 当日预警数</div>
-        <div class="kpi-value">23</div>
+        <div class="kpi-value">{{ kpiData.todayAlerts }}</div>
         <div class="trend up"><i class="fas fa-chart-line"></i> 周均0.7%</div>
       </div>
     </div>
@@ -73,18 +73,18 @@
           <span class="drill-hint"><i class="fas fa-mouse-pointer"></i> 支持钻取至病虫害/水肥屏</span>
         </div>
         <div class="stats-row">
-          <span>🌿 平均NDVI: 0.72</span>
-          <span>📊 健康分区: 优78% · 良15% · 差7%</span>
+          <span>🌿 平均NDVI: {{ ndviStats.avgNDVI }}</span>
+          <span>📊 健康分区: 优{{ ndviStats.excellent }}% · 良{{ ndviStats.good }}% · 差{{ ndviStats.poor }}%</span>
         </div>
       </div>
 
-      <!-- 右侧: 预警卡片 -->
+      <!-- 右侧: 预警卡片 - 动态数据 -->
       <div class="right-stats">
         <!-- 实时预警卡片 -->
         <div class="alert-card">
           <div class="alert-header"><i class="fas fa-exclamation-circle"></i> 高危预警 · 待处理</div>
           <div class="alert-list">
-            <div v-for="(alert, index) in alerts" :key="index" class="alert-item" :style="{ borderLeftColor: alert.color }">
+            <div v-for="(alert, index) in alertList" :key="index" class="alert-item" :style="{ borderLeftColor: alert.color }">
               <span class="blink-dot" :style="{ background: alert.dotColor }"></span>
               <span style="font-weight:600;">{{ alert.title }}</span>
               <span>{{ alert.locations }}</span>
@@ -92,7 +92,7 @@
             </div>
           </div>
           <div class="alert-footer">
-            <i class="fas fa-clock"></i> 待处理状态: 18株未处置 · 更新于{{ currentTime }}
+            <i class="fas fa-clock"></i> 待处理状态: {{ pendingCount }}株未处置 · 更新于{{ currentTime }}
           </div>
         </div>
       </div>
@@ -106,7 +106,7 @@
 
     <!-- 微标注 -->
     <div class="data-footer">
-      <i class="fas fa-clipboard-list"></i> 数据依据: 总株12850 · 覆盖率98.6% · 健康94.2% · 异常87 · 预警23 · 周均0.7% · NDVI热力·预警闪烁
+      <i class="fas fa-clipboard-list"></i> 数据依据: 总株{{ kpiData.totalTrees }} · 覆盖率{{ kpiData.coverageRate }}% · 健康{{ kpiData.healthRate }}% · 异常{{ kpiData.abnormalTrees }} · 预警{{ kpiData.todayAlerts }} · 周均0.7% · NDVI热力·预警闪烁
     </div>
   </div>
 </template>
@@ -114,6 +114,8 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import axios from 'axios'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 const route = useRoute()
@@ -137,6 +139,54 @@ const regionInfo = ref({
   name: '运营总监'
 })
 
+// KPI数据
+const kpiData = ref({
+  totalTrees: 0,
+  coverageRate: 98.6,
+  healthRate: 0,
+  abnormalTrees: 0,
+  todayAlerts: 0
+})
+
+// NDVI统计数据
+const ndviStats = ref({
+  avgNDVI: '0.72',
+  excellent: 78,
+  good: 15,
+  poor: 7
+})
+
+// 预警列表数据
+const alertList = ref([
+  {
+    title: '黄龙病疑似',
+    locations: '0株',
+    level: '高危',
+    color: '#cc5f36',
+    dotColor: '#e8604a',
+    tagColor: '#ca623b'
+  },
+  {
+    title: '红蜘蛛爆发',
+    locations: '0株',
+    level: '中危',
+    color: '#e68a2e',
+    dotColor: '#e68a2e',
+    tagColor: '#ca8b3a'
+  },
+  {
+    title: '缺水胁迫',
+    locations: '0株',
+    level: '轻微',
+    color: '#e68a2e',
+    dotColor: '#e68a2e',
+    tagColor: '#3b8f5c'
+  }
+])
+
+// 待处理总数
+const pendingCount = ref(0)
+
 // 获取区域负责人信息
 const getRegionInfo = () => {
   const region = route.query.region
@@ -149,7 +199,6 @@ const getRegionInfo = () => {
       name: REGION_NAMES[region] || regionName || `区域${regionId || region}`
     }
   } else if (regionName) {
-    // 如果有区域名称但没有匹配到负责人，尝试根据名称匹配
     const matchedRegion = Object.entries(REGION_NAMES).find(([_, name]) => name === regionName)
     if (matchedRegion) {
       regionInfo.value = {
@@ -163,11 +212,262 @@ const getRegionInfo = () => {
       }
     }
   } else {
-    // 默认值
     regionInfo.value = {
       manager: '园区负责人',
       name: '运营总监'
     }
+  }
+}
+
+// 获取果树健康统计数据
+const fetchFruitTreeHealth = async () => {
+  try {
+    console.log('========== 开始获取果树健康统计数据 ==========')
+    
+    const apiPaths = [
+      '/api/fruitTree/countIllness',
+      '/fruitTree/countIllness',
+      '/api/fruitTree/countIllness/'
+    ]
+    
+    let response = null
+    let successPath = null
+    
+    for (const path of apiPaths) {
+      try {
+        console.log(`尝试路径: ${path}`)
+        response = await axios.get(path, {
+          params: { _t: Date.now() },
+          headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
+          timeout: 10000
+        })
+        
+        if (response.status === 200 && response.data) {
+          if (typeof response.data === 'string' && response.data.includes('<!DOCTYPE html>')) {
+            console.log(`路径 ${path} 返回HTML，跳过`)
+            continue
+          }
+          successPath = path
+          console.log(`✅ 成功路径: ${path}`)
+          break
+        }
+      } catch (e) {
+        console.log(`路径 ${path} 失败:`, e.message)
+        continue
+      }
+    }
+    
+    if (!response || !successPath) {
+      throw new Error('所有路径都失败')
+    }
+    
+    console.log('果树健康接口响应:', response.data)
+    
+    let healthData = null
+    
+    if (response.data && response.data.code === 200 && response.data.data) {
+      healthData = response.data.data
+    } else if (response.data && response.data.data && response.data.data.healthTree !== undefined) {
+      healthData = response.data.data
+    } else if (response.data && response.data.healthTree !== undefined) {
+      healthData = response.data
+    }
+    
+    if (healthData && (healthData.healthTree !== undefined || healthData.health !== undefined)) {
+      const totalTrees = (healthData.healthTree || 0) + (healthData.disasterTree || 0)
+      const abnormalTrees = healthData.disasterTree || 0
+      
+      // 计算健康株占比
+      let healthPercent = 0
+      if (totalTrees > 0) {
+        healthPercent = ((healthData.healthTree || 0) / totalTrees * 100).toFixed(1)
+      } else {
+        healthPercent = healthData.health || 0
+      }
+      
+      kpiData.value.totalTrees = totalTrees
+      kpiData.value.healthRate = parseFloat(healthPercent)
+      kpiData.value.abnormalTrees = abnormalTrees
+      
+      console.log('果树健康数据加载成功:', {
+        totalTrees,
+        healthRate: healthPercent,
+        abnormalTrees
+      })
+    } else {
+      throw new Error('数据格式错误')
+    }
+  } catch (error) {
+    console.error('获取果树健康数据失败:', error)
+    // 使用默认数据
+    kpiData.value.totalTrees = 12850
+    kpiData.value.healthRate = 94.2
+    kpiData.value.abnormalTrees = 87
+    ElMessage.warning('果树健康数据加载失败，使用默认数据')
+  }
+}
+
+// 获取病虫害统计数据
+const fetchDisasterCount = async () => {
+  try {
+    console.log('========== 开始获取病虫害统计数据 ==========')
+    
+    const apiPaths = [
+      '/api/disaster/getDisasterCount',
+      '/disaster/getDisasterCount',
+      '/api/disaster/getDisasterCount/'
+    ]
+    
+    let response = null
+    let successPath = null
+    
+    for (const path of apiPaths) {
+      try {
+        console.log(`尝试路径: ${path}`)
+        response = await axios.get(path, {
+          params: { _t: Date.now() },
+          headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
+          timeout: 10000
+        })
+        
+        if (response.status === 200 && response.data) {
+          if (typeof response.data === 'string' && response.data.includes('<!DOCTYPE html>')) {
+            console.log(`路径 ${path} 返回HTML，跳过`)
+            continue
+          }
+          successPath = path
+          console.log(`✅ 成功路径: ${path}`)
+          break
+        }
+      } catch (e) {
+        console.log(`路径 ${path} 失败:`, e.message)
+        continue
+      }
+    }
+    
+    if (!response || !successPath) {
+      throw new Error('所有路径都失败')
+    }
+    
+    console.log('病虫害接口响应:', response.data)
+    
+    let disasterMap = null
+    
+    if (response.data && response.data.code === 200 && response.data.data) {
+      disasterMap = response.data.data
+    } else if (response.data && typeof response.data === 'object' && !response.data.code) {
+      disasterMap = response.data
+    } else if (response.data && response.data.data) {
+      disasterMap = response.data.data
+    }
+    
+    if (disasterMap && typeof disasterMap === 'object') {
+      // 获取各类病虫害数量
+      const huanglongbingCount = disasterMap['黄龙病'] || 0
+      const redSpiderCount = disasterMap['红蜘蛛'] || 0
+      const anthracnoseCount = disasterMap['炭疽病'] || 0
+      const aphidCount = disasterMap['蚜虫'] || 0
+      const cankerCount = disasterMap['溃疡病'] || 0
+      
+      // 更新预警列表
+      alertList.value[0].locations = huanglongbingCount + '株'
+      alertList.value[1].locations = redSpiderCount + '株'
+      
+      // 计算待处理总数（所有病虫害总和）
+      const totalDisasters = huanglongbingCount + redSpiderCount + anthracnoseCount + aphidCount + cankerCount
+      pendingCount.value = totalDisasters
+      
+      // 更新当日预警数（使用病虫害总数作为预警数）
+      kpiData.value.todayAlerts = totalDisasters
+      
+      console.log('病虫害数据加载成功:', {
+        huanglongbing: huanglongbingCount,
+        redSpider: redSpiderCount,
+        totalDisasters
+      })
+    } else {
+      throw new Error('数据格式错误')
+    }
+  } catch (error) {
+    console.error('获取病虫害数据失败:', error)
+    // 使用默认数据
+    alertList.value[0].locations = '12株'
+    alertList.value[1].locations = '8株'
+    pendingCount.value = 23
+    kpiData.value.todayAlerts = 23
+    ElMessage.warning('病虫害数据加载失败，使用默认数据')
+  }
+}
+
+// 获取任务统计数据（用于预警中的待处理任务数）
+const fetchTaskStats = async () => {
+  try {
+    console.log('========== 开始获取任务统计数据 ==========')
+    
+    const apiPaths = [
+      '/api/task/countByStatus',
+      '/task/countByStatus',
+      '/api/task/countByStatus/'
+    ]
+    
+    let response = null
+    let successPath = null
+    
+    for (const path of apiPaths) {
+      try {
+        console.log(`尝试路径: ${path}`)
+        response = await axios.get(path, {
+          params: { _t: Date.now() },
+          headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
+          timeout: 10000
+        })
+        
+        if (response.status === 200 && response.data) {
+          if (typeof response.data === 'string' && response.data.includes('<!DOCTYPE html>')) {
+            console.log(`路径 ${path} 返回HTML，跳过`)
+            continue
+          }
+          successPath = path
+          console.log(`✅ 成功路径: ${path}`)
+          break
+        }
+      } catch (e) {
+        console.log(`路径 ${path} 失败:`, e.message)
+        continue
+      }
+    }
+    
+    if (!response || !successPath) {
+      throw new Error('所有路径都失败')
+    }
+    
+    console.log('任务统计接口响应:', response.data)
+    
+    let statsData = null
+    
+    if (response.data && response.data.code === 200 && response.data.data) {
+      statsData = response.data.data
+    } else if (response.data && typeof response.data === 'object' && !response.data.code) {
+      statsData = response.data
+    } else if (response.data && response.data.data) {
+      statsData = response.data.data
+    }
+    
+    if (statsData) {
+      // 待处理任务数 = 待派发 + 待执行
+      const pendingTasks = (statsData.pendingDispatchCount || 0) + (statsData.pendingExecuteCount || 0)
+      
+      // 如果已经有病虫害数据，则合并显示
+      if (pendingCount.value > 0) {
+        // 保持原有逻辑，不做覆盖
+        console.log('任务统计中的待处理任务:', pendingTasks)
+      }
+    } else {
+      throw new Error('数据格式错误')
+    }
+  } catch (error) {
+    console.error('获取任务统计数据失败:', error)
+    // 静默失败，不影响主要数据显示
   }
 }
 
@@ -181,6 +481,7 @@ const currentTime = ref('')
 
 // 更新时间定时器
 let timeInterval = null
+let refreshInterval = null
 
 // 更新时间的函数
 const updateTime = () => {
@@ -194,35 +495,17 @@ const updateTime = () => {
   currentTime.value = `${year}-${month}-${day} ${hours}:${minutes}`
 }
 
-// 预警数据
-const alerts = ref([
-  {
-    title: '黄龙病疑似',
-    locations: '12株',
-    level: '高危',
-    color: '#cc5f36',
-    dotColor: '#e8604a',
-    tagColor: '#ca623b'
-  },
-  {
-    title: '红蜘蛛爆发',
-    locations: '8株',
-    level: '中危',
-    color: '#e68a2e',
-    dotColor: '#e68a2e',
-    tagColor: '#ca8b3a'
-  },
-  {
-    title: '缺水胁迫',
-    locations: '3株',
-    level: '轻微',
-    color: '#e68a2e',
-    dotColor: '#e68a2e',
-    tagColor: '#3b8f5c'
-  }
-])
+// 定时刷新数据
+const startAutoRefresh = () => {
+  refreshInterval = setInterval(() => {
+    console.log('========== 定时刷新宏观总览数据 ==========')
+    fetchFruitTreeHealth()
+    fetchDisasterCount()
+    fetchTaskStats()
+  }, 30000)
+}
 
-// NDVI颜色类
+// NDVI颜色类（模拟数据）
 const ndviClasses = [
   'ndvi-high', 'ndvi-high', 'ndvi-high', 'ndvi-mid', 'ndvi-warning',
   'ndvi-high', 'ndvi-high', 'ndvi-mid', 'ndvi-mid', 'ndvi-high',
@@ -258,7 +541,7 @@ const getPlotLabel = (index) => {
   return `${row}${col}`
 }
 
-onMounted(() => {
+onMounted(async () => {
   // 获取区域负责人信息
   getRegionInfo()
   
@@ -267,12 +550,24 @@ onMounted(() => {
   
   // 每分钟更新一次时间（只显示到分钟，不需要秒）
   timeInterval = setInterval(updateTime, 60000)
+  
+  // 并行加载所有数据
+  await Promise.all([
+    fetchFruitTreeHealth(),
+    fetchDisasterCount(),
+    fetchTaskStats()
+  ])
+  
+  // 启动自动刷新
+  startAutoRefresh()
 })
 
 onUnmounted(() => {
-  // 组件卸载时清除定时器，防止内存泄漏
   if (timeInterval) {
     clearInterval(timeInterval)
+  }
+  if (refreshInterval) {
+    clearInterval(refreshInterval)
   }
 })
 </script>
@@ -298,7 +593,7 @@ body {
 .macro-dashboard {
   max-width: 1440px;
   width: 100%;
-  margin: 0 auto; /* 水平居中 */
+  margin: 0 auto;
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);

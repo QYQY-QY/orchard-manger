@@ -58,7 +58,6 @@
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import * as echarts from 'echarts'
 import axios from 'axios'
-import { ElMessage } from 'element-plus'
 
 const props = defineProps({
   overviewData: {
@@ -182,7 +181,7 @@ const fetchDisasterCount = async () => {
   } catch (error) {
     console.error('获取病虫害数据失败:', error)
     setDefaultDisasterData()
-    ElMessage.warning('病虫害数据加载失败，使用默认数据')
+    // 移除弹窗提示：ElMessage.warning('病虫害数据加载失败，使用默认数据')
   }
 }
 
@@ -317,7 +316,7 @@ const fetchTaskStats = async () => {
   } catch (error) {
     console.error('获取任务统计数据失败:', error)
     setDefaultTaskStats()
-    ElMessage.warning('任务统计数据加载失败，使用默认数据')
+    // 移除弹窗提示：ElMessage.warning('任务统计数据加载失败，使用默认数据')
   }
 }
 
@@ -560,14 +559,6 @@ const updatePieChart = () => {
     container.style.transformStyle = 'preserve-3d'
   }
 }
-
-// 监听父组件传递的数据（不再需要，因为现在从接口直接获取）
-// watch(() => props.overviewData, (newData) => {
-//   if (newData) {
-//     alertData.value.huanglongbing = newData.suspectedHuanglongbing || 0
-//     alertData.value.redSpiderAreas = newData.redSpiderOutbreakAreas || 0
-//   }
-// }, { immediate: true })
 
 // 窗口大小变化时调整图表
 const handleResize = () => {
