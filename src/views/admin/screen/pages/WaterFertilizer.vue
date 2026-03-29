@@ -273,6 +273,7 @@ const showPreview = ref(false)
 // 弹窗相关
 const showResultModal = ref(false)
 const analysisImages = ref([])
+//当前地块分析数据
 const currentAnalysisData = ref({})
 const selectedBlockId = ref('')
 const modalTitle = ref('多光谱分析结果')
@@ -368,17 +369,17 @@ const extractImageUrls = (analysisItem) => {
 }
 
 /**
- * 从接口获取地块分析数据
+ * ————————————————————————————
+ * 从接口获取地块详细水肥分析数据
+ * ————————————————————————————
  */
 const fetchPlotAnalysisData = async (blockId) => {
   try {
     const areaId = blockId.split('-')[0] || regionInfo.value.regionId
     const currentOrchardId = orchardId.value
     
+    //调用地块水肥分析报告接口，将报告渲染到水肥页面中
     const apiUrl = `/api/AI/getAnalyze/${currentOrchardId}/${areaId}`
-    
-    console.log(`========== 开始请求分析数据 ==========`)
-    console.log(`请求URL: ${apiUrl}`)
     
     const response = await axios.get(apiUrl, {
       timeout: 30000
