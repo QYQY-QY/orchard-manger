@@ -131,7 +131,7 @@ const lngLatToPosition = (lng, lat) => {
 
 
 //————————————————————————————
-//——————3d场景搭建——————
+//——————3d场景初始化搭建——————
 //—————————————————————————————
 
 //初始化three.js创建
@@ -140,21 +140,21 @@ const initScene = () => {
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x0a1a2a);
 
-  //创建透视相机
+  //##创建透视相机，调整3d模型视角
   camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
   // 相机初始位置：斜上方俯视整个3D地图
   camera.position.set(0, 28, 40);
   // 相机看向地图中心点
   camera.lookAt(0, 6, 0);
 
-  // 创建 WebGL 渲染器，让3D画面画到屏幕上
+  // ##创建 WebGL 渲染器，让3D画面画到屏幕上
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
   //设置像素比是设备的像素比，防止画布模糊
   renderer.setPixelRatio(window.devicePixelRatio);
   mapContainer.value.appendChild(renderer.domElement);
 
-  //2D标签渲染器，合作社村庄的文字描述
+  //##css2D标签渲染器，合作社村庄的文字描述
   labelRenderer = new CSS2DRenderer();
   labelRenderer.setSize(window.innerWidth, window.innerHeight);
   labelRenderer.domElement.style.position = 'absolute';
