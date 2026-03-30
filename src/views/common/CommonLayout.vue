@@ -45,6 +45,13 @@
             <span>任务管理</span>
           </el-menu-item>
 
+          <el-menu-item index="/adminReport">
+            <el-icon>
+              <Document />
+            </el-icon>
+            <span>上报管理</span>
+          </el-menu-item>
+
           <el-menu-item index="/adminAccount">
             <el-icon>
               <Promotion />
@@ -271,6 +278,7 @@ import {
   SwitchButton,
   CaretBottom,
   Setting,
+  Document,
 } from "@element-plus/icons-vue";
 
 // 10. 下拉菜单命令处理
