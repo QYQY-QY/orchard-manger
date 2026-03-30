@@ -256,7 +256,7 @@ const fetchTaskStats = async () => {
   } catch (error) {
     console.error('获取任务统计数据失败:', error)
     setDefaultTaskStats()
-    ElMessage.warning('任务统计数据加载失败，使用默认数据')
+    
   }
 }
 

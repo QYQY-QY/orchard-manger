@@ -585,7 +585,7 @@ const handleImageSelect = (e) => {
 const clearSelectedImage = () => {
   console.log("清除选中的图片:", selectedImage.value);
   // if (selectedImage.value?.preview) {
-  //   // ⚠️ 注意：这里释放了预览URL，但这个消息已经在 messages 中了
+  //   // 注意：这里释放了预览URL，但这个消息已经在 messages 中了
   //   // 所以需要在消息中也保存一份
   //   console.log('释放预览URL:', selectedImage.value.preview)
   //   URL.revokeObjectURL(selectedImage.value.preview)

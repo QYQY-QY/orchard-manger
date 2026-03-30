@@ -1,88 +1,45 @@
 <template>
   <div class="zone-sidebar">
     <div class="add-zone" @click="showAddZoneDialog = true">
-      <span>添加区域</span>
-      <el-icon><Plus /></el-icon>
+      <span>添加果园</span>
+      <el-icon>
+        <Plus />
+      </el-icon>
     </div>
     <div class="zone-list" v-if="zoneList.length > 0">
-      <div
-        class="zone-item"
-        v-for="zone in zoneList"
-        :key="zone.id"
-        :class="{ active: activeAreaId === zone.id }"
-        @click="handleZoneSelect(zone.id)"
-      >
-        <div class="zone-name">区域：{{ zone.name }}</div>
+      <div class="zone-item" v-for="zone in zoneList" :key="zone.id" :class="{ active: activeAreaId === zone.id }"
+        @click="handleZoneSelect(zone.id)">
+        <div class="zone-name">果园：{{ zone.name }}</div>
         <div class="zone-remark">{{ zone.description || "无备注" }}</div>
         <!-- 详情/删除按钮 -->
         <div class="zone-actions">
-          <el-button size="mini" link @click.stop="handleZoneDetail(zone)"
-            >详情</el-button
-          >
-          <el-button
-            size="mini"
-            link
-            text-color="danger"
-            @click.stop="handleZoneDelete(zone.id)"
-            >删除</el-button
-          >
+          <el-button size="mini" link @click.stop="handleZoneDetail(zone)">详情</el-button>
+          <el-button size="mini" link text-color="danger" @click.stop="handleZoneDelete(zone.id)">删除</el-button>
         </div>
       </div>
     </div>
     <div class="empty-zone" v-else>
-      <el-empty description="暂无区域，请先添加"></el-empty>
+      <el-empty description="暂无果园，请先添加"></el-empty>
     </div>
 
-    <!-- 添加区域弹窗 -->
-    <el-dialog
-      v-model="showAddZoneDialog"
-      title="添加果园区域"
-      width="800px"
-      center
-    >
-      <el-form
-        :model="zoneForm"
-        :rules="zoneRules"
-        ref="zoneFormRef"
-        label-width="100px"
-        style="margin-top: 30px"
-      >
-        <el-form-item label="区域名称" prop="name">
-          <el-input
-            v-model="zoneForm.name"
-            placeholder="请输入区域名称"
-            maxlength="50"
-            show-word-limit
-          />
+    <!-- 添加果园弹窗 -->
+    <el-dialog v-model="showAddZoneDialog" title="添加果园" width="800px" center>
+      <el-form :model="zoneForm" :rules="zoneRules" ref="zoneFormRef" label-width="100px" style="margin-top: 30px">
+        <el-form-item label="果园名称" prop="name">
+          <el-input v-model="zoneForm.name" placeholder="请输入果园名称" maxlength="50" show-word-limit />
         </el-form-item>
-        <el-form-item label="区域描述" prop="description">
-          <el-input
-            v-model="zoneForm.description"
-            type="textarea"
-            placeholder="请输入区域描述"
-            rows="3"
-            maxlength="200"
-            show-word-limit
-          />
+        <el-form-item label="果园描述" prop="description">
+          <el-input v-model="zoneForm.description" type="textarea" placeholder="请输入果园描述" rows="3" maxlength="200"
+            show-word-limit />
         </el-form-item>
 
-        <el-form-item label="区域负责人" prop="empId">
-          <el-select
-            v-model="zoneForm.empId"
-            placeholder="请选择区域负责人"
-            :loading="farmerLoading"
-            @change="
-              zoneForm.empName =
-                farmerList.find((item) => item.id === zoneForm.empId)?.name ||
-                ''
-            "
-          >
-            <el-option
-              v-for="farmer in farmerList"
-              :key="farmer.id"
-              :label="farmer.name"
-              :value="farmer.id"
-            />
+        <el-form-item label="果园负责人" prop="empId">
+          <el-select v-model="zoneForm.empId" placeholder="请选择果园负责人" :loading="farmerLoading" @change="
+            zoneForm.empName =
+            farmerList.find((item) => item.id === zoneForm.empId)?.name ||
+            ''
+            ">
+            <el-option v-for="farmer in farmerList" :key="farmer.id" :label="farmer.name" :value="farmer.id" />
           </el-select>
         </el-form-item>
 
@@ -95,22 +52,11 @@
           </el-select>
         </el-form-item>
         <el-form-item label="果树数量" prop="fruitCount">
-          <el-input
-            v-model="zoneForm.fruitCount"
-            placeholder="请输入果树数量"
-            type="number"
-            min="1"
-          />
+          <el-input v-model="zoneForm.fruitCount" placeholder="请输入果树数量" type="number" min="1" />
         </el-form-item>
         <el-form-item label="果园ID" prop="orchardId">
-          <el-input
-            v-model="zoneForm.orchardId"
-            placeholder="请输入果园ID"
-            type="number"
-            min="1"
-            :disabled="userStore.user?.orchardId > 0"
-            :value="userStore.user?.orchardId || zoneForm.orchardId"
-          />
+          <el-input v-model="zoneForm.orchardId" placeholder="请输入果园ID" type="number" min="1"
+            :disabled="userStore.user?.orchardId > 0" :value="userStore.user?.orchardId || zoneForm.orchardId" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -120,39 +66,28 @@
     </el-dialog>
 
     <!-- 区域详情弹窗 -->
-    <el-dialog
-      v-model="showDetailDialog"
-      title="区域详情"
-      width="800px"
-      center
-      :close-on-click-modal="false"
-    >
+    <el-dialog v-model="showDetailDialog" title="果园详情" width="800px" center :close-on-click-modal="false">
       <div class="zone-detail-content">
-        <el-descriptions
-          title="基础信息"
-          :column="2"
-          border
-          style="margin-bottom: 20px; width: 100%; table-layout: fixed"
+        <el-descriptions title="基础信息" :column="2" border style="margin-bottom: 20px; width: 100%; table-layout: fixed"
           :label-style="{
             width: '120px',
             textAlign: 'right',
             backgroundColor: '#f5f7fa',
-          }"
-          :content-style="{
+          }" :content-style="{
             width: '120px',
             textAlign: 'left',
             paddingLeft: '20px',
-          }"
-        >
-          <el-descriptions-item label="区域ID">
+          }">
+          <el-descriptions-item label="果园ID">
             {{ currentZone.id }}
           </el-descriptions-item>
-          <el-descriptions-item label="区域名称">
+          <el-descriptions-item label="果园名称">
             {{ currentZone.name }}
           </el-descriptions-item>
           <el-descriptions-item label="果园ID">
             {{ currentZone.orchardId }}
           </el-descriptions-item>
+          <!-- =合作社id -->
           <el-descriptions-item label="果树品种">
             {{ currentZone.type }}
           </el-descriptions-item>
@@ -162,28 +97,26 @@
           <el-descriptions-item label="管理员ID">
             {{ currentZone.empId }}
           </el-descriptions-item>
-          <el-descriptions-item label="区域负责人">
+          <el-descriptions-item label="果园负责人">
             {{ currentZone.empName || currentZone.manager || "未设置" }}
           </el-descriptions-item>
-          <el-descriptions-item label="区域描述">
+          <el-descriptions-item label="果园描述">
             {{ currentZone.description || "无" }}
           </el-descriptions-item>
         </el-descriptions>
 
         <el-descriptions title="果树列表预览" border>
-          <el-descriptions-item label="果树数量"
-            >{{ currentZone.trees.length }} 棵</el-descriptions-item
-          >
+          <el-descriptions-item label="果树数量">{{ currentZone.trees.length }} 棵</el-descriptions-item>
           <el-descriptions-item label="健康率">
             {{
               currentZone.trees.length > 0
                 ? Math.round(
-                    (currentZone.trees.filter(
-                      (t) => t.healthCondition === "健康"
-                    ).length /
-                      currentZone.trees.length) *
-                      100
-                  )
+                  (currentZone.trees.filter(
+                    (t) => t.healthCondition === "健康"
+                  ).length /
+                    currentZone.trees.length) *
+                  100
+                )
                 : 0
             }}%
           </el-descriptions-item>
@@ -191,12 +124,12 @@
             {{
               currentZone.trees.length > 0
                 ? Math.round(
-                    (currentZone.trees.filter(
-                      (t) => t.ripeDegree !== "NaN" && Number(t.ripeDegree) > 0
-                    ).length /
-                      currentZone.trees.length) *
-                      100
-                  )
+                  (currentZone.trees.filter(
+                    (t) => t.ripeDegree !== "NaN" && Number(t.ripeDegree) > 0
+                  ).length /
+                    currentZone.trees.length) *
+                  100
+                )
                 : 0
             }}%
           </el-descriptions-item>
@@ -204,63 +137,28 @@
       </div>
       <template #footer>
         <el-button @click="showDetailDialog = false">关闭</el-button>
-        <el-button type="primary" @click="handleZoneEdit(currentZone)"
-          >编辑信息</el-button
-        >
+        <el-button type="primary" @click="handleZoneEdit(currentZone)">编辑信息</el-button>
       </template>
     </el-dialog>
 
     <!-- 编辑区域弹窗 -->
-    <el-dialog
-      v-model="showEditDialog"
-      title="编辑区域信息"
-      width="800px"
-      center
-      :close-on-click-modal="false"
-    >
-      <el-form
-        :model="editForm"
-        :rules="zoneRules"
-        ref="editFormRef"
-        label-width="100px"
-        style="margin-top: 30px"
-      >
+    <el-dialog v-model="showEditDialog" title="编辑区域信息" width="800px" center :close-on-click-modal="false">
+      <el-form :model="editForm" :rules="zoneRules" ref="editFormRef" label-width="100px" style="margin-top: 30px">
         <el-form-item label="区域名称" prop="name">
-          <el-input
-            v-model="editForm.name"
-            placeholder="请输入区域名称"
-            maxlength="50"
-            show-word-limit
-          />
+          <el-input v-model="editForm.name" placeholder="请输入区域名称" maxlength="50" show-word-limit />
         </el-form-item>
         <el-form-item label="区域描述" prop="description">
-          <el-input
-            v-model="editForm.description"
-            type="textarea"
-            placeholder="请输入区域描述"
-            rows="3"
-            maxlength="200"
-            show-word-limit
-          />
+          <el-input v-model="editForm.description" type="textarea" placeholder="请输入区域描述" rows="3" maxlength="200"
+            show-word-limit />
         </el-form-item>
 
         <el-form-item label="区域负责人" prop="empId">
-          <el-select
-            v-model="editForm.empId"
-            placeholder="请选择区域负责人"
-            :loading="farmerLoading"
-            @change="
-              editForm.empName =
-                farmerList.find((item) => item.id === editForm.empId)?.name ||
-                ''
-            "
-          >
-            <el-option
-              v-for="farmer in farmerList"
-              :key="farmer.id"
-              :label="farmer.name"
-              :value="farmer.id"
-            />
+          <el-select v-model="editForm.empId" placeholder="请选择区域负责人" :loading="farmerLoading" @change="
+            editForm.empName =
+            farmerList.find((item) => item.id === editForm.empId)?.name ||
+            ''
+            ">
+            <el-option v-for="farmer in farmerList" :key="farmer.id" :label="farmer.name" :value="farmer.id" />
           </el-select>
         </el-form-item>
 
@@ -273,21 +171,10 @@
           </el-select>
         </el-form-item>
         <el-form-item label="果树数量" prop="fruitCount">
-          <el-input
-            v-model="editForm.fruitCount"
-            placeholder="请输入果树数量"
-            type="number"
-            min="1"
-          />
+          <el-input v-model="editForm.fruitCount" placeholder="请输入果树数量" type="number" min="1" />
         </el-form-item>
         <el-form-item label="果园ID" prop="orchardId">
-          <el-input
-            v-model="editForm.orchardId"
-            placeholder="请输入果园ID"
-            type="number"
-            min="1"
-            disabled
-          />
+          <el-input v-model="editForm.orchardId" placeholder="请输入果园ID" type="number" min="1" disabled />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -328,10 +215,10 @@ const props = defineProps({
 
 // 定义emit事件
 const emit = defineEmits([
-  "zone-select", // 选择区域
-  "zone-update", // 区域数据更新（添加/编辑/删除）
-  "zone-detail", // 查看区域详情（透传）
-  "zone-info-change", // 区域详情同步
+  "zone-select", 
+  "zone-update", 
+  "zone-detail", 
+  "zone-info-change", 
 ]);
 
 // 初始化用户仓库
@@ -397,8 +284,8 @@ const editForm = reactive({
 });
 // 表单校验规则
 const zoneRules = reactive({
-  name: [{ required: true, message: "请输入区域名称", trigger: "blur" }],
-  description: [{ required: true, message: "请输入区域描述", trigger: "blur" }],
+  name: [{ required: true, message: "请输入果园名称", trigger: "blur" }],
+  description: [{ required: true, message: "请输入果园描述", trigger: "blur" }],
   type: [{ required: true, message: "请选择果树品种", trigger: "change" }],
   fruitCount: [
     { required: true, message: "请输入果树数量", trigger: "blur" },
@@ -524,7 +411,7 @@ const confirmEditZone = async () => {
     const response = await axios.put("/api/area", submitData);
 
     if (response.data && response.data.code === 200) {
-      ElMessage.success("区域信息修改成功！");
+      ElMessage.success("果园信息修改成功！");
       showEditDialog.value = false;
 
       const updatedZone = {
@@ -621,11 +508,10 @@ const confirmAddZone = async () => {
       ElMessage.error("添加失败：" + (response.data?.msg || "未知错误"));
     }
   } catch (error) {
-    console.error("添加区域失败：", error);
+    console.error("添加果园失败：", error);
     if (error.response) {
       ElMessage.error(
-        `添加失败（${error.response.status}）：${
-          error.response.data?.msg || "接口调用失败"
+        `添加失败（${error.response.status}）：${error.response.data?.msg || "接口调用失败"
         }`
       );
     } else {
@@ -661,8 +547,7 @@ const handleZoneDelete = (zoneId) => {
         console.error("删除区域失败详情：", error);
         if (error.response) {
           ElMessage.error(
-            `删除失败（${error.response.status}）：${
-              error.response.data?.msg || "接口调用失败"
+            `删除失败（${error.response.status}）：${error.response.data?.msg || "接口调用失败"
             }`
           );
         } else {
@@ -824,6 +709,7 @@ onMounted(() => {
 .zone-detail-content {
   padding: 10px 0;
 }
+
 .zone-detail-content :deep(.el-descriptions) {
   table-layout: fixed !important;
   width: 90% !important;

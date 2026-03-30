@@ -231,7 +231,7 @@
               collapse-tags
               style="width: 100%"
             >
-              <el-option label="全园" value="0" />
+              <el-option label="全合作社" value="0" />
               <el-option
                 v-for="area in areaList"
                 :key="area.id"
@@ -584,7 +584,7 @@ const fetchAreaList = async () => {
     const currentOrchardId = orchardId.value;
     if (!currentOrchardId || currentOrchardId <= 0) {
       ElMessage.warning(
-        "当前用户未绑定有效果园ID（需大于0），无法获取区域列表"
+        "当前用户未绑定有效果园ID（需大于0），无法获取果园列表"
       );
       areaList.value = [];
       return;
@@ -602,23 +602,23 @@ const fetchAreaList = async () => {
     if (response.data && response.data.code === 200) {
       // 从data中提取区域数据，映射为前端需要的格式
       const areaData = response.data.data || [];
-      console.log("【区域列表】原始数据:", areaData);
+      console.log("【果园列表】原始数据:", areaData);
       areaList.value = areaData
         .map((item) => ({
           id: Number(item.id), // 区域ID（字符串转数字，避免类型问题）
-          name: item.name || "未命名区域", // 区域名称
+          name: item.name || "未命名果园", // 区域名称
         }))
         .filter((item) => item.id && item.name); // 过滤无效数据
-      console.log(
-        "【区域列表】处理后的数据:",
-        JSON.parse(JSON.stringify(areaList.value))
-      );
+      // console.log(
+      //   "【果园列表】处理后的数据:",
+      //   JSON.parse(JSON.stringify(areaList.value))
+      // );
     } else {
-      ElMessage.error(`获取区域列表失败：${response.data?.msg || "未知错误"}`);
+      ElMessage.error(`获取果园列表失败：${response.data?.msg || "未知错误"}`);
       areaList.value = [];
     }
   } catch (error) {
-    console.error("获取区域列表失败详情：", {
+    console.error("获取果园列表失败详情：", {
       url: error.config?.url,
       params: error.config?.params,
       status: error.response?.status,
@@ -628,14 +628,14 @@ const fetchAreaList = async () => {
     // 精准提示错误原因
     if (error.response?.status === 400) {
       ElMessage.error(
-        `获取区域列表失败（400）：参数错误，请确认orchardId=${orchardId.value} 是否有效`
+        `获取果园列表失败（400）：参数错误，请确认orchardId=${orchardId.value} 是否有效`
       );
     } else if (error.response?.status === 404) {
       ElMessage.error(
-        `获取区域列表失败（404）：接口路径/api/area/selectByOrchardId 不存在，请检查后端接口`
+        `获取果园列表失败（404）：接口路径/api/area/selectByOrchardId 不存在，请检查后端接口`
       );
     } else if (error.response?.status === 500) {
-      ElMessage.error(`获取区域列表失败（500）：后端接口报错，请查看后端日志`);
+      ElMessage.error(`获取果园列表失败（500）：后端接口报错，请查看后端日志`);
     } else {
       ElMessage.error(
         `获取区域列表失败（${error.response?.status || "网络错误"}）`
@@ -879,6 +879,7 @@ const handlePublish = async () => {
       taskTitle: publishForm.value.taskTitle, // 任务标题
       taskType: publishForm.value.taskType, // 任务类型（数字）
       salary: publishForm.value.salary || null,
+      reportId: route.query.reportId || null, // 可选：关联的上报 ID（如果有）
     };
 
     console.log("发布任务提交参数：", submitData);
@@ -1222,8 +1223,8 @@ const checkRouteParams = () => {
 
           if (foundArea) {
             publishForm.value.taskScope = [Number(numericAreaId)];
-            console.log("✅ 自动填充区域成功:", numericAreaId);
-            console.log("当前表单的 taskScope:", publishForm.value.taskScope);
+            // console.log("✅ 自动填充区域成功:", numericAreaId);
+            // console.log("当前表单的 taskScope:", publishForm.value.taskScope);
 
             // 根据 areaId 查找对应的负责人
             const areaManager = employeeList.value.find((emp) => {

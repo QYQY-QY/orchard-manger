@@ -13,6 +13,7 @@
             :class="{ 'error': statCards[0].value.includes('失败') || statCards[0].value.includes('无') }">
             {{ statCards[0].value }}
           </div>
+          
           <div class="card-label">{{ statCards[0].label }}</div>
         </div>
 
@@ -207,7 +208,6 @@ const fetchFruitTreeHealth = async () => {
   } catch (error) {
     console.error('获取果树健康数据失败:', error)
     setDefaultHealthData()
-    // 移除弹窗提示：ElMessage.warning('果树健康数据加载失败，使用默认数据')
   }
 }
 
@@ -320,7 +320,7 @@ const fetchTaskProgress = async () => {
   } catch (error) {
     console.error('获取农事任务数据失败:', error)
     setDefaultTaskProgress()
-    // 移除弹窗提示：ElMessage.warning('农事任务数据加载失败，使用默认数据')
+   
   }
 }
 
@@ -406,7 +406,7 @@ const fetchDisasterCount = async () => {
   } catch (error) {
     console.error('获取病虫害数据失败:', error)
     disasterData.value = []
-    // 移除弹窗提示：ElMessage.warning('病虫害数据加载失败，使用默认数据')
+    
     disasterData.value = [
       { name: '溃疡病', value: 14 },
       { name: '黄龙病', value: 6 },
