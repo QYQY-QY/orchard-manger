@@ -181,7 +181,7 @@ const fetchDisasterCount = async () => {
   } catch (error) {
     console.error('获取病虫害数据失败:', error)
     setDefaultDisasterData()
-    // 移除弹窗提示：ElMessage.warning('病虫害数据加载失败，使用默认数据')
+    
   }
 }
 
@@ -316,7 +316,7 @@ const fetchTaskStats = async () => {
   } catch (error) {
     console.error('获取任务统计数据失败:', error)
     setDefaultTaskStats()
-    // 移除弹窗提示：ElMessage.warning('任务统计数据加载失败，使用默认数据')
+   
   }
 }
 
