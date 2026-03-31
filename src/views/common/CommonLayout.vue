@@ -22,7 +22,7 @@
 
         <!-- 普通管理员 (admin) 菜单 -->
         <template v-if="realRole === 'admin'">
-          <el-menu-item index="/Adminindex">
+          <el-menu-item index="Adminindex">
             <el-icon>
               <Promotion />
             </el-icon>
@@ -30,36 +30,35 @@
           </el-menu-item>
 
           <!-- 果园管理（普通管理员版） -->
-
-          <el-menu-item index="/adminarea">
+          <el-menu-item index="adminarea">
             <el-icon>
               <User />
             </el-icon>
             <span>区域划分</span>
           </el-menu-item>
 
-          <el-menu-item index="/adminMission">
+          <el-menu-item index="adminMission">
             <el-icon>
               <Promotion />
             </el-icon>
             <span>任务管理</span>
           </el-menu-item>
 
-          <el-menu-item index="/adminReport">
+          <el-menu-item index="adminReport">
             <el-icon>
               <Document />
             </el-icon>
             <span>上报管理</span>
           </el-menu-item>
 
-          <el-menu-item index="/adminAccount">
+          <el-menu-item index="adminAccount">
             <el-icon>
               <Promotion />
             </el-icon>
             <span>账号管理</span>
           </el-menu-item>
 
-          <el-sub-menu index="/superadmin-orchardmanage">
+          <el-sub-menu index="superadmin-orchardmanage">
             <template #title>
               <el-icon>
                 <UserFilled />
@@ -67,13 +66,13 @@
               <span>招聘管理</span>
             </template>
 
-            <el-menu-item index="/adminrecruitment">
+            <el-menu-item index="adminrecruitment">
               <el-icon>
                 <Promotion />
               </el-icon>
               <span>人员招聘</span>
             </el-menu-item>
-            <el-menu-item index="/adminreview">
+            <el-menu-item index="adminreview">
               <el-icon>
                 <Promotion />
               </el-icon>
@@ -81,7 +80,7 @@
             </el-menu-item>
           </el-sub-menu>
 
-          <el-menu-item index="/AiChat">
+          <el-menu-item index="AiChat">
             <el-icon>
               <Promotion />
             </el-icon>
@@ -91,7 +90,7 @@
 
         <!-- 超级管理员 (superAdmin) 菜单 -->
         <template v-else-if="realRole === 'superAdmin'">
-          <el-menu-item index="/Adminindex">
+          <el-menu-item index="Adminindex">
             <el-icon>
               <Promotion />
             </el-icon>
@@ -99,36 +98,59 @@
           </el-menu-item>
 
           <!-- 果园管理（超级管理员版） -->
-          <el-menu-item index="/superOrchard">
+          <el-menu-item index="superOrchard">
             <el-icon>
               <Promotion />
             </el-icon>
             <span>果园详情</span>
           </el-menu-item>
 
-          <el-menu-item index="/SuperNotice">
+          <el-menu-item index="SuperNotice">
             <el-icon>
               <Promotion />
             </el-icon>
             <span>通知管理</span>
           </el-menu-item>
 
-          <el-menu-item index="/SuperAccount">
+          <el-menu-item index="SuperAccount">
             <el-icon>
               <Promotion />
             </el-icon>
             <span>账号全局管理</span>
           </el-menu-item>
 
-          <el-menu-item index="/SuperAi">
+          <el-menu-item index="SuperAi">
             <el-icon>
               <Promotion />
             </el-icon>
             <span>AI助手</span>
           </el-menu-item>
 
+          <!-- 招聘管理（超级管理员版） -->
+          <el-sub-menu index="superadmin-recruitment">
+            <template #title>
+              <el-icon>
+                <UserFilled />
+              </el-icon>
+              <span>招聘管理</span>
+            </template>
+
+            <el-menu-item index="adminrecruitment">
+              <el-icon>
+                <Promotion />
+              </el-icon>
+              <span>人员招聘</span>
+            </el-menu-item>
+            <el-menu-item index="adminreview">
+              <el-icon>
+                <Promotion />
+              </el-icon>
+              <span>招聘审核</span>
+            </el-menu-item>
+          </el-sub-menu>
+
           <!-- 超级管理员专属菜单 -->
-          <el-menu-item index="/sys">
+          <el-menu-item index="sys">
             <el-icon>
               <Setting />
             </el-icon>
@@ -137,8 +159,7 @@
         </template>
 
         <!-- 个人中心（所有角色都显示） -->
-
-        <el-menu-item :index="realRole === 'superAdmin' ? '/sys' : '/sys'">
+        <el-menu-item index="sys">
           <el-icon>
             <User />
           </el-icon>
@@ -146,7 +167,7 @@
         </el-menu-item>
 
         <el-menu-item
-          index="/weather-alert"
+          index="weather-alert"
           :class="{ 'has-badge': hasWeatherAlert }"
           @click="clearWeatherAlert"
         >
@@ -161,6 +182,41 @@
             class="menu-badge"
           />
         </el-menu-item>
+
+        <!-- 自动训练下拉菜单（放在天气预警后面） -->
+        <el-sub-menu index="auto-train" v-if="realRole === 'superAdmin'">
+          <template #title>
+            <el-icon>
+              <UserFilled />
+            </el-icon>
+            <span>自动训练</span>
+          </template>
+
+          <el-menu-item index="weed">
+            <el-icon>
+              <Promotion />
+            </el-icon>
+            <span>杂草</span>
+          </el-menu-item>
+          <el-menu-item index="disease">
+            <el-icon>
+              <Promotion />
+            </el-icon>
+            <span>病害</span>
+          </el-menu-item>
+          <el-menu-item index="pest">
+            <el-icon>
+              <Promotion />
+            </el-icon>
+            <span>虫害</span>
+          </el-menu-item>
+          <el-menu-item index="survival">
+            <el-icon>
+              <Promotion />
+            </el-icon>
+            <span>训练</span>
+          </el-menu-item>
+        </el-sub-menu>
       </el-menu>
     </el-aside>
 
@@ -190,14 +246,10 @@
 
       <!-- 主体内容区域（插槽：子页面内容渲染在这里） -->
       <el-main>
-        <!-- 白色插槽内容容器（和之前完全一致） -->
+        <!-- 白色插槽内容容器 -->
         <div class="main-placeholder">
           <slot />
         </div>
-        <!-- 底部版权文字：放到灰色背景上，和白色内容分离 -->
-        <!-- <div class="footer-text">
-          果园管理系统 ©2026 Created by 大数据工作室
-        </div> -->
       </el-main>
     </el-container>
   </el-container>
@@ -349,12 +401,22 @@ onUnmounted(() => {
 .layout-container {
   height: 100vh;
   overflow-x: hidden;
-  /* 彻底禁止整个页面左右滚动 */
+  overflow-y: hidden;
+  /* 彻底禁止整个页面左右滚动和垂直滚动条 */
 
   .el-aside {
     background-color: #000000;
     overflow-x: hidden;
-    /* 禁止侧边栏左右滚动 */
+    overflow-y: auto;
+    /* 禁止侧边栏左右滚动，允许垂直滚动但隐藏滚动条 */
+    
+    /* 隐藏滚动条但保持功能 */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE 10+ */
+    
+    &::-webkit-scrollbar {
+      display: none; /* Chrome Safari */
+    }
 
     &__logo {
       height: 120px;
@@ -364,10 +426,11 @@ onUnmounted(() => {
 
     .el-menu {
       border-right: none;
-      height: calc(100vh - 220px);
+      height: auto;
       overflow-x: hidden;
-
+      overflow-y: visible;
       /* 禁止菜单左右滚动 */
+
       &-item.is-active {
         background-color: #62ada2 !important;
         color: #fff !important;
@@ -415,7 +478,17 @@ onUnmounted(() => {
     background-color: #f5f5f5;
     padding: 20px;
     overflow-x: hidden;
-    /* 禁止主内容区左右滚动 */
+    overflow-y: auto;
+    /* 禁止主内容区左右滚动，允许垂直滚动但隐藏滚动条 */
+    
+    /* 隐藏滚动条但保持功能 */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE 10+ */
+    
+    &::-webkit-scrollbar {
+      display: none; /* Chrome Safari */
+    }
+    
     display: flex;
     flex-direction: column;
     /* 垂直排列，让白色内容在上，版权在下 */
@@ -435,21 +508,17 @@ onUnmounted(() => {
       box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
       box-sizing: border-box;
       overflow-x: hidden;
-      /* 禁止内容区左右滚动 */
+      overflow-y: auto;
+      /* 禁止内容区左右滚动，允许垂直滚动但隐藏滚动条 */
+      
+      /* 隐藏滚动条但保持功能 */
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE 10+ */
+      
+      &::-webkit-scrollbar {
+        display: none; /* Chrome Safari */
+      }
       flex-shrink: 0;
-    }
-
-    /* 灰色背景上的版权文字 */
-    .footer-text {
-      width: 100%;
-      text-align: center;
-      font-size: 14px;
-      color: #666;
-      padding: 2px 0 2px;
-      /* 上下间距，贴到最底部 */
-      box-sizing: border-box;
-      margin-top: auto;
-      /* 自动顶到最底部，不管内容多少 */
     }
   }
 }
