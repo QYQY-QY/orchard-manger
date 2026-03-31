@@ -200,13 +200,13 @@ const reportTypeMap = {
   7: "成熟度",
 };
 const reportToTaskTypeMap = {
-  1: "浇水",
-  2: "施肥",
-  3: "治病",
-  4: "治虫",
-  5: "除草",
-  6: "",
-  7: "",
+  1: "灌溉",    // 水 → 灌溉
+  2: "施肥",    // 肥 → 施肥
+  3: "防治",    // 病害 → 防治
+  4: "防治",    // 虫害 → 防治
+  5: "除草",    // 杂草 → 除草
+  6: "修剪",    // 任务汇报 → 修剪
+  7: "采摘",        // 成熟度 → 采摘
 };
 const getReportTypeName = (typeId) => {
   return reportTypeMap[typeId] || "未知";

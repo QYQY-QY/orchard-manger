@@ -879,7 +879,7 @@ const handlePublish = async () => {
       taskTitle: publishForm.value.taskTitle, // 任务标题
       taskType: publishForm.value.taskType, // 任务类型（数字）
       salary: publishForm.value.salary || null,
-      reportVo: {id:route.query.reportId || null}, // 可选：关联的上报 ID（如果有）
+      reportVo: { id: reportId ? Number(reportId) : null }, // 可选：关联的上报 ID（如果有）
     };
 
     console.log("发布任务提交参数：", submitData);
