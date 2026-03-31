@@ -840,7 +840,7 @@ const totalSalary = computed(() => {
     return sum + salary;
   }, 0);
 });
-// 核心改造：发布任务（完全匹配后端add接口参数要求）
+// 发布任务
 const handlePublish = async () => {
   try {
     // 先校验果园 ID 有效性
@@ -861,11 +861,9 @@ const handlePublish = async () => {
       areaId = publishForm.value.taskScope[0] || 0;
     }
 
-    // =============== 【修复开始】 ===============
-    // 从缓存获取 reportId（唯一正确方式）
+    // 从缓存获取 reportId
     const reportIdStr = sessionStorage.getItem("pendingReportId");
     const reportId = reportIdStr ? Number(reportIdStr) : null;
-    // =============== 【修复结束】 ===============
 
     // 构造后端要求的完整提交数据
     const submitData = {
@@ -886,7 +884,7 @@ const handlePublish = async () => {
       taskType: publishForm.value.taskType,
       salary: publishForm.value.salary || null,
 
-      // =============== 【关键修复】有ID才传，绝不传null ===============
+      //有ID才传，避免传入null
       ...(reportId && { reportVo: { id: reportId } }),
     };
 
