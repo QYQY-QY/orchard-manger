@@ -588,14 +588,14 @@ const regionData = computed(() => {
       history: {
         ndviTrend: `2025 Q1 NDVI: ${viStats.ndvi.q25.toFixed(2)} → ${viStats.ndvi.q75.toFixed(2)} (中位数 ${viStats.ndvi.median.toFixed(2)}) · 地块C7增幅最大`,
         healthTrend: {
-          lastYear: '2024占比 88%',
+          lastYear: '2026占比 88%',
           thisYear: '2025 94%',
           thisYearValue: 94,
           prediction: 'Q3 95.5%'
         },
         qualityTrend: '单果重年均+7% · 糖度趋势 12.5→13.2 °Bx',
         abnormalTrend: '3月异常峰值107株 · 4月降至62株 · 红蜘蛛周期减弱',
-        yearlyComparison: `NDVI 2025比2024 +0.04 · 健康度提升5% · 采样点 ${totalSamples}个`
+        yearlyComparison: `NDVI 2025比2026 +0.04 · 健康度提升5% · 采样点 ${totalSamples}个`
       },
       collaboration: {
         accessStats: '微信小程序 46% · APP 28% · PC端 18% · 大屏8% · 活跃用户 187',
@@ -666,14 +666,14 @@ const regionData = computed(() => {
       history: {
         ndviTrend: `2025 Q1 NDVI: 0.66 → 0.70 (同比+0.04) · 地块B4增幅最大`,
         healthTrend: {
-          lastYear: '2024占比 86%',
+          lastYear: '2026占比 86%',
           thisYear: '2025 92%',
           thisYearValue: 92,
           prediction: 'Q3 93.5%'
         },
         qualityTrend: '单果重年均+6% · 糖度趋势 12.3→13.0 °Bx',
         abnormalTrend: '3月异常峰值94株 · 4月降至56株 · 红蜘蛛周期减弱',
-        yearlyComparison: `NDVI 2025比2024 +0.03 · 健康度提升4% · 采样点 ${totalSamples}个`
+        yearlyComparison: `NDVI 2025比2026 +0.03 · 健康度提升4% · 采样点 ${totalSamples}个`
       },
       collaboration: {
         accessStats: '微信小程序 44% · APP 30% · PC端 16% · 大屏10% · 活跃用户 156',
@@ -744,14 +744,14 @@ const regionData = computed(() => {
       history: {
         ndviTrend: `2025 Q1 NDVI: 0.64 → 0.68 (同比+0.04) · 地块C2增幅最大`,
         healthTrend: {
-          lastYear: '2024占比 84%',
+          lastYear: '2026占比 84%',
           thisYear: '2025 91%',
           thisYearValue: 91,
           prediction: 'Q3 92.5%'
         },
         qualityTrend: '单果重年均+5% · 糖度趋势 12.1→12.8 °Bx',
         abnormalTrend: '3月异常峰值82株 · 4月降至48株 · 红蜘蛛周期减弱',
-        yearlyComparison: `NDVI 2025比2024 +0.03 · 健康度提升3% · 采样点 ${totalSamples}个`
+        yearlyComparison: `NDVI 2025比2026 +0.03 · 健康度提升3% · 采样点 ${totalSamples}个`
       },
       collaboration: {
         accessStats: '微信小程序 42% · APP 32% · PC端 15% · 大屏11% · 活跃用户 132',

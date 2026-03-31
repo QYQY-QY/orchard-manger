@@ -39,10 +39,27 @@ const router = createRouter({
       name: 'AdminRecruitment',
       component: () => import('../views/admin/Recruitment.vue')
     },
+
+    // 新增自动训练
     {
-      path: '/adminreview',
-      name: 'AdminReview',
-      component: () => import('../views/admin/RecritReview.vue')
+      path: '/weed',
+      name: 'weed',
+      component: () => import('../views/admin/weed.vue')
+    },
+    {
+      path: '/disease',
+      name: 'disease',
+      component: () => import('../views/admin/disease.vue')
+    },
+    {
+      path: '/pest',
+      name: 'pest',
+      component: () => import('../views/admin/pest.vue')
+    },
+    {
+      path: '/survival',
+      name: 'survival',
+      component: () => import('../views/admin/survival.vue')
     },
     {
       path: '/AiChat',
