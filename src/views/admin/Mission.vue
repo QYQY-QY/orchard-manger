@@ -6,11 +6,7 @@
         <div class="filter-group">
           <div class="filter-item">
             <label class="filter-label">任务类型：</label>
-            <el-select
-              v-model="filterParams.taskType"
-              placeholder="请选择任务类型"
-              class="filter-select"
-            >
+            <el-select v-model="filterParams.taskType" placeholder="请选择任务类型" class="filter-select">
               <el-option label="全部状态" value="" />
               <el-option label="浇水" value="浇水" />
               <el-option label="施肥" value="施肥" />
@@ -22,11 +18,7 @@
           </div>
           <div class="filter-item">
             <label class="filter-label">任务状态：</label>
-            <el-select
-              v-model="filterParams.status"
-              placeholder="请选择任务状态"
-              class="filter-select"
-            >
+            <el-select v-model="filterParams.status" placeholder="请选择任务状态" class="filter-select">
               <el-option label="全部状态" value="" />
               <el-option label="待审核" value="0" />
               <el-option label="未完成" value="1" />
@@ -37,73 +29,34 @@
           </div>
           <div class="filter-item">
             <label class="filter-label">负责人：</label>
-            <el-select
-              v-model="filterParams.receiverName"
-              placeholder="请选择负责人"
-              class="filter-select"
-            >
+            <el-select v-model="filterParams.receiverName" placeholder="请选择负责人" class="filter-select">
               <el-option label="全部负责人" value="" />
-              <el-option
-                v-for="emp in employeeList"
-                :key="emp.id"
-                :label="emp.name"
-                :value="emp.name"
-              />
+              <el-option v-for="emp in employeeList" :key="emp.id" :label="emp.name" :value="emp.name" />
             </el-select>
           </div>
           <div class="filter-item">
             <label class="filter-label">时间范围：</label>
-            <el-date-picker
-              v-model="filterParams.deadlineRange"
-              type="daterange"
-              range-separator="至"
-              start-placeholder="开始日期"
-              end-placeholder="结束日期"
-              class="filter-select"
-              format="YYYY-MM-DD"
-              value-format="YYYY-MM-DD"
-              style="width: 240px"
-            />
+            <el-date-picker v-model="filterParams.deadlineRange" type="daterange" range-separator="至"
+              start-placeholder="开始日期" end-placeholder="结束日期" class="filter-select" format="YYYY-MM-DD"
+              value-format="YYYY-MM-DD" style="width: 240px" />
           </div>
-          <el-button type="primary" @click="handleFilter" class="filter-btn"
-            >筛选</el-button
-          >
+          <el-button type="primary" @click="handleFilter" class="filter-btn">筛选</el-button>
           <el-button @click="resetFilter" class="reset-btn">重置</el-button>
           <div class="salary-statistics">
             <span class="statistics-label">薪资统计：</span>
             <span class="statistics-value">¥ {{ totalSalary.toFixed(2) }}</span>
           </div>
         </div>
-        <el-button
-          type="primary"
-          class="publish-btn"
-          @click="showPublishDialog = true"
-          >发布任务</el-button
-        >
-        <el-button
-          type="success"
-          class="batch-btn"
-          @click="handleBatchApprove"
-          :disabled="selectedTaskIds.length === 0"
-          >批量审核通过</el-button
-        >
-        <el-button
-          type="danger"
-          class="batch-btn"
-          @click="handleBatchReject"
-          :disabled="selectedTaskIds.length === 0"
-          >批量审核不通过</el-button
-        >
+        <el-button type="primary" class="publish-btn" @click="showPublishDialog = true">发布任务</el-button>
+        <el-button type="success" class="batch-btn" @click="handleBatchApprove"
+          :disabled="selectedTaskIds.length === 0">批量审核通过</el-button>
+        <el-button type="danger" class="batch-btn" @click="handleBatchReject"
+          :disabled="selectedTaskIds.length === 0">批量审核不通过</el-button>
       </div>
 
       <!-- 任务列表 - 保持不变 -->
       <div class="task-list-wrapper">
-        <el-table
-          :data="filteredTaskList"
-          stripe
-          style="width: 100%"
-          @selection-change="handleSelectionChange"
-        >
+        <el-table :data="filteredTaskList" stripe style="width: 100%" @selection-change="handleSelectionChange">
           <!-- <el-table-column
             prop="taskTitle"
             label="任务标题"
@@ -128,27 +81,24 @@
           </el-table-column>
           <el-table-column prop="status" label="任务状态" width="120px">
             <template #default="{ row }">
-              <el-tag
-                :type="
-                  row.status === 0
-                    ? 'primary'
-                    : row.status === 1
+              <el-tag :type="row.status === 0
+                  ? 'primary'
+                  : row.status === 1
                     ? 'warning'
                     : row.status === 3
-                    ? 'success'
-                    : 'danger'
-                "
-              >
+                      ? 'success'
+                      : 'danger'
+                ">
                 {{
                   row.status === 0
                     ? "待审核"
                     : row.status === 1
-                    ? "未完成"
-                    : row.status === 3
-                    ? "已完成"
-                    : row.status === 5
-                    ? "未通过"
-                    : "拒绝任务"
+                      ? "未完成"
+                      : row.status === 3
+                        ? "已完成"
+                        : row.status === 5
+                          ? "未通过"
+                          : "拒绝任务"
                 }}
               </el-tag>
             </template>
@@ -184,35 +134,16 @@
 
       <!-- 发布任务弹框 - 核心改造 -->
       <el-dialog v-model="showPublishDialog" title="发布新任务" width="700px">
-        <el-form
-          :model="publishForm"
-          label-width="100px"
-          ref="publishFormRef"
-          :rules="publishRules"
-        >
+        <el-form :model="publishForm" label-width="100px" ref="publishFormRef" :rules="publishRules">
           <el-form-item label="任务标题" prop="taskTitle">
-            <el-input
-              v-model="publishForm.taskTitle"
-              placeholder="请输入任务标题"
-              maxlength="50"
-              show-word-limit
-            />
+            <el-input v-model="publishForm.taskTitle" placeholder="请输入任务标题" maxlength="50" show-word-limit />
           </el-form-item>
           <el-form-item label="任务内容" prop="taskInfo">
-            <el-input
-              v-model="publishForm.taskInfo"
-              type="textarea"
-              placeholder="请输入任务内容"
-              rows="3"
-              maxlength="200"
-              show-word-limit
-            />
+            <el-input v-model="publishForm.taskInfo" type="textarea" placeholder="请输入任务内容" rows="3" maxlength="200"
+              show-word-limit />
           </el-form-item>
           <el-form-item label="任务类型" prop="taskType">
-            <el-select
-              v-model="publishForm.taskType"
-              placeholder="请选择任务类型"
-            >
+            <el-select v-model="publishForm.taskType" placeholder="请选择任务类型">
               <el-option label="全部状态" value="" />
               <el-option label="浇水" value="浇水" />
               <el-option label="施肥" value="施肥" />
@@ -224,58 +155,25 @@
           </el-form-item>
           <!-- 改造1：任务范围 - 全园 + 区域多选 -->
           <el-form-item label="任务范围" prop="taskScope">
-            <el-select
-              v-model="publishForm.taskScope"
-              placeholder="请选择任务范围"
-              multiple
-              collapse-tags
-              style="width: 100%"
-            >
+            <el-select v-model="publishForm.taskScope" placeholder="请选择任务范围" multiple collapse-tags style="width: 100%">
               <el-option label="全合作社" value="0" />
-              <el-option
-                v-for="area in areaList"
-                :key="area.id"
-                :label="area.name"
-                :value="area.id"
-              />
+              <el-option v-for="area in areaList" :key="area.id" :label="area.name" :value="area.id" />
             </el-select>
           </el-form-item>
           <el-form-item label="截止时间" prop="deadline">
-            <el-date-picker
-              v-model="publishForm.deadline"
-              type="datetime"
-              placeholder="请选择截止时间"
-              format="YYYY-MM-DD HH:mm:ss"
-              value-format="YYYY-MM-DD HH:mm:ss"
-            />
+            <el-date-picker v-model="publishForm.deadline" type="datetime" placeholder="请选择截止时间"
+              format="YYYY-MM-DD HH:mm:ss" value-format="YYYY-MM-DD HH:mm:ss" />
           </el-form-item>
           <!-- 改造3：任务负责人 - 多选 -->
           <el-form-item label="任务负责人" prop="empIds">
-            <el-select
-              v-model="publishForm.empIds"
-              placeholder="请选择任务负责人"
-              filterable
-              clearable
-              multiple
-              collapse-tags
-              style="width: 100%"
-            >
-              <el-option
-                v-for="emp in employeeList"
-                :key="emp.id"
-                :label="emp.name"
-                :value="Number(emp.id)"
-              />
+            <el-select v-model="publishForm.empIds" placeholder="请选择任务负责人" filterable clearable multiple collapse-tags
+              style="width: 100%">
+              <el-option v-for="emp in employeeList" :key="emp.id" :label="emp.name" :value="Number(emp.id)" />
             </el-select>
           </el-form-item>
           <el-form-item label="任务薪资" prop="salary">
-            <el-input-number
-              v-model="publishForm.salary"
-              :min="0"
-              :precision="2"
-              placeholder="请输入任务薪资"
-              style="width: 40%"
-            />
+            <el-input-number v-model="publishForm.salary" :min="0" :precision="2" placeholder="请输入任务薪资"
+              style="width: 40%" />
             <span style="margin-left: 8px; color: #999">元</span>
           </el-form-item>
           <!-- 隐藏字段 - 自动填充 -->
@@ -299,12 +197,7 @@
       </el-dialog>
 
       <!-- 任务详情弹框 - 保持不变 -->
-      <el-dialog
-        v-model="showDetailDialog"
-        title="任务详情"
-        width="800px"
-        center
-      >
+      <el-dialog v-model="showDetailDialog" title="任务详情" width="800px" center>
         <div class="task-detail">
           <div class="detail-base-info">
             <el-descriptions :column="2" border style="margin-bottom: 20px">
@@ -328,25 +221,22 @@
                 </el-tag>
               </el-descriptions-item> -->
               <el-descriptions-item label="任务状态">
-                <el-tag
-                  :type="
-                    currentTask.status === 0
-                      ? 'primary'
-                      : currentTask.status === 1
+                <el-tag :type="currentTask.status === 0
+                    ? 'primary'
+                    : currentTask.status === 1
                       ? 'warning'
                       : currentTask.status === 3
-                      ? 'success'
-                      : 'danger'
-                  "
-                >
+                        ? 'success'
+                        : 'danger'
+                  ">
                   {{
                     currentTask.status === 0
                       ? "待审核"
                       : currentTask.status === 1
-                      ? "未完成"
-                      : currentTask.status === 3
-                      ? "已完成"
-                      : "拒绝任务"
+                        ? "未完成"
+                        : currentTask.status === 3
+                          ? "已完成"
+                          : "拒绝任务"
                   }}
                 </el-tag>
               </el-descriptions-item>
@@ -368,32 +258,18 @@
               <el-descriptions-item label="创建时间">{{
                 formatIsoTime(currentTask.createTime)
               }}</el-descriptions-item>
-              <el-descriptions-item
-                label="不通过原因"
-                v-if="currentTask.failure"
-              >
+              <el-descriptions-item label="不通过原因" v-if="currentTask.failure">
                 {{ currentTask.failure }}
               </el-descriptions-item>
             </el-descriptions>
           </div>
 
-          <div
-            class="detail-images"
-            v-if="currentTask.imgsURL && currentTask.imgsURL.length > 0"
-          >
+          <div class="detail-images" v-if="currentTask.imgsURL && currentTask.imgsURL.length > 0">
             <h4 style="margin-bottom: 10px; color: #333">任务相关图片：</h4>
             <div class="image-grid">
-              <div
-                class="image-item"
-                v-for="(img, index) in currentTask.imgsURL"
-                :key="index"
-              >
-                <el-image
-                  :src="img"
-                  :preview-src-list="currentTask.imgsURL"
-                  fit="cover"
-                  style="width: 200px; height: 150px; border-radius: 4px"
-                >
+              <div class="image-item" v-for="(img, index) in currentTask.imgsURL" :key="index">
+                <el-image :src="img" :preview-src-list="currentTask.imgsURL" fit="cover"
+                  style="width: 200px; height: 150px; border-radius: 4px">
                   <template #error>
                     <div class="image-error">图片加载失败</div>
                   </template>
@@ -409,18 +285,10 @@
 
         <template #footer>
           <div v-if="currentTask.status === 0" style="display: flex; gap: 10px">
-            <el-button
-              type="success"
-              @click="handleApproveTask(currentTask.id)"
-              size="default"
-            >
+            <el-button type="success" @click="handleApproveTask(currentTask.id)" size="default">
               审核通过
             </el-button>
-            <el-button
-              type="danger"
-              @click="handleRejectTask(currentTask.id)"
-              size="default"
-            >
+            <el-button type="danger" @click="handleRejectTask(currentTask.id)" size="default">
               审核不通过
             </el-button>
           </div>
@@ -1408,16 +1276,20 @@ watch(
 :deep(.el-select__tags) {
   flex-wrap: wrap;
 }
+
 .batch-btn {
   margin-left: 10px;
   white-space: nowrap;
 }
+
 .salary-statistics {
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 32px; /* 与 el-select 高度一致 */
-  padding: 0 16px; /* 只保留水平方向 padding */
+  height: 32px;
+  /* 与 el-select 高度一致 */
+  padding: 0 16px;
+  /* 只保留水平方向 padding */
   /* background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); */
   border-radius: 6px;
   color: #303133;

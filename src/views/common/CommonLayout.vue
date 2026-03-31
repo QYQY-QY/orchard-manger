@@ -35,7 +35,7 @@
             <el-icon>
               <User />
             </el-icon>
-            <span>区域划分</span>
+            <span>果园划分</span>
           </el-menu-item>
 
           <el-menu-item index="/adminMission">
