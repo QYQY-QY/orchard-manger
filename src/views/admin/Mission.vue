@@ -452,7 +452,7 @@ const fetchAreaList = async () => {
     const currentOrchardId = orchardId.value;
     if (!currentOrchardId || currentOrchardId <= 0) {
       ElMessage.warning(
-        "当前用户未绑定有效果园ID（需大于0），无法获取果园列表"
+        "当前用户未绑定有效果园ID（需大于0），无法获取区域列表"
       );
       areaList.value = [];
       return;
@@ -470,23 +470,23 @@ const fetchAreaList = async () => {
     if (response.data && response.data.code === 200) {
       // 从data中提取区域数据，映射为前端需要的格式
       const areaData = response.data.data || [];
-      console.log("【果园列表】原始数据:", areaData);
+      console.log("【区域列表】原始数据:", areaData);
       areaList.value = areaData
         .map((item) => ({
           id: Number(item.id), // 区域ID（字符串转数字，避免类型问题）
-          name: item.name || "未命名果园", // 区域名称
+          name: item.name || "未命名区域", // 区域名称
         }))
         .filter((item) => item.id && item.name); // 过滤无效数据
-      // console.log(
-      //   "【果园列表】处理后的数据:",
-      //   JSON.parse(JSON.stringify(areaList.value))
-      // );
+      console.log(
+        "【区域列表】处理后的数据:",
+        JSON.parse(JSON.stringify(areaList.value))
+      );
     } else {
-      ElMessage.error(`获取果园列表失败：${response.data?.msg || "未知错误"}`);
+      ElMessage.error(`获取区域列表失败：${response.data?.msg || "未知错误"}`);
       areaList.value = [];
     }
   } catch (error) {
-    console.error("获取果园列表失败详情：", {
+    console.error("获取区域列表失败详情：", {
       url: error.config?.url,
       params: error.config?.params,
       status: error.response?.status,
@@ -496,14 +496,14 @@ const fetchAreaList = async () => {
     // 精准提示错误原因
     if (error.response?.status === 400) {
       ElMessage.error(
-        `获取果园列表失败（400）：参数错误，请确认orchardId=${orchardId.value} 是否有效`
+        `获取区域列表失败（400）：参数错误，请确认orchardId=${orchardId.value} 是否有效`
       );
     } else if (error.response?.status === 404) {
       ElMessage.error(
-        `获取果园列表失败（404）：接口路径/api/area/selectByOrchardId 不存在，请检查后端接口`
+        `获取区域列表失败（404）：接口路径/api/area/selectByOrchardId 不存在，请检查后端接口`
       );
     } else if (error.response?.status === 500) {
-      ElMessage.error(`获取果园列表失败（500）：后端接口报错，请查看后端日志`);
+      ElMessage.error(`获取区域列表失败（500）：后端接口报错，请查看后端日志`);
     } else {
       ElMessage.error(
         `获取区域列表失败（${error.response?.status || "网络错误"}）`
@@ -708,7 +708,7 @@ const totalSalary = computed(() => {
     return sum + salary;
   }, 0);
 });
-// 核心改造：发布任务（完全匹配后端add接口参数要求）
+// 发布任务
 const handlePublish = async () => {
   try {
     // 先校验果园 ID 有效性
@@ -729,25 +729,31 @@ const handlePublish = async () => {
       areaId = publishForm.value.taskScope[0] || 0;
     }
 
+    // 从缓存获取 reportId
+    const reportIdStr = sessionStorage.getItem("pendingReportId");
+    const reportId = reportIdStr ? Number(reportIdStr) : null;
+
     // 构造后端要求的完整提交数据
     const submitData = {
-      areaId: areaId, // 区域 id
-      completionTime: "", // 完成时间为空
-      creatorId: publishForm.value.creatorId, // 发布者 id
-      deadline: formatTimeToCST(publishForm.value.deadline), // 截止时间转 ISO 格式
-      empIds: publishForm.value.empIds, // 发送的人数组
-      groupContent: publishForm.value.taskTitle, // 组内容
-      groupDescription: publishForm.value.taskInfo, // 组描述
-      groupName: publishForm.value.taskTitle, // 组名
-      imgsURL: [], // 图片 URL 空数组
-      orchardId: publishForm.value.orchardId, // 果园 id
-      postTime: formatTimeToCST(new Date()), // 发布时间转 ISO 格式
-      status: publishForm.value.status, // 状态（数字）
-      taskInfo: publishForm.value.taskInfo, // 任务信息
-      taskTitle: publishForm.value.taskTitle, // 任务标题
-      taskType: publishForm.value.taskType, // 任务类型（数字）
+      areaId: areaId,
+      completionTime: "",
+      creatorId: publishForm.value.creatorId,
+      deadline: formatTimeToCST(publishForm.value.deadline),
+      empIds: publishForm.value.empIds,
+      groupContent: publishForm.value.taskTitle,
+      groupDescription: publishForm.value.taskInfo,
+      groupName: publishForm.value.taskTitle,
+      imgsURL: [],
+      orchardId: publishForm.value.orchardId,
+      postTime: formatTimeToCST(new Date()),
+      status: publishForm.value.status,
+      taskInfo: publishForm.value.taskInfo,
+      taskTitle: publishForm.value.taskTitle,
+      taskType: publishForm.value.taskType,
       salary: publishForm.value.salary || null,
-      reportId: route.query.reportId || null, // 可选：关联的上报 ID（如果有）
+
+      //有ID才传，避免传入null
+      ...(reportId && { reportVo: { id: reportId } }),
     };
 
     console.log("发布任务提交参数：", submitData);
@@ -1091,8 +1097,8 @@ const checkRouteParams = () => {
 
           if (foundArea) {
             publishForm.value.taskScope = [Number(numericAreaId)];
-            // console.log("✅ 自动填充区域成功:", numericAreaId);
-            // console.log("当前表单的 taskScope:", publishForm.value.taskScope);
+            console.log("✅ 自动填充区域成功:", numericAreaId);
+            console.log("当前表单的 taskScope:", publishForm.value.taskScope);
 
             // 根据 areaId 查找对应的负责人
             const areaManager = employeeList.value.find((emp) => {
