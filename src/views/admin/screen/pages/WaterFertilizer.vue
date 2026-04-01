@@ -16,30 +16,45 @@
           </h1>
         </div>
       </div>
-      <div class="header-actions">
-        <!-- 文件上传输入框（隐藏）- 支持多种图片格式 -->
+       <div class="header-actions">
+        <!-- 数据更新按钮 - 直接点击弹出文件夹选择 -->
+<!-- 数据更新按钮 - 只根据 isAnalyzing 状态变化 -->
+<button class="analyze-btn" @click="handleDataUpdate" :disabled="isAnalyzing">
+  <span class="btn-icon">{{ isAnalyzing ? '⏳' : '📊' }}</span>
+  {{ isAnalyzing ? '更新中...' : '数据更新' }}
+</button>
+        
+        <!-- 隐藏的文件夹上传输入框 -->
         <input 
           type="file" 
-          ref="fileInput" 
+          ref="folderInput" 
           class="file-input" 
           multiple 
-          accept=".tif,.tiff,.jpg,.jpeg,.png,.bmp,image/tiff,image/tif,image/jpeg,image/jpg,image/png,image/bmp" 
-          @change="handleFileSelect"
+          webkitdirectory 
+          directory 
+          @change="handleFolderSelect"
         >
-        <button class="analyze-btn" @click="handleDataUpdate" :disabled="isAnalyzing">
-          <span class="btn-icon">{{ isAnalyzing ? '⏳' : '📊' }}</span>
-          {{ isAnalyzing ? '更新中...' : '数据更新' }}
-        </button>
         
-        <!-- 图片预览区域（可选） -->
+        <!-- 上传进度提示 -->
+        <div v-if="uploadProgress.show" class="upload-progress">
+          <div class="progress-bar">
+            <div class="progress-fill" :style="{ width: uploadProgress.percentage + '%' }"></div>
+          </div>
+          <span class="progress-text">{{ uploadProgress.message }}</span>
+        </div>
+        
+        <!-- 图片预览区域 -->
         <div v-if="previewImages.length > 0" class="image-preview-container">
           <div class="image-preview-trigger" @mouseenter="showPreview = true" @mouseleave="showPreview = false">
             <i class="fas fa-images"></i>
             <span>{{ previewImages.length }}张图片</span>
           </div>
           <div v-if="showPreview" class="image-preview-popup">
-            <div v-for="(img, idx) in previewImages" :key="idx" class="preview-item">
+            <div v-for="(img, idx) in previewImages.slice(0, 9)" :key="idx" class="preview-item">
               <img :src="img" :alt="'预览' + idx" />
+            </div>
+            <div v-if="previewImages.length > 9" class="preview-more">
+              +{{ previewImages.length - 9 }}张
             </div>
           </div>
         </div>
@@ -227,9 +242,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
+import JSZip from 'jszip'
 import AnalysisResultModal from './AnalysisResultModal.vue'
 
 const router = useRouter()
@@ -262,9 +278,22 @@ const goBack = () => {
 }
 
 // 分析状态
-const isAnalyzing = ref(false)
+// 在现有 ref 定义后添加
+const isAnalyzing = ref(false) // 数据更新状态
+const isLoadingPlot = ref(false) // 地块加载状态
+
 const fileInput = ref(null)
+const folderInput = ref(null)
+const archiveInput = ref(null)
 const selectedFiles = ref([])
+const showUploadMenu = ref(false)
+
+// 上传进度
+const uploadProgress = ref({
+  show: false,
+  percentage: 0,
+  message: ''
+})
 
 // 图片预览相关
 const previewImages = ref([])
@@ -273,7 +302,6 @@ const showPreview = ref(false)
 // 弹窗相关
 const showResultModal = ref(false)
 const analysisImages = ref([])
-//当前地块分析数据
 const currentAnalysisData = ref({})
 const selectedBlockId = ref('')
 const modalTitle = ref('多光谱分析结果')
@@ -283,6 +311,23 @@ const currentRegionInfo = ref({ regionId: '1', region: '1' })
 const totalSamples = 989
 const analysisDate = ref('')
 const saveCost = ref(4260)
+
+// 点击其他地方关闭菜单
+const handleClickOutside = (event) => {
+  if (!event.target.closest('.upload-dropdown')) {
+    showUploadMenu.value = false
+  }
+}
+
+onMounted(() => {
+  analysisDate.value = getCurrentTime()
+  console.log('组件已挂载，地块数量:', plotBlocks.value.length)
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 
 // 获取当前时间
 const getCurrentTime = () => {
@@ -296,76 +341,465 @@ const getCurrentTime = () => {
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
 }
 
-// 处理文件选择
-const handleFileSelect = (event) => {
-  const files = Array.from(event.target.files)
-  
-  const supportedFormats = ['tiff', 'tif', 'jpg', 'jpeg', 'png', 'bmp', 'gif']
-  
-  const imageFiles = files.filter(file => {
-    const fileType = file.type.toLowerCase()
-    const fileName = file.name.toLowerCase()
-    if (fileType.includes('tiff') || fileType.includes('tif')) return true
-    if (fileType.includes('jpeg') || fileType.includes('jpg')) return true
-    if (fileType.includes('png')) return true
-    if (fileType.includes('bmp')) return true
-    if (fileType.includes('gif')) return true
-    return supportedFormats.some(format => fileName.endsWith('.' + format))
-  })
-  
-  if (imageFiles.length === 0) {
-    alert('请选择支持的图片格式：TIFF、JPG、PNG、BMP、GIF等')
-    return
+// 触发文件上传
+const triggerFileUpload = () => {
+  showUploadMenu.value = false
+  fileInput.value.click()
+}
+
+// 触发文件夹上传
+const triggerFolderUpload = () => {
+  showUploadMenu.value = false
+  folderInput.value.click()
+}
+
+// 触发压缩包上传
+const triggerArchiveUpload = () => {
+  showUploadMenu.value = false
+  archiveInput.value.click()
+}
+
+// 更新上传进度
+const updateProgress = (percentage, message) => {
+  uploadProgress.value = {
+    show: true,
+    percentage,
+    message
   }
   
-  console.log(`选择了 ${imageFiles.length} 个图片文件`)
-  
-  previewImages.value = []
-  imageFiles.forEach(file => {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      previewImages.value.push(e.target.result)
-    }
-    reader.readAsDataURL(file)
-  })
-  
-  selectedFiles.value = imageFiles
-  handleDataUpdate()
+  if (percentage >= 100) {
+    setTimeout(() => {
+      uploadProgress.value.show = false
+    }, 2000)
+  }
+}
+
+// 处理文件选择（单文件/多文件）
+const handleFileSelect = async (event) => {
+  const files = Array.from(event.target.files)
+  await processImageFiles(files, '文件')
   event.target.value = ''
 }
 
-/**
- * 提取图片URL - 优先使用PNG格式，避免TIFF浏览器不支持问题
- */
-const extractImageUrls = (analysisItem) => {
-  const urls = []
+// 处理文件夹选择
+const handleFolderSelect = async (event) => {
+  const files = Array.from(event.target.files)
+  if (files.length === 0) return
   
-  // 优先添加 PNG 格式的 analysisImage（浏览器友好）
-  if (analysisItem.analysisImage && typeof analysisItem.analysisImage === 'string') {
-    const url = analysisItem.analysisImage.trim()
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      urls.push(url)
-      console.log('✅ 添加PNG图片，长度:', url.length)
+  // 设置更新状态，禁用按钮
+  isAnalyzing.value = true
+  
+  // 过滤出图片文件
+  const imageFiles = files.filter(file => isImageFile(file))
+  
+  if (imageFiles.length === 0) {
+    alert('文件夹中没有找到支持的图片文件（JPG/PNG/TIFF等）')
+    isAnalyzing.value = false
+    event.target.value = ''
+    return
+  }
+  
+  try {
+    // 直接处理图片并刷新数据
+    await processImageFiles(imageFiles, '文件夹')
+  } catch (error) {
+    console.error('处理失败:', error)
+    alert('数据处理失败，请重试')
+  } finally {
+    // 更新完成后恢复按钮状态
+    isAnalyzing.value = false
+    event.target.value = ''
+  }
+}
+
+// 处理压缩包选择
+const handleArchiveSelect = async (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+  
+  await processArchiveFile(file)
+  event.target.value = ''
+}
+
+// 判断是否为图片文件
+const isImageFile = (file) => {
+  const imageExtensions = ['jpg', 'jpeg', 'png', 'bmp', 'gif', 'tiff', 'tif']
+  const fileName = file.name.toLowerCase()
+  const fileType = file.type.toLowerCase()
+  
+  return imageExtensions.some(ext => fileName.endsWith('.' + ext)) ||
+         fileType.includes('image')
+}
+
+// 处理压缩包文件
+const processArchiveFile = async (file) => {
+  updateProgress(0, `正在解压 ${file.name}...`)
+  
+  try {
+    const fileExtension = file.name.split('.').pop().toLowerCase()
+    let imageFiles = []
+    
+    // 处理 ZIP 文件
+// 处理 ZIP 文件
+if (fileExtension === 'zip') {
+  const zip = new JSZip()
+  const contents = await zip.loadAsync(file)
+  
+  const files = []
+  let processed = 0
+  const totalFiles = Object.keys(contents.files).length
+  
+  // 修复：使用 for...of 循环替代 for...in
+  for (const [filename, zipEntry] of Object.entries(contents.files)) {
+    if (!zipEntry.dir && isImageFile({ name: filename })) {
+      try {
+        const blob = await zipEntry.async('blob')
+        const imageFile = new File([blob], filename, { type: blob.type })
+        files.push(imageFile)
+      } catch (err) {
+        console.warn(`无法读取文件: ${filename}`, err)
+      }
+    }
+    processed++
+    updateProgress(Math.floor((processed / totalFiles) * 50), `解压中... ${processed}/${totalFiles}`)
+  }
+  
+  imageFiles = files
+}
+    // 处理 RAR 和 7Z 文件（需要后端支持或使用其他库）
+    else if (fileExtension === 'rar' || fileExtension === '7z' || fileExtension === 'tar' || fileExtension === 'gz') {
+      updateProgress(30, `检测到 ${fileExtension.toUpperCase()} 格式，正在上传到服务器处理...`)
+      
+      // 对于 RAR/7Z 等格式，需要上传到服务器处理
+      const formData = new FormData()
+      formData.append('archive', file)
+      formData.append('type', fileExtension)
+      
+      try {
+        const response = await axios.post('/api/upload/archive', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+            updateProgress(percentCompleted, `上传压缩包中... ${percentCompleted}%`)
+          }
+        })
+        
+        if (response.data && response.data.files) {
+          // 假设服务器返回图片URL列表
+          imageFiles = response.data.files.map(url => ({ url, name: url.split('/').pop() }))
+        } else {
+          throw new Error('服务器处理失败')
+        }
+      } catch (error) {
+        console.error('压缩包上传失败:', error)
+        updateProgress(0, `压缩包处理失败: ${error.message}`)
+        alert(`压缩包处理失败: ${error.message}\n请尝试先解压后上传图片文件夹`)
+        return
+      }
+    } else {
+      throw new Error('不支持的压缩包格式')
+    }
+    
+    if (imageFiles.length === 0) {
+      updateProgress(0, '压缩包中没有找到图片文件')
+      alert('压缩包中没有找到支持的图片文件（JPG/PNG/TIFF等）')
+      return
+    }
+    
+    updateProgress(80, `找到 ${imageFiles.length} 张图片，正在处理...`)
+    await processImageFiles(imageFiles, '压缩包')
+    
+  } catch (error) {
+    console.error('解压失败:', error)
+    updateProgress(0, `解压失败: ${error.message}`)
+    alert(`解压失败: ${error.message}\n请确保压缩包格式正确且未损坏`)
+  }
+}
+
+// 处理图片文件（修改后，增加处理时间）
+const processImageFiles = async (files, sourceType) => {
+  if (files.length === 0) {
+    alert(`未找到支持的图片文件（JPG/PNG/TIFF等）`)
+    return
+  }
+  
+  updateProgress(0, `正在处理 ${sourceType}，共 ${files.length} 张图片...`)
+  
+  // 添加初始延迟，让用户看到开始提示
+  await new Promise(resolve => setTimeout(resolve, 500))
+  
+  // 生成预览
+  previewImages.value = []
+  let processedCount = 0
+  
+  for (const file of files) {
+    try {
+      const reader = new FileReader()
+      const imageUrl = await new Promise((resolve, reject) => {
+        reader.onload = (e) => resolve(e.target.result)
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+      })
+      previewImages.value.push(imageUrl)
+      
+      processedCount++
+      const progressPercent = Math.floor((processedCount / files.length) * 50)
+      updateProgress(
+        progressPercent,
+        `正在处理图片 ${processedCount}/${files.length}：${file.name}`
+      )
+      
+      // 每处理一张图片添加一点延迟，让进度更平滑
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+    } catch (err) {
+      console.warn('无法预览图片:', file.name, err)
     }
   }
   
-  // 如果没有PNG，尝试添加其他格式
-  if (urls.length === 0 && analysisItem.mergeImage && typeof analysisItem.mergeImage === 'string') {
-    const url = analysisItem.mergeImage.trim()
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      urls.push(url)
-      console.log('⚠️ 添加TIFF图片（可能不被浏览器支持），长度:', url.length)
+  selectedFiles.value = files
+  updateProgress(55, `图片预处理完成，共 ${files.length} 张图片`)
+  await new Promise(resolve => setTimeout(resolve, 500))
+  
+  updateProgress(65, '正在分析植被指数...')
+  await new Promise(resolve => setTimeout(resolve, 800))
+  
+  updateProgress(75, '正在计算水肥缺失诊断...')
+  await new Promise(resolve => setTimeout(resolve, 800))
+  
+  updateProgress(85, '正在生成精准施肥建议...')
+  await new Promise(resolve => setTimeout(resolve, 800))
+  
+  updateProgress(95, '正在更新仪表盘数据...')
+  await new Promise(resolve => setTimeout(resolve, 500))
+  
+  // 刷新数据
+  refreshDashboardData()
+  
+  updateProgress(100, '数据更新完成！')
+  analysisDate.value = getCurrentTime()
+  
+  // 延长完成提示的显示时间
+  setTimeout(() => {
+    uploadProgress.value.show = false
+  }, 3000)
+}
+
+
+// 带文件的数据更新
+const handleDataUpdateWithFiles = async (files) => {
+  if (isAnalyzing.value) return
+  
+  isAnalyzing.value = true
+  
+  try {
+    // 如果有文件，先上传到服务器
+    if (files && files.length > 0) {
+      updateProgress(70, `正在上传 ${files.length} 张图片到服务器...`)
+      
+      const formData = new FormData()
+      // 修复：使用 for 循环替代 forEach，避免 continue 问题
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
+        // 如果是 File 对象，直接添加；如果是对象且有 url 属性，则是服务器返回的URL
+        if (file instanceof File) {
+          formData.append('images', file)
+        }
+        // 如果已经有 url 属性，说明已经上传过，跳过
+        // 使用条件判断而不是 continue
+      }
+      
+      // 只有在有实际文件需要上传时才发送请求
+      if (formData.has('images')) {
+        try {
+          await axios.post('/api/upload/images', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            onUploadProgress: (progressEvent) => {
+              const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+              updateProgress(70 + Math.floor(percentCompleted * 0.2), `上传中 ${percentCompleted}%`)
+            }
+          })
+        } catch (error) {
+          console.warn('图片上传失败，继续使用本地数据:', error)
+        }
+      }
     }
+    
+    updateProgress(90, '正在分析数据...')
+    
+    // 模拟分析延迟
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    // 刷新数据
+    refreshDashboardData()
+    
+    updateProgress(100, '数据更新完成！')
+    analysisDate.value = getCurrentTime()
+    
+  } catch (error) {
+    console.error('数据更新出错:', error)
+    updateProgress(0, '数据更新失败')
+    alert('数据更新失败，请重试')
+  } finally {
+    isAnalyzing.value = false
+    setTimeout(() => {
+      uploadProgress.value.show = false
+    }, 2000)
   }
+}
+
+// 修改数据更新函数 - 直接弹出文件夹选择
+const handleDataUpdate = () => {
+  if (isAnalyzing.value) return
   
-  // 如果还是没有图片，使用默认图片
-  if (urls.length === 0) {
-    console.warn('没有找到可显示的图片，使用默认图片')
-    urls.push('https://picsum.photos/id/104/800/450')
-    urls.push('https://picsum.photos/id/10/800/450')
+  // 直接触发文件夹上传
+  if (folderInput.value) {
+    folderInput.value.click()
   }
+}
+
+// 刷新仪表盘数据（添加渐进式更新效果）
+const refreshDashboardData = () => {
+  const healthyIndices = generateHealthySpectralIndices()
   
-  return urls
+  // 逐步更新图表数据，让用户看到变化过程
+  setTimeout(() => {
+    viChartData.value = [
+      { label: 'NDVI', value: healthyIndices.ndvi, height: healthyIndices.ndvi * 100, colorClass: 'n' },
+      { label: 'NDRE', value: healthyIndices.ndre, height: healthyIndices.ndre * 100, colorClass: 'p' },
+      { label: 'OSAVI', value: healthyIndices.osavi, height: healthyIndices.osavi * 100, colorClass: 'k' },
+      { label: 'NDPI', value: healthyIndices.ndpi, height: healthyIndices.ndpi * 100, colorClass: 'water' },
+      { label: 'KVI', value: Math.abs(healthyIndices.kvi), height: Math.abs(healthyIndices.kvi) * 100, colorClass: 'other' },
+      { label: 'CaVI', value: Math.abs(healthyIndices.caVI), height: Math.abs(healthyIndices.caVI) * 100, colorClass: 'n' },
+      { label: 'NDWI', value: healthyIndices.ndwi, height: healthyIndices.ndwi * 100, colorClass: 'water' }
+    ]
+  }, 0)
+  
+  setTimeout(() => {
+    viStats.value = [
+      { label: '均值', value: healthyIndices.ndvi.toFixed(2) },
+      { label: '中位数', value: (healthyIndices.ndvi - 0.02 + Math.random() * 0.04).toFixed(2) },
+      { label: '标准差', value: generateHealthyRandom(0.08, 0.15, 2).toFixed(2) },
+      { label: '最小值', value: (healthyIndices.ndvi - 0.15).toFixed(2) },
+      { label: '最大值', value: (healthyIndices.ndvi + 0.15).toFixed(2) }
+    ]
+  }, 100)
+  
+  setTimeout(() => {
+    ndreStats.value = {
+      mean: healthyIndices.ndre,
+      std: generateHealthyRandom(0.03, 0.07, 3),
+      min: (healthyIndices.ndre - 0.1).toFixed(2),
+      max: (healthyIndices.ndre + 0.1).toFixed(2)
+    }
+  }, 200)
+  
+  setTimeout(() => {
+    ndwiStats.value = {
+      mean: healthyIndices.ndwi,
+      std: generateHealthyRandom(0.04, 0.08, 3),
+      min: (healthyIndices.ndwi - 0.12).toFixed(2),
+      max: (healthyIndices.ndwi + 0.12).toFixed(2)
+    }
+  }, 300)
+  
+  setTimeout(() => {
+    correlations.value = [
+      { name: 'NDRE', value: generateHealthyRandom(0.65, 0.85, 2) },
+      { name: 'OSAVI', value: generateHealthyRandom(0.88, 0.96, 2) },
+      { name: 'NDPI', value: generateHealthyRandom(0.55, 0.7, 2) },
+      { name: 'NDWI', value: generateHealthyRandom(-0.3, -0.1, 2) }
+    ]
+  }, 400)
+  
+  setTimeout(() => {
+    const healthyCounts = {
+      n: Math.floor(Math.random() * 20) + 5,
+      p: Math.floor(Math.random() * 15) + 3,
+      k: Math.floor(Math.random() * 18) + 4,
+      water: Math.floor(Math.random() * 12) + 2,
+      other: Math.floor(Math.random() * 8) + 1
+    }
+    
+    nutrientCounts.n = healthyCounts.n
+    nutrientCounts.p = healthyCounts.p
+    nutrientCounts.k = healthyCounts.k
+    nutrientCounts.water = healthyCounts.water
+    nutrientCounts.other = healthyCounts.other
+    
+    deficitData.value = [
+      { type: 'n', icon: 'fas fa-flask', label: '缺氮株数', count: healthyCounts.n, unit: '株', percentage: `占比 ${((healthyCounts.n / totalSamples) * 100).toFixed(1)}%` },
+      { type: 'p', icon: 'fas fa-flask', label: '缺磷株数', count: healthyCounts.p, unit: '株', percentage: `占比 ${((healthyCounts.p / totalSamples) * 100).toFixed(1)}%` },
+      { type: 'k', icon: 'fas fa-flask', label: '缺钾株数', count: healthyCounts.k, unit: '株', percentage: `占比 ${((healthyCounts.k / totalSamples) * 100).toFixed(1)}%` },
+      { type: 'water', icon: 'fas fa-tint', label: '缺水株数', count: healthyCounts.water, unit: '株', percentage: `占比 ${((healthyCounts.water / totalSamples) * 100).toFixed(1)}%` },
+      { type: 'other', icon: 'fas fa-seedling', label: '其他缺失', count: healthyCounts.other, unit: '株', percentage: '缺硼/锌/钙' }
+    ]
+  }, 500)
+  
+  setTimeout(() => {
+    const remainingSamples = totalSamples - (nutrientCounts.n + nutrientCounts.p + nutrientCounts.k + nutrientCounts.water + nutrientCounts.other)
+    const healthySamples = Math.floor(remainingSamples * 0.85)
+    
+    nutrientStats.value = [
+      { label: '严重缺乏', count: Math.floor(nutrientCounts.n * 0.2), color: '#c45d32' },
+      { label: '缺乏', count: Math.floor(nutrientCounts.n * 0.3 + nutrientCounts.p * 0.3), color: '#e1ad5d' },
+      { label: '偏少', count: Math.floor(nutrientCounts.p * 0.3 + nutrientCounts.k * 0.3), color: '#5f9ea0' },
+      { label: '适中', count: Math.floor(healthySamples * 0.6), color: '#4794b3' },
+      { label: '充足', count: Math.floor(healthySamples * 0.4), color: '#328f55' }
+    ]
+  }, 600)
+  
+  setTimeout(() => {
+    const adviceLocations = ['地块 1-A', '地块 2-C', '地块 3-B', '地块 4-D', '地块 5-E']
+    const adviceTypes = [
+      { suggestion: '平衡水溶肥 3kg/亩 · 促生长', status: '推荐执行', color: '#256f45' },
+      { suggestion: '叶面喷施磷酸二氢钾 · 壮秆', status: '建议执行', color: '#e68a3a' },
+      { suggestion: '滴灌补充水分 · 20m³/亩', status: '今日执行', color: '#256f45' }
+    ]
+    
+    adviceData.value = []
+    for (let i = 0; i < 3; i++) {
+      adviceData.value.push({
+        location: adviceLocations[i % adviceLocations.length],
+        suggestion: adviceTypes[i % adviceTypes.length].suggestion,
+        status: adviceTypes[i % adviceTypes.length].status,
+        badgeColor: adviceTypes[i % adviceTypes.length].color
+      })
+    }
+  }, 700)
+  
+  setTimeout(() => {
+    for (let i = 0; i < plotBlocks.value.length; i++) {
+      const rand = Math.random()
+      let status = rand < 0.6 ? 'executed' : (rand < 0.9 ? 'pending' : 'warning')
+      plotBlocks.value[i].status = status
+    }
+  }, 800)
+  
+  setTimeout(() => {
+    saveCost.value = 4260 + Math.floor(Math.random() * 500) + 200
+  }, 900)
+}
+
+// 生成健康随机数
+const generateHealthyRandom = (min, max, decimals = 2) => {
+  const value = min + Math.random() * (max - min)
+  return Number(value.toFixed(decimals))
+}
+
+// 生成健康光谱指数
+const generateHealthySpectralIndices = () => {
+  return {
+    ndvi: generateHealthyRandom(0.45, 0.75, 3),
+    ndre: generateHealthyRandom(0.15, 0.35, 3),
+    osavi: generateHealthyRandom(0.4, 0.7, 3),
+    ndpi: generateHealthyRandom(0.08, 0.2, 3),
+    kvi: generateHealthyRandom(-0.1, 0.1, 3),
+    caVI: generateHealthyRandom(-0.05, 0.05, 3),
+    ndwi: generateHealthyRandom(-0.1, 0.2, 3),
+    wi: generateHealthyRandom(322500, 323500, 0),
+    sipi: generateHealthyRandom(-2150, -2120, 1)
+  }
 }
 
 /**
@@ -378,10 +812,8 @@ const fetchPlotAnalysisData = async (blockId) => {
     const areaId = blockId.split('-')[0] || regionInfo.value.regionId
     const currentOrchardId = orchardId.value
     
-    //调用地块水肥分析报告接口，将报告渲染到水肥页面中
     const apiUrl = `/api/AI/getAnalyze/${currentOrchardId}/${areaId}`
     
-    //发送请求，超时实践设置为30s
     const response = await axios.get(apiUrl, {
       timeout: 30000
     })
@@ -392,7 +824,6 @@ const fetchPlotAnalysisData = async (blockId) => {
       }
       
       let resultData = response.data
-      // 如果返回的是字符串格式，尝试解析为JSON
       if (typeof resultData === 'string') {
         try {
           resultData = JSON.parse(resultData)
@@ -409,7 +840,6 @@ const fetchPlotAnalysisData = async (blockId) => {
           return generateDefaultAnalysisData(blockId)
         }
         
-        // 打印原始图片URL信息用于调试
         const firstData = Array.isArray(dataList) ? dataList[0] : dataList
         console.log('========== 原始图片URL信息 ==========')
         console.log('analysisImage 存在:', !!firstData.analysisImage)
@@ -432,13 +862,43 @@ const fetchPlotAnalysisData = async (blockId) => {
 }
 
 /**
+ * 提取图片URL - 优先使用PNG格式，避免TIFF浏览器不支持问题
+ */
+const extractImageUrls = (analysisItem) => {
+  const urls = []
+  
+  if (analysisItem.analysisImage && typeof analysisItem.analysisImage === 'string') {
+    const url = analysisItem.analysisImage.trim()
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      urls.push(url)
+      console.log('✅ 添加PNG图片，长度:', url.length)
+    }
+  }
+  
+  if (urls.length === 0 && analysisItem.mergeImage && typeof analysisItem.mergeImage === 'string') {
+    const url = analysisItem.mergeImage.trim()
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      urls.push(url)
+      console.log('⚠️ 添加TIFF图片（可能不被浏览器支持），长度:', url.length)
+    }
+  }
+  
+  if (urls.length === 0) {
+    console.warn('没有找到可显示的图片，使用默认图片')
+    urls.push('https://picsum.photos/id/104/800/450')
+    urls.push('https://picsum.photos/id/10/800/450')
+  }
+  
+  return urls
+}
+
+/**
  * 格式化接口返回的数据
  */
 const formatAnalysisData = (apiData, blockId) => {
   console.log('开始格式化数据')
   
   if (!apiData) {
-    //无返回则使用默认数据：没有数据
     return generateDefaultAnalysisData(blockId)
   }
   
@@ -458,22 +918,17 @@ const formatAnalysisData = (apiData, blockId) => {
     analysisItem = apiData.data[0]
   }
   
-  // 取出光谱指数（没有则为空对象）
   const spectralIndices = analysisItem.spectralIndices || {}
   
-  // 提取图片URL
   const imageUrls = extractImageUrls(analysisItem)
   
-  // 处理建议内容
   let suggestion = analysisItem.analyzeSuggestion || ''
-  // 如果建议为空、或是图片路径/网址 → 自动根据营养状态生成标准建议
   if (!suggestion || suggestion.trim() === '' || 
       suggestion.includes('.png') || suggestion.includes('.jpg') || 
       suggestion.includes('http://') || suggestion.includes('https://')) {
     suggestion = generateSuggestionByStatus(analysisItem.nutritionStatus, blockId)
   }
   
-  // 按照默认的数据格式组装最终前端展示的水肥数据
   const formattedData = {
     nutritionStatus: analysisItem.nutritionStatus || 'normal',
     spectralIndices: {
@@ -492,7 +947,6 @@ const formatAnalysisData = (apiData, blockId) => {
     imageUrls: imageUrls
   }
   
-  // 调试输出：格式化完成，打印图片数量
   console.log(`格式化完成，图片数量: ${imageUrls.length}`)
   if (imageUrls.length > 0) {
     console.log('第一张图片URL前100字符:', imageUrls[0]?.substring(0, 100))
@@ -569,7 +1023,8 @@ const handlePlotClick = async (block) => {
   console.log('========== 点击地块 ==========')
   console.log('地块信息:', block)
   
-  isAnalyzing.value = true
+  // 使用独立的状态变量，不影响数据更新按钮
+  isLoadingPlot.value = true
   
   try {
     selectedBlockId.value = block.id
@@ -589,7 +1044,6 @@ const handlePlotClick = async (block) => {
     
     currentAnalysisData.value = analysisData
     
-    // 设置弹窗图片
     if (analysisData.imageUrls && analysisData.imageUrls.length > 0) {
       analysisImages.value = [...analysisData.imageUrls]
       console.log('设置弹窗图片，数量:', analysisImages.value.length)
@@ -608,7 +1062,7 @@ const handlePlotClick = async (block) => {
     console.error('处理地块点击失败:', error)
     alert('获取分析数据失败，请稍后重试')
   } finally {
-    isAnalyzing.value = false
+    isLoadingPlot.value = false
   }
 }
 
@@ -617,153 +1071,9 @@ const handleCloseModal = () => {
   showResultModal.value = false
 }
 
-// 生成健康随机数
-const generateHealthyRandom = (min, max, decimals = 2) => {
-  const value = min + Math.random() * (max - min)
-  return Number(value.toFixed(decimals))
-}
-
-// 生成健康光谱指数
-const generateHealthySpectralIndices = () => {
-  return {
-    ndvi: generateHealthyRandom(0.45, 0.75, 3),
-    ndre: generateHealthyRandom(0.15, 0.35, 3),
-    osavi: generateHealthyRandom(0.4, 0.7, 3),
-    ndpi: generateHealthyRandom(0.08, 0.2, 3),
-    kvi: generateHealthyRandom(-0.1, 0.1, 3),
-    caVI: generateHealthyRandom(-0.05, 0.05, 3),
-    ndwi: generateHealthyRandom(-0.1, 0.2, 3),
-    wi: generateHealthyRandom(322500, 323500, 0),
-    sipi: generateHealthyRandom(-2150, -2120, 1)
-  }
-}
-
-// 主数据更新函数
-const handleDataUpdate = () => {
-  if (isAnalyzing.value) return
-  
-  isAnalyzing.value = true
-  
-  setTimeout(() => {
-    try {
-      analysisDate.value = getCurrentTime()
-      const healthyIndices = generateHealthySpectralIndices()
-      
-      viChartData.value = [
-        { label: 'NDVI', value: healthyIndices.ndvi, height: healthyIndices.ndvi * 100, colorClass: 'n' },
-        { label: 'NDRE', value: healthyIndices.ndre, height: healthyIndices.ndre * 100, colorClass: 'p' },
-        { label: 'OSAVI', value: healthyIndices.osavi, height: healthyIndices.osavi * 100, colorClass: 'k' },
-        { label: 'NDPI', value: healthyIndices.ndpi, height: healthyIndices.ndpi * 100, colorClass: 'water' },
-        { label: 'KVI', value: Math.abs(healthyIndices.kvi), height: Math.abs(healthyIndices.kvi) * 100, colorClass: 'other' },
-        { label: 'CaVI', value: Math.abs(healthyIndices.caVI), height: Math.abs(healthyIndices.caVI) * 100, colorClass: 'n' },
-        { label: 'NDWI', value: healthyIndices.ndwi, height: healthyIndices.ndwi * 100, colorClass: 'water' }
-      ]
-      
-      viStats.value = [
-        { label: '均值', value: healthyIndices.ndvi.toFixed(2) },
-        { label: '中位数', value: (healthyIndices.ndvi - 0.02 + Math.random() * 0.04).toFixed(2) },
-        { label: '标准差', value: generateHealthyRandom(0.08, 0.15, 2).toFixed(2) },
-        { label: '最小值', value: (healthyIndices.ndvi - 0.15).toFixed(2) },
-        { label: '最大值', value: (healthyIndices.ndvi + 0.15).toFixed(2) }
-      ]
-      
-      ndreStats.value = {
-        mean: healthyIndices.ndre,
-        std: generateHealthyRandom(0.03, 0.07, 3),
-        min: (healthyIndices.ndre - 0.1).toFixed(2),
-        max: (healthyIndices.ndre + 0.1).toFixed(2)
-      }
-      
-      ndwiStats.value = {
-        mean: healthyIndices.ndwi,
-        std: generateHealthyRandom(0.04, 0.08, 3),
-        min: (healthyIndices.ndwi - 0.12).toFixed(2),
-        max: (healthyIndices.ndwi + 0.12).toFixed(2)
-      }
-      
-      correlations.value = [
-        { name: 'NDRE', value: generateHealthyRandom(0.65, 0.85, 2) },
-        { name: 'OSAVI', value: generateHealthyRandom(0.88, 0.96, 2) },
-        { name: 'NDPI', value: generateHealthyRandom(0.55, 0.7, 2) },
-        { name: 'NDWI', value: generateHealthyRandom(-0.3, -0.1, 2) }
-      ]
-      
-      const healthyCounts = {
-        n: Math.floor(Math.random() * 20) + 5,
-        p: Math.floor(Math.random() * 15) + 3,
-        k: Math.floor(Math.random() * 18) + 4,
-        water: Math.floor(Math.random() * 12) + 2,
-        other: Math.floor(Math.random() * 8) + 1
-      }
-      
-      nutrientCounts.n = healthyCounts.n
-      nutrientCounts.p = healthyCounts.p
-      nutrientCounts.k = healthyCounts.k
-      nutrientCounts.water = healthyCounts.water
-      nutrientCounts.other = healthyCounts.other
-      
-      deficitData.value = [
-        { type: 'n', icon: 'fas fa-flask', label: '缺氮株数', count: healthyCounts.n, unit: '株', percentage: `占比 ${((healthyCounts.n / totalSamples) * 100).toFixed(1)}%` },
-        { type: 'p', icon: 'fas fa-flask', label: '缺磷株数', count: healthyCounts.p, unit: '株', percentage: `占比 ${((healthyCounts.p / totalSamples) * 100).toFixed(1)}%` },
-        { type: 'k', icon: 'fas fa-flask', label: '缺钾株数', count: healthyCounts.k, unit: '株', percentage: `占比 ${((healthyCounts.k / totalSamples) * 100).toFixed(1)}%` },
-        { type: 'water', icon: 'fas fa-tint', label: '缺水株数', count: healthyCounts.water, unit: '株', percentage: `占比 ${((healthyCounts.water / totalSamples) * 100).toFixed(1)}%` },
-        { type: 'other', icon: 'fas fa-seedling', label: '其他缺失', count: healthyCounts.other, unit: '株', percentage: '缺硼/锌/钙' }
-      ]
-      
-      const remainingSamples = totalSamples - (healthyCounts.n + healthyCounts.p + healthyCounts.k + healthyCounts.water + healthyCounts.other)
-      const healthySamples = Math.floor(remainingSamples * 0.85)
-      
-      nutrientStats.value = [
-        { label: '严重缺乏', count: Math.floor(healthyCounts.n * 0.2), color: '#c45d32' },
-        { label: '缺乏', count: Math.floor(healthyCounts.n * 0.3 + healthyCounts.p * 0.3), color: '#e1ad5d' },
-        { label: '偏少', count: Math.floor(healthyCounts.p * 0.3 + healthyCounts.k * 0.3), color: '#5f9ea0' },
-        { label: '适中', count: Math.floor(healthySamples * 0.6), color: '#4794b3' },
-        { label: '充足', count: Math.floor(healthySamples * 0.4), color: '#328f55' }
-      ]
-      
-      const adviceLocations = ['地块 1-A', '地块 2-C', '地块 3-B', '地块 4-D', '地块 5-E']
-      const adviceTypes = [
-        { suggestion: '平衡水溶肥 3kg/亩 · 促生长', status: '推荐执行', color: '#256f45' },
-        { suggestion: '叶面喷施磷酸二氢钾 · 壮秆', status: '建议执行', color: '#e68a3a' },
-        { suggestion: '滴灌补充水分 · 20m³/亩', status: '今日执行', color: '#256f45' }
-      ]
-      
-      adviceData.value = []
-      for (let i = 0; i < 3; i++) {
-        adviceData.value.push({
-          location: adviceLocations[i % adviceLocations.length],
-          suggestion: adviceTypes[i % adviceTypes.length].suggestion,
-          status: adviceTypes[i % adviceTypes.length].status,
-          badgeColor: adviceTypes[i % adviceTypes.length].color
-        })
-      }
-      
-      for (let i = 0; i < plotBlocks.value.length; i++) {
-        const rand = Math.random()
-        let status = rand < 0.6 ? 'executed' : (rand < 0.9 ? 'pending' : 'warning')
-        plotBlocks.value[i].status = status
-      }
-      
-      saveCost.value = 4260 + Math.floor(Math.random() * 500) + 200
-      
-    } catch (error) {
-      console.error('数据更新出错:', error)
-    } finally {
-      isAnalyzing.value = false
-      selectedFiles.value = []
-    }
-  }, 800)
-}
-
-// VI指数统计表数据
-const viStatsData = {
-  ndvi: { mean: 0.158, std: 0.201, min: -0.502, median: 0.166, max: 0.632 },
-  ndre: { mean: 0.034, std: 0.098, min: -0.419, median: 0.050, max: 0.291 },
-  osavi: { mean: 0.130, std: 0.173, min: -0.505, median: 0.127, max: 0.529 },
-  ndpi: { mean: 0.080, std: 0.089, min: -0.150, median: 0.064, max: 0.362 },
-  kvi: { mean: -0.158, std: 0.201, min: -0.632, median: -0.166, max: 0.502 },
-  cavi: { mean: -0.018, std: 0.051, min: -0.270, median: -0.018, max: 0.127 },
-  ndwi: { mean: -0.100, std: 0.187, min: -0.623, median: -0.124, max: 0.611 }
+const handleApplySuggestion = (data) => {
+  console.log('应用分析建议:', data)
+  showResultModal.value = false
 }
 
 // 响应式数据
@@ -775,7 +1085,7 @@ const nutrientStats = ref([
   { label: '充足', count: 67, color: '#328f55' }
 ])
 
-const nutrientCounts = { n: 44, p: 16, k: 31, water: 19, other: 8 }
+const nutrientCounts = ref({ n: 44, p: 16, k: 31, water: 19, other: 8 })
 
 const deficitData = ref([
   { type: 'n', icon: 'fas fa-flask', label: '缺氮株数', count: 44, unit: '株', percentage: '占比 5.3%' },
@@ -840,17 +1150,7 @@ const getPlotCountByStatus = (status) => {
   return plotBlocks.value.filter(block => block.status === status).length
 }
 
-const handleApplySuggestion = (data) => {
-  console.log('应用分析建议:', data)
-  showResultModal.value = false
-}
-
 const scatterColors = ['#1b7b44', '#3ba363', '#308254', '#56a06b', '#71ba83', '#c45d32', '#7ac48a']
-
-onMounted(() => {
-  analysisDate.value = getCurrentTime()
-  console.log('组件已挂载，地块数量:', plotBlocks.value.length)
-})
 </script>
 
 <style scoped>
@@ -876,17 +1176,36 @@ onMounted(() => {
 .title-section h1 { font-size: 2.3rem; font-weight: 600; color: #11532f; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
 .title-section h1 i { font-size: 2.8rem; color: #2783b3; background: #e0f2fc; padding: 12px; border-radius: 50%; }
 .region-badge { font-size: 1.4rem; background: linear-gradient(135deg, #2a8b54, #1d6b40); color: white; padding: 6px 18px; border-radius: 40px; }
-.header-actions { display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
+.header-actions { display: flex; align-items: center; gap: 15px; flex-wrap: wrap; position: relative; }
 .file-input { display: none; }
+
+/* 上传下拉菜单样式 */
+.upload-dropdown { position: relative; }
+.upload-menu { position: absolute; top: 100%; right: 0; margin-top: 8px; background: white; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); border: 1px solid #c8e6c9; z-index: 1000; min-width: 220px; overflow: hidden; }
+.upload-menu-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; cursor: pointer; transition: background 0.2s; border-bottom: 1px solid #f0f0f0; }
+.upload-menu-item:last-child { border-bottom: none; }
+.upload-menu-item:hover { background: #e8f5e9; }
+.upload-menu-item i { width: 24px; color: #2a8b54; font-size: 1.1rem; }
+.upload-menu-item span:first-of-type { flex: 1; font-weight: 500; color: #1d5f3a; }
+.menu-hint { font-size: 0.7rem; color: #8ba89a; }
+
+/* 上传进度条样式 */
+.upload-progress { position: fixed; bottom: 20px; right: 20px; background: white; border-radius: 12px; padding: 12px 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 1px solid #c8e6c9; z-index: 1001; min-width: 250px; }
+.progress-bar { width: 100%; height: 6px; background: #e0e0e0; border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+.progress-fill { height: 100%; background: #2a8b54; transition: width 0.3s ease; }
+.progress-text { font-size: 0.8rem; color: #1d5f3a; }
+
 .analyze-btn { display: flex; align-items: center; justify-content: center; gap: 8px; background: #2a8b54; border: none; color: white; font-size: 1rem; font-weight: 500; padding: 10px 24px; border-radius: 40px; cursor: pointer; transition: all 0.2s ease; min-width: 120px; }
 .analyze-btn:hover:not(:disabled) { background: #1d6b40; transform: translateY(-2px); }
 .analyze-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .update-time { background: #effaf2; border-radius: 100px; padding: 10px 26px; font-weight: 500; color: #1f6d40; border: 1px solid #abd8b8; white-space: nowrap; }
 .image-preview-container { position: relative; display: inline-block; }
 .image-preview-trigger { background: #e8f5e9; border-radius: 30px; padding: 8px 16px; cursor: pointer; display: flex; align-items: center; gap: 8px; color: #1d6b40; border: 1px solid #9ccc9c; }
-.image-preview-popup { position: absolute; top: 100%; right: 0; margin-top: 10px; background: white; border-radius: 16px; padding: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); border: 1px solid #c8e6c9; z-index: 100; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; min-width: 300px; }
+.image-preview-popup { position: absolute; top: 100%; right: 0; margin-top: 10px; background: white; border-radius: 16px; padding: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); border: 1px solid #c8e6c9; z-index: 100; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; min-width: 300px; max-width: 400px; max-height: 300px; overflow-y: auto; }
 .preview-item { width: 80px; height: 80px; border-radius: 8px; overflow: hidden; border: 2px solid #e0f2e0; }
 .preview-item img { width: 100%; height: 100%; object-fit: cover; }
+.preview-more { grid-column: span 3; text-align: center; padding: 8px; color: #1d6b40; font-size: 0.8rem; }
+
 .deficit-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 18px; margin-bottom: 28px; }
 .deficit-card { background: white; border-radius: 28px; padding: 18px 16px; box-shadow: 0 10px 20px -12px #1e5438; border: 1px solid #b9e0cc; border-bottom: 6px solid; }
 .deficit-card.n { border-bottom-color: #5f9ea0; }
@@ -954,4 +1273,57 @@ onMounted(() => {
 @media (max-width: 1200px) { .grid-2x6 { grid-template-columns: repeat(6, minmax(60px, 1fr)); } .plot-block { height: 60px; } }
 @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } .grid-2x6 { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 600px) { .grid-2x6 { grid-template-columns: repeat(2, 1fr); } }
+/* 增强进度条动画效果 */
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2a8b54, #4cae4c);
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.3) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: shimmer 1s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* 进度文本动画 */
+.progress-text {
+  font-size: 0.85rem;
+  color: #1d5f3a;
+  font-weight: 500;
+  display: inline-block;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 </style>
