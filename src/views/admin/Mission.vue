@@ -980,10 +980,7 @@ const handleRejectTask = async (taskId) => {
     );
 
     // 构造提交数据，包含 failure 字段
-    const rejectData = {
-      ids: [taskId],
-      failure: failureReason,
-    };
+    const rejectData = [taskId];
 
     // 调用审核不通过接口
     const response = await axios.post("/api/task/reviewFaile", rejectData);
