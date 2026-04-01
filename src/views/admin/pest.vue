@@ -293,7 +293,7 @@ const fetchRawImages = async () => {
     }
   } catch (error) {
     console.error("获取图片失败:", error);
-    ElMessage.warning("获取图片失败，使用模拟数据");
+    // ElMessage.warning("获取图片失败，使用模拟数据");
     useMockData();
   } finally {
     loading.value = false;

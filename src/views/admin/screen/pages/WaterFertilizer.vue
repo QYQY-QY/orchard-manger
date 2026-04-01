@@ -381,6 +381,7 @@ const fetchPlotAnalysisData = async (blockId) => {
     //调用地块水肥分析报告接口，将报告渲染到水肥页面中
     const apiUrl = `/api/AI/getAnalyze/${currentOrchardId}/${areaId}`
     
+    //发送请求，超时实践设置为30s
     const response = await axios.get(apiUrl, {
       timeout: 30000
     })
@@ -391,6 +392,7 @@ const fetchPlotAnalysisData = async (blockId) => {
       }
       
       let resultData = response.data
+      // 如果返回的是字符串格式，尝试解析为JSON
       if (typeof resultData === 'string') {
         try {
           resultData = JSON.parse(resultData)
@@ -436,6 +438,7 @@ const formatAnalysisData = (apiData, blockId) => {
   console.log('开始格式化数据')
   
   if (!apiData) {
+    //无返回则使用默认数据：没有数据
     return generateDefaultAnalysisData(blockId)
   }
   
@@ -455,6 +458,7 @@ const formatAnalysisData = (apiData, blockId) => {
     analysisItem = apiData.data[0]
   }
   
+  // 取出光谱指数（没有则为空对象）
   const spectralIndices = analysisItem.spectralIndices || {}
   
   // 提取图片URL
@@ -462,12 +466,14 @@ const formatAnalysisData = (apiData, blockId) => {
   
   // 处理建议内容
   let suggestion = analysisItem.analyzeSuggestion || ''
+  // 如果建议为空、或是图片路径/网址 → 自动根据营养状态生成标准建议
   if (!suggestion || suggestion.trim() === '' || 
       suggestion.includes('.png') || suggestion.includes('.jpg') || 
       suggestion.includes('http://') || suggestion.includes('https://')) {
     suggestion = generateSuggestionByStatus(analysisItem.nutritionStatus, blockId)
   }
   
+  // 按照默认的数据格式组装最终前端展示的水肥数据
   const formattedData = {
     nutritionStatus: analysisItem.nutritionStatus || 'normal',
     spectralIndices: {
@@ -486,6 +492,7 @@ const formatAnalysisData = (apiData, blockId) => {
     imageUrls: imageUrls
   }
   
+  // 调试输出：格式化完成，打印图片数量
   console.log(`格式化完成，图片数量: ${imageUrls.length}`)
   if (imageUrls.length > 0) {
     console.log('第一张图片URL前100字符:', imageUrls[0]?.substring(0, 100))
