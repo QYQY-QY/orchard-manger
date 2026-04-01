@@ -1071,10 +1071,43 @@ const handleCloseModal = () => {
   showResultModal.value = false
 }
 
-const handleApplySuggestion = (data) => {
-  console.log('应用分析建议:', data)
-  showResultModal.value = false
-}
+const handleApplySuggestion = (analysisData) => {
+  const suggestion = analysisData.analyzeSuggestion || '';
+
+  // 1. 提取每条建议里的【操作】部分
+  const lines = suggestion.split('\n').map(line => line.trim());
+
+  // 只保留“建议xxx”的动作语句，去掉标题、项目符号
+  const actions = lines
+    .filter(line => /建议|需|应/.test(line))       // 只留含操作指令的行
+    .map(line =>
+      line
+        .replace(/^[•\-]\s*/, '')                 // 去掉 • - 等符号
+        .replace(/水分管理|氮素管理|磷钾管理|综合措施：?/g, '') // 去掉标题
+        .trim()
+    )
+    .filter(line => line.length > 0);
+
+  // 拼接成干净任务内容（只保留干什么）
+  const taskContent = actions.join(' ');
+
+  // 2. 自动判断任务类型
+  let taskType = '施肥';
+  if (/浇水|排水沟|水分|积水/.test(suggestion)) taskType = '浇水';
+  if (/尿素|氮|磷钾|硫酸钾|过磷酸钙|叶面肥/.test(suggestion)) taskType = '施肥';
+
+  // 3. 跳转发布任务弹窗
+  router.push({
+    path: '/adminMission', // 你的任务路由
+    query: {
+      action: 'publish',
+      taskType,
+      content: taskContent, // 只有操作，无任何区域
+      areaId: currentRegionInfo.value.regionId || '',
+      areaName: selectedBlockId.value || ''
+    }
+  });
+};
 
 // 响应式数据
 const nutrientStats = ref([

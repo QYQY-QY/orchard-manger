@@ -324,8 +324,8 @@ const handlePublishTask = async (row) => {
   // 准备路由参数
   const query = {
     action: "publish",
-    taskType: taskType,
-    content: row.content,
+    taskType: '灌溉' || taskType,
+    content: "请及时处理果园灌溉任务" ||row.content,
     reportId: row.id, // 传递上报 ID，用于后续更新状态
   };
 
