@@ -299,10 +299,10 @@ const currentImages = computed(() => {
 const fetchRawImages = async () => {
   loading.value = true;
   try {
-    const response = await request({
-      url: "/Image/getRawImage",
-      method: "get"
-    });
+    // const response = await request({
+    //   url: "/Image/getRawImage",
+    //   method: "get"
+    // });
     
     if (response && Array.isArray(response)) {
       // 按果园分组存储图片
@@ -335,7 +335,7 @@ const fetchRawImages = async () => {
     }
   } catch (error) {
     console.error("获取图片失败:", error);
-    ElMessage.error("获取图片失败，使用模拟数据");
+    // ElMessage.error("获取图片失败，使用模拟数据");
     useMockData();
   } finally {
     loading.value = false;
@@ -345,10 +345,10 @@ const fetchRawImages = async () => {
 // 获取已处理图片数据
 const fetchHandledImages = async () => {
   try {
-    const response = await request({
-      url: "/Image/getHandledImage",
-      method: "get"
-    });
+    // const response = await request({
+    //   url: "/Image/getHandledImage",
+    //   method: "get"
+    // });
     
     if (response && Array.isArray(response)) {
       // 更新已处理图片的标注状态

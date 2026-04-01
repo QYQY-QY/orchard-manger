@@ -254,10 +254,10 @@ const handleImageError = (image) => {
 const fetchRawImages = async () => {
   loading.value = true;
   try {
-    const response = await request({
-      url: "/Image/getRawImage",
-      method: "get"
-    });
+    // const response = await request({
+    //   url: "/Image/getRawImage",
+    //   method: "get"
+    // });
     
     console.log('获取原始图片响应:', response);
     
@@ -303,10 +303,10 @@ const fetchRawImages = async () => {
 // 获取已处理图片数据
 const fetchHandledImages = async () => {
   try {
-    const response = await request({
-      url: "/Image/getHandledImage",
-      method: "get"
-    });
+    // const response = await request({
+    //   url: "/Image/getHandledImage",
+    //   method: "get"
+    // });
     
     console.log('获取已处理图片响应:', response);
     
