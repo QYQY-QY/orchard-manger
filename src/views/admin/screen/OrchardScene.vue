@@ -642,15 +642,13 @@ const createCountyMap = (geojson, region) => {
 
 //从阿里云和高德加载合作社村庄地图边界
 const fetchGeoJsonByAdcode = async (adcode) => {
-  const url = `https://geo.datav.aliyun.com/areas_v3/bound/${adcode}.json`;
   try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return await response.json();
+    // 关键：从本地 assets 动态导入对应 adcode 的 JSON
+    const geojson = await import(`@/assets/geoJson/${adcode}.json`);
+    // 兼容 vite / webpack 两种打包工具
+    return geojson.default || geojson;
   } catch (error) {
-    console.error(`加载 adcode ${adcode} 失败:`, error);
+    console.error(`本地文件加载失败 ${adcode}.json:`, error);
     return null;
   }
 };

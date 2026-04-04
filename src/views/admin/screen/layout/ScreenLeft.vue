@@ -94,7 +94,7 @@ const healthStats = ref({
 // 农事任务进度数据 - 从接口获取
 const taskProgressList = ref([
   { name: '灌溉', progress: 0 },
-  { name: '防控', progress: 0 },
+  { name: '防治', progress: 0 },
   { name: '施肥', progress: 0 },
   { name: '修剪', progress: 0 },
   { name: '采摘', progress: 0 }
@@ -153,7 +153,7 @@ const fetchFruitTreeHealth = async () => {
             (response.data.healthTree !== undefined || 
              (response.data.data && response.data.data.healthTree !== undefined))) {
           successPath = path
-          console.log(`✅ 成功路径: ${path}`)
+          console.log(`成功路径: ${path}`)
           break
         }
       } catch (e) {
@@ -279,7 +279,7 @@ const fetchTaskProgress = async () => {
             continue
           }
           successPath = path
-          console.log(`✅ 成功路径: ${path}`)
+          console.log(` 成功路径: ${path}`)
           break
         }
       } catch (e) {
@@ -365,7 +365,7 @@ const fetchDisasterCount = async () => {
             continue
           }
           successPath = path
-          console.log(`✅ 成功路径: ${path}`)
+          console.log(` 成功路径: ${path}`)
           break
         }
       } catch (e) {
