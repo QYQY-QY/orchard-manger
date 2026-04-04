@@ -6,12 +6,7 @@
         <div class="filter-group">
           <div class="filter-item">
             <label class="filter-label">上报类型：</label>
-            <el-select
-              v-model="filterParams.typeId"
-              placeholder="请选择上报类型"
-              class="filter-select"
-              clearable
-            >
+            <el-select v-model="filterParams.typeId" placeholder="请选择上报类型" class="filter-select" clearable>
               <el-option label="全部类型" value="" />
               <el-option label="水" :value="1" />
               <el-option label="肥" :value="2" />
@@ -24,12 +19,7 @@
           </div>
           <div class="filter-item">
             <label class="filter-label">处理状态：</label>
-            <el-select
-              v-model="filterParams.status"
-              placeholder="请选择处理状态"
-              class="filter-select"
-              clearable
-            >
+            <el-select v-model="filterParams.status" placeholder="请选择处理状态" class="filter-select" clearable>
               <el-option label="全部状态" :value="undefined" />
               <el-option label="未处理" :value="0" />
               <el-option label="已处理" :value="1" />
@@ -37,17 +27,9 @@
           </div>
           <div class="filter-item">
             <label class="filter-label">时间范围：</label>
-            <el-date-picker
-              v-model="filterParams.dateRange"
-              type="daterange"
-              range-separator="至"
-              start-placeholder="开始日期"
-              end-placeholder="结束日期"
-              class="filter-select"
-              format="YYYY-MM-DD"
-              value-format="YYYY-MM-DD"
-              style="width: 240px"
-            />
+            <el-date-picker v-model="filterParams.dateRange" type="daterange" range-separator="至"
+              start-placeholder="开始日期" end-placeholder="结束日期" class="filter-select" format="YYYY-MM-DD"
+              value-format="YYYY-MM-DD" style="width: 240px" />
           </div>
           <el-button type="primary" @click="handleFilter" class="filter-btn">
             筛选
@@ -58,13 +40,7 @@
 
       <!-- 上报表格 -->
       <div class="table-wrapper">
-        <el-table
-          :data="filteredReportList"
-          border
-          stripe
-          style="width: 100%"
-          v-loading="loading"
-        >
+        <el-table :data="filteredReportList" border stripe style="width: 100%" v-loading="loading">
           <el-table-column type="selection" width="55" />
           <el-table-column prop="id" label="ID" width="80" />
           <el-table-column prop="status" label="处理状态" width="120">
@@ -79,21 +55,11 @@
               {{ getReportTypeName(row.typeId) }}
             </template>
           </el-table-column>
-          <el-table-column
-            prop="content"
-            label="报告内容"
-            min-width="200"
-            show-overflow-tooltip
-          />
+          <el-table-column prop="content" label="报告内容" min-width="200" show-overflow-tooltip />
           <el-table-column prop="urlList" label="图片" width="100">
             <template #default="{ row }">
-              <el-image
-                v-if="row.urlList && row.urlList.length > 0"
-                :src="row.urlList[0]"
-                :preview-src-list="row.urlList"
-                fit="cover"
-                style="width: 50px; height: 50px; cursor: pointer"
-              />
+              <el-image v-if="row.urlList && row.urlList.length > 0" :src="row.urlList[0]"
+                :preview-src-list="row.urlList" fit="cover" style="width: 50px; height: 50px; cursor: pointer" />
             </template>
           </el-table-column>
           <el-table-column prop="userName" label="上报人" width="100" />
@@ -103,11 +69,7 @@
               <el-button type="primary" size="small" @click="handleDetail(row)">
                 详情
               </el-button>
-              <el-button
-                type="success"
-                size="small"
-                @click="handlePublishTask(row)"
-              >
+              <el-button type="success" size="small" @click="handlePublishTask(row)">
                 发布任务
               </el-button>
             </template>
@@ -134,25 +96,16 @@
             {{ currentReport.updateTime }}
           </el-descriptions-item>
           <el-descriptions-item label="图片" :span="2">
-            <div
-              v-if="currentReport.urlList && currentReport.urlList.length > 0"
-            >
+            <div v-if="currentReport.urlList && currentReport.urlList.length > 0">
               <div class="image-list">
-                <div
-                  v-for="(img, index) in currentReport.urlList"
-                  :key="index"
-                  class="image-item"
-                >
-                  <el-image
-                    :src="img"
-                    :preview-src-list="currentReport.urlList"
-                    :initial-index="index"
-                    fit="cover"
-                    class="report-image"
-                  >
+                <div v-for="(img, index) in currentReport.urlList" :key="index" class="image-item">
+                  <el-image :src="img" :preview-src-list="currentReport.urlList" :initial-index="index" fit="cover"
+                    class="report-image">
                     <template #error>
                       <div class="image-error">
-                        <el-icon><Picture /></el-icon>
+                        <el-icon>
+                          <Picture />
+                        </el-icon>
                         <span>图片加载失败</span>
                       </div>
                     </template>
@@ -212,7 +165,7 @@ const getReportTypeName = (typeId) => {
   return reportTypeMap[typeId] || "未知";
 };
 
-// 获取上报列表
+// 1、获取农户上报列表
 const getReportList = async () => {
   loading.value = true;
   try {
@@ -222,6 +175,7 @@ const getReportList = async () => {
       return;
     }
 
+    //2、调用 AI 接口，对上报的图片与文字进行智能分析
     const response = await axios.get(
       `/api/report/getOrchardReport/${orchardId}`
     );
@@ -243,7 +197,7 @@ const getReportList = async () => {
 const filteredReportList = computed(() => {
   let list = [...reportList.value];
 
-  // 上报类型筛选
+  // 3、自动识别病虫害类型、判断异常原因，并自动填充任务标题、处理建议、紧急等级
   if (
     filterParams.value.typeId !== null &&
     filterParams.value.typeId !== undefined &&
@@ -324,8 +278,8 @@ const handlePublishTask = async (row) => {
   // 准备路由参数
   const query = {
     action: "publish",
-    taskType: '灌溉' || taskType,
-    content: "请及时处理果园灌溉任务" ||row.content,
+    taskType: '施肥' || taskType,
+    content: "请巡检果园，为果园果树施肥" || row.content,
     reportId: row.id, // 传递上报 ID，用于后续更新状态
   };
 
@@ -454,6 +408,7 @@ onMounted(() => {
     border-radius: 4px;
   }
 }
+
 .report-page {
   .filter-bar {
     background-color: #fff;

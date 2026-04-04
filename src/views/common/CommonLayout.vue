@@ -4,20 +4,10 @@
     <!-- 左侧侧边栏 -->
     <el-aside width="200px">
       <div class="el-aside__logo"></div>
-      <img
-        src="@/assets/images/logo.png"
-        alt="一树一码——果园管理平台"
-        style="width: 200px; height: auto"
-      />
+      <img src="@/assets/images/logo.png" alt="一树一码——果园管理平台" style="width: 200px; height: auto" />
       <!-- 核心：default-active 绑定当前路由path + unique-opened 保证高亮唯一 -->
-      <el-menu
-        active-text-color="#ffd04b"
-        background-color="#000000"
-        :default-active="activeMenuPath"
-        text-color="#fff"
-        router
-        unique-opened
-      >
+      <el-menu active-text-color="#ffd04b" background-color="#000000" :default-active="activeMenuPath" text-color="#fff"
+        router unique-opened>
         <!-- 根据真实角色显示不同菜单 -->
 
         <!-- 普通管理员 (admin) 菜单 -->
@@ -166,21 +156,12 @@
           <span>个人中心</span>
         </el-menu-item>
 
-        <el-menu-item
-          index="weather-alert"
-          :class="{ 'has-badge': hasWeatherAlert }"
-          @click="clearWeatherAlert"
-        >
+        <el-menu-item index="weather-alert" :class="{ 'has-badge': hasWeatherAlert }" @click="clearWeatherAlert">
           <el-icon>
             <Warning />
           </el-icon>
           <span>天气预警</span>
-          <el-badge
-            v-if="hasWeatherAlert"
-            :value="weatherAlertCount"
-            :hidden="!hasWeatherAlert"
-            class="menu-badge"
-          />
+          <el-badge v-if="hasWeatherAlert" :value="weatherAlertCount" :hidden="!hasWeatherAlert" class="menu-badge" />
         </el-menu-item>
 
         <!-- 自动训练下拉菜单（放在天气预警后面） -->
@@ -210,11 +191,11 @@
             </el-icon>
             <span>虫害</span>
           </el-menu-item>
-          <el-menu-item index="survival">
+          <el-menu-item index="water">
             <el-icon>
               <Promotion />
             </el-icon>
-            <span>训练</span>
+            <span>水肥</span>
           </el-menu-item>
         </el-sub-menu>
       </el-menu>
@@ -236,9 +217,7 @@
           </span>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item command="logout" :icon="SwitchButton"
-                >退出登录</el-dropdown-item
-              >
+              <el-dropdown-item command="logout" :icon="SwitchButton">退出登录</el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
@@ -409,13 +388,16 @@ onUnmounted(() => {
     overflow-x: hidden;
     overflow-y: auto;
     /* 禁止侧边栏左右滚动，允许垂直滚动但隐藏滚动条 */
-    
+
     /* 隐藏滚动条但保持功能 */
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE 10+ */
-    
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* IE 10+ */
+
     &::-webkit-scrollbar {
-      display: none; /* Chrome Safari */
+      display: none;
+      /* Chrome Safari */
     }
 
     &__logo {
@@ -436,12 +418,12 @@ onUnmounted(() => {
         color: #fff !important;
       }
 
-      &-submenu.is-active > .el-menu-item {
+      &-submenu.is-active>.el-menu-item {
         color: #ffd04b !important;
       }
 
       // 子菜单展开时标题高亮
-      &-submenu.is-opened > .el-menu-submenu__title {
+      &-submenu.is-opened>.el-menu-submenu__title {
         color: #ffd04b !important;
       }
     }
@@ -480,15 +462,18 @@ onUnmounted(() => {
     overflow-x: hidden;
     overflow-y: auto;
     /* 禁止主内容区左右滚动，允许垂直滚动但隐藏滚动条 */
-    
+
     /* 隐藏滚动条但保持功能 */
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE 10+ */
-    
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* IE 10+ */
+
     &::-webkit-scrollbar {
-      display: none; /* Chrome Safari */
+      display: none;
+      /* Chrome Safari */
     }
-    
+
     display: flex;
     flex-direction: column;
     /* 垂直排列，让白色内容在上，版权在下 */
@@ -510,18 +495,23 @@ onUnmounted(() => {
       overflow-x: hidden;
       overflow-y: auto;
       /* 禁止内容区左右滚动，允许垂直滚动但隐藏滚动条 */
-      
+
       /* 隐藏滚动条但保持功能 */
-      scrollbar-width: none; /* Firefox */
-      -ms-overflow-style: none; /* IE 10+ */
-      
+      scrollbar-width: none;
+      /* Firefox */
+      -ms-overflow-style: none;
+      /* IE 10+ */
+
       &::-webkit-scrollbar {
-        display: none; /* Chrome Safari */
+        display: none;
+        /* Chrome Safari */
       }
+
       flex-shrink: 0;
     }
   }
 }
+
 .el-menu-item {
   position: relative;
 
@@ -538,6 +528,7 @@ onUnmounted(() => {
   }
 
   &.has-badge {
+
     .el-icon,
     span {
       color: #ffd04b;

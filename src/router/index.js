@@ -57,9 +57,9 @@ const router = createRouter({
       component: () => import('../views/admin/pest.vue')
     },
     {
-      path: '/survival',
-      name: 'survival',
-      component: () => import('../views/admin/survival.vue')
+      path: '/water',
+      name: 'water',
+      component: () => import('../views/admin/Water.vue')
     },
     {
       path: '/AiChat',

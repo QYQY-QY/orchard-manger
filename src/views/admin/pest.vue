@@ -1,178 +1,152 @@
 <template>
   <CommonLayout>
-  <div class="page-container">
-    <div class="page-header">
-      <h1 class="page-title">自动训练系统-虫害</h1>
-      <div class="page-subtitle">病害识别与标注管理</div>
-    </div>
-    <!-- 顶部筛选区域 -->
-    <div class="filter-container">
-      <div class="filter-left">
-        <div class="filter-item">
-          <label class="filter-label">时间范围：</label>
-          <el-date-picker
-            v-model="filterParams.deadlineRange"
-            type="daterange"
-            range-separator="至"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期"
-            class="filter-select"
-            format="YYYY-MM-DD"
-            value-format="YYYY-MM-DD"
-            style="width: 240px"
-          />
-        </div>
-        <el-button type="primary" @click="handleFilter" class="filter-btn"
-          >筛选</el-button
-        >
-        <el-button type="warning" @click="startAutoLabel" class="auto-label-btn" :loading="autoLabelLoading">
-          <el-icon><MagicStick /></el-icon>
-          自动标注
+    <div class="page-container">
+      <div class="page-header">
+        <h1 class="page-title">自动训练系统-虫害</h1>
+        <div class="page-subtitle">病害识别与标注管理</div>
+        <!-- 按钮，跳转到自动训练页面 -->
+        <el-button type="primary" size="large" @click="handleTrainClick" class="train-btn">
+          <el-icon>
+            <VideoPlay />
+          </el-icon>
+          点击训练
         </el-button>
       </div>
-      <div class="filter-right">
-        <span class="total-count">共 {{ totalImages }} 张图片</span>
-        <el-button type="success" @click="handleUpdateImages" class="update-btn" :loading="updateLoading">
-          <el-icon><Refresh /></el-icon>
-          更新图片
-        </el-button>
-      </div>
-    </div>
-
-    <!-- 自动标注进度条（条件显示） -->
-    <div class="auto-label-progress" v-if="autoLabelActive">
-      <div class="progress-info">
-        <span>自动标注进度：{{ autoLabelProgress }}%</span>
-        <span>已标注：{{ labeledCount }} / {{ totalPendingCount }}</span>
-      </div>
-      <el-progress :percentage="autoLabelProgress" :stroke-width="10" :color="progressColor" />
-    </div>
-
-    <!-- 加载状态 -->
-    <div v-if="loading" class="loading-container">
-      <el-icon class="is-loading"><Loading /></el-icon>
-      <span>加载中...</span>
-    </div>
-
-    <!-- 图片网格区域 -->
-    <div class="image-grid" v-else>
-      <div
-        v-for="(image, index) in currentImages"
-        :key="image.id || index"
-        class="image-card"
-        @click="openAnnotationDialog(image)"
-      >
-        <div class="image-wrapper">
-          <img :src="image.url" :alt="image.name" class="image-item" @error="handleImageError(image)" />
-          <div class="image-tag" v-if="image.pestType">
-            <span class="tag">{{ image.pestType }}</span>
+      <!-- 顶部筛选区域 -->
+      <div class="filter-container">
+        <div class="filter-left">
+          <div class="filter-item">
+            <label class="filter-label">时间范围：</label>
+            <el-date-picker v-model="filterParams.deadlineRange" type="daterange" range-separator="至"
+              start-placeholder="开始日期" end-placeholder="结束日期" class="filter-select" format="YYYY-MM-DD"
+              value-format="YYYY-MM-DD" style="width: 240px" />
           </div>
-          <div class="auto-label-badge" v-if="image.autoLabeled">
-            <el-icon><CircleCheck /></el-icon>
-            <span>自动标注</span>
+          <el-button type="primary" @click="handleFilter" class="filter-btn">筛选</el-button>
+          <el-button type="warning" @click="startAutoLabel" class="auto-label-btn" :loading="autoLabelLoading">
+            <el-icon>
+              <MagicStick />
+            </el-icon>
+            自动标注
+          </el-button>
+        </div>
+        <div class="filter-right">
+          <span class="total-count">共 {{ totalImages }} 张图片</span>
+          <el-button type="success" @click="handleUpdateImages" class="update-btn" :loading="updateLoading">
+            <el-icon>
+              <Refresh />
+            </el-icon>
+            更新图片
+          </el-button>
+        </div>
+      </div>
+
+      <!-- 自动标注进度条（条件显示） -->
+      <div class="auto-label-progress" v-if="autoLabelActive">
+        <div class="progress-info">
+          <span>自动标注进度：{{ autoLabelProgress }}%</span>
+          <span>已标注：{{ labeledCount }} / {{ totalPendingCount }}</span>
+        </div>
+        <el-progress :percentage="autoLabelProgress" :stroke-width="10" :color="progressColor" />
+      </div>
+
+      <!-- 加载状态 -->
+      <div v-if="loading" class="loading-container">
+        <el-icon class="is-loading">
+          <Loading />
+        </el-icon>
+        <span>加载中...</span>
+      </div>
+
+      <!-- 图片网格区域 -->
+      <div class="image-grid" v-else>
+        <div v-for="(image, index) in currentImages" :key="image.id || index" class="image-card"
+          @click="openAnnotationDialog(image)">
+          <div class="image-wrapper">
+            <img :src="image.url" :alt="image.name" class="image-item" @error="handleImageError(image)" />
+            <div class="image-tag" v-if="image.pestType">
+              <span class="tag">{{ image.pestType }}</span>
+            </div>
+            <div class="auto-label-badge" v-if="image.autoLabeled">
+              <el-icon>
+                <CircleCheck />
+              </el-icon>
+              <span>自动标注</span>
+            </div>
+          </div>
+          <div class="image-info">
+            <div class="image-name">{{ image.name }}</div>
+            <div class="image-date">{{ image.date }}</div>
           </div>
         </div>
-        <div class="image-info">
-          <div class="image-name">{{ image.name }}</div>
-          <div class="image-date">{{ image.date }}</div>
-        </div>
       </div>
-    </div>
 
-    <!-- 分页区域 -->
-    <div class="pagination-container" v-if="!loading">
-      <el-pagination
-        v-model:current-page="currentPage"
-        v-model:page-size="pageSize"
-        :page-sizes="[9, 18, 27, 36]"
-        :total="totalImages"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-      />
-    </div>
-
-    <!-- 数据标注弹窗 -->
-    <el-dialog
-      v-model="annotationDialogVisible"
-      title="添加虫害标注"
-      width="500px"
-      :close-on-click-modal="false"
-    >
-      <el-form :model="annotationForm" label-width="80px">
-        <el-form-item label="图片名称">
-          <el-input
-            v-model="annotationForm.imageName"
-            disabled
-            placeholder="当前图片名称"
-          />
-        </el-form-item>
-        <el-form-item label="虫害类型">
-          <el-select
-            v-model="annotationForm.pestType"
-            placeholder="请选择虫害类型"
-            style="width: 100%"
-          >
-            <el-option label="蚜虫" value="aphid" />
-            <el-option label="红蜘蛛" value="red_spider" />
-            <el-option label="食心虫" value="borer" />
-            <el-option label="卷叶蛾" value="leaf_roller" />
-            <el-option label="其他" value="other" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="虫害密度">
-          <el-slider v-model="annotationForm.density" :min="0" :max="100" />
-        </el-form-item>
-        <el-form-item label="标注内容">
-          <el-input
-            v-model="annotationForm.content"
-            type="textarea"
-            :rows="4"
-            placeholder="请描述虫害发生情况、危害程度等"
-          />
-        </el-form-item>
-        <el-form-item label="防治建议">
-          <el-input
-            v-model="annotationForm.suggestion"
-            type="textarea"
-            :rows="2"
-            placeholder="请输入防治措施"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="annotationDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="submitAnnotation">确认标注</el-button>
-        </span>
-      </template>
-    </el-dialog>
-
-    <!-- 标注日志弹窗 -->
-    <el-dialog
-      v-model="logDialogVisible"
-      title="自动标注日志"
-      width="600px"
-    >
-      <div class="log-container">
-        <div v-for="log in annotationLogs" :key="log.time" class="log-item">
-          <span class="log-time">{{ log.time }}</span>
-          <span class="log-message">{{ log.message }}</span>
-        </div>
+      <!-- 分页区域 -->
+      <div class="pagination-container" v-if="!loading">
+        <el-pagination v-model:current-page="currentPage" v-model:page-size="pageSize" :page-sizes="[9, 18, 27, 36]"
+          :total="totalImages" layout="total, sizes, prev, pager, next, jumper" @size-change="handleSizeChange"
+          @current-change="handleCurrentChange" />
       </div>
-      <template #footer>
-        <el-button @click="logDialogVisible = false">关闭</el-button>
-      </template>
-    </el-dialog>
-  </div>
+
+      <!-- 数据标注弹窗 -->
+      <el-dialog v-model="annotationDialogVisible" title="添加虫害标注" width="500px" :close-on-click-modal="false">
+        <el-form :model="annotationForm" label-width="80px">
+          <el-form-item label="图片名称">
+            <el-input v-model="annotationForm.imageName" disabled placeholder="当前图片名称" />
+          </el-form-item>
+          <el-form-item label="虫害类型">
+            <el-select v-model="annotationForm.pestType" placeholder="请选择虫害类型" style="width: 100%">
+              <el-option label="蚜虫" value="aphid" />
+              <el-option label="红蜘蛛" value="red_spider" />
+              <el-option label="食心虫" value="borer" />
+              <el-option label="卷叶蛾" value="leaf_roller" />
+              <el-option label="其他" value="other" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="虫害密度">
+            <el-slider v-model="annotationForm.density" :min="0" :max="100" />
+          </el-form-item>
+          <el-form-item label="标注内容">
+            <el-input v-model="annotationForm.content" type="textarea" :rows="4" placeholder="请描述虫害发生情况、危害程度等" />
+          </el-form-item>
+          <el-form-item label="防治建议">
+            <el-input v-model="annotationForm.suggestion" type="textarea" :rows="2" placeholder="请输入防治措施" />
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <span class="dialog-footer">
+            <el-button @click="annotationDialogVisible = false">取消</el-button>
+            <el-button type="primary" @click="submitAnnotation">确认标注</el-button>
+          </span>
+        </template>
+      </el-dialog>
+
+      <!-- 标注日志弹窗 -->
+      <el-dialog v-model="logDialogVisible" title="自动标注日志" width="600px">
+        <div class="log-container">
+          <div v-for="log in annotationLogs" :key="log.time" class="log-item">
+            <span class="log-time">{{ log.time }}</span>
+            <span class="log-message">{{ log.message }}</span>
+          </div>
+        </div>
+        <template #footer>
+          <el-button @click="logDialogVisible = false">关闭</el-button>
+        </template>
+      </el-dialog>
+    </div>
   </CommonLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { ElMessage } from "element-plus";
-import { Refresh, MagicStick, CircleCheck, Loading } from "@element-plus/icons-vue";
+import { Refresh, MagicStick, CircleCheck, Loading, VideoPlay } from "@element-plus/icons-vue";
 import request from "@/utils/request";
+import { useRouter } from "vue-router";
+const router = useRouter();
+//跳转
+const handleTrainClick = () => {
+  router.push('/survival')
+}
 
 // 筛选参数
 const filterParams = ref({
@@ -258,9 +232,9 @@ const fetchRawImages = async () => {
     //   url: "/Image/getRawImage",
     //   method: "get"
     // });
-    
+
     console.log('获取原始图片响应:', response);
-    
+
     // 处理不同的响应格式
     let imageUrls = [];
     if (response && Array.isArray(response)) {
@@ -276,7 +250,7 @@ const fetchRawImages = async () => {
         }
       }
     }
-    
+
     if (imageUrls.length > 0) {
       imagesData.value = imageUrls.map((url, index) => ({
         id: index + 1,
@@ -307,9 +281,9 @@ const fetchHandledImages = async () => {
     //   url: "/Image/getHandledImage",
     //   method: "get"
     // });
-    
+
     console.log('获取已处理图片响应:', response);
-    
+
     // 处理不同的响应格式
     let imageUrls = [];
     if (response && Array.isArray(response)) {
@@ -324,7 +298,7 @@ const fetchHandledImages = async () => {
         }
       }
     }
-    
+
     if (imageUrls.length > 0) {
       const pestTypes = ['蚜虫', '红蜘蛛', '食心虫', '卷叶蛾'];
       imageUrls.forEach((url, index) => {
@@ -349,7 +323,7 @@ const useMockData = () => {
     {
       id: 1,
       name: "虫害识别_蚜虫_001",
-      url: "https://picsum.photos/id/50/300/200",
+      url: "/public/images/chong/蚜虫1.jpg",
       date: "2026-03-15",
       pestType: "蚜虫",
       autoLabeled: false,
@@ -357,63 +331,63 @@ const useMockData = () => {
     {
       id: 2,
       name: "虫害识别_红蜘蛛_002",
-      url: "https://picsum.photos/id/51/300/200",
+      url: "/public/images/chong/红蜘蛛.jpg",
       date: "2026-03-15",
       pestType: "红蜘蛛",
       autoLabeled: false,
     },
     {
       id: 3,
-      name: "虫害识别_食心虫_003",
-      url: "https://picsum.photos/id/52/300/200",
+      name: "虫害识别_蚜虫_003",
+      url: "/public/images/chong/蚜虫2.jpg",
       date: "2026-03-16",
-      pestType: "食心虫",
+      pestType: "蚜虫",
       autoLabeled: true,
     },
     {
       id: 4,
-      name: "虫害识别_卷叶蛾_004",
-      url: "https://picsum.photos/id/53/300/200",
+      name: "虫害识别_蚜虫_003",
+      url: "/public/images/chong/蚜虫4.jpg",
       date: "2026-03-16",
-      pestType: "卷叶蛾",
-      autoLabeled: false,
-    },
-    {
-      id: 5,
-      name: "虫害识别_蚜虫_005",
-      url: "https://picsum.photos/id/54/300/200",
-      date: "2026-03-17",
       pestType: "蚜虫",
       autoLabeled: false,
     },
     {
+      id: 5,
+      name: "虫害识别_木虱_005",
+      url: "/public/images/chong/木虱.jpg",
+      date: "2026-03-17",
+      pestType: "木虱",
+      autoLabeled: false,
+    },
+    {
       id: 6,
-      name: "虫害识别_红蜘蛛_006",
-      url: "https://picsum.photos/id/55/300/200",
+      name: "水肥识别_红蜘蛛_006",
+      url: "/public/images/chong/红蜘蛛2.jpg",
       date: "2026-03-17",
       pestType: "红蜘蛛",
       autoLabeled: false,
     },
     {
       id: 7,
-      name: "虫害识别_食心虫_007",
-      url: "https://picsum.photos/id/56/300/200",
+      name: "水肥识别_红蜘蛛_007",
+      url: "/public/images/chong/红蜘蛛8.jpg",
       date: "2026-03-18",
-      pestType: "食心虫",
+      pestType: "红蜘蛛",
       autoLabeled: false,
     },
     {
       id: 8,
-      name: "虫害识别_卷叶蛾_008",
-      url: "https://picsum.photos/id/57/300/200",
+      name: "水肥识别_红蜘蛛_007",
+      url: "/public/images/chong/红蜘蛛5.jpg",
       date: "2026-03-18",
-      pestType: "卷叶蛾",
+      pestType: "红蜘蛛",
       autoLabeled: false,
     },
     {
       id: 9,
       name: "虫害识别_蚜虫_009",
-      url: "https://picsum.photos/id/58/300/200",
+      url: "/public/images/chong/蚜虫7.jpg",
       date: "2026-03-19",
       pestType: "蚜虫",
       autoLabeled: false,
@@ -452,23 +426,23 @@ const startAutoLabel = () => {
     ElMessage.warning('自动标注正在进行中');
     return;
   }
-  
+
   const unlabeledImages = filteredData.value.filter(img => !img.autoLabeled);
   if (unlabeledImages.length === 0) {
     ElMessage.info('所有图片均已标注');
     return;
   }
-  
+
   totalPendingCount.value = unlabeledImages.length;
   labeledCount.value = 0;
   autoLabelProgress.value = 0;
   autoLabelActive.value = true;
   autoLabelLoading.value = true;
   annotationLogs.value = [];
-  
+
   addLog('开始加载YOLO预训练模型...');
   addLog(`待标注图片数量：${totalPendingCount.value} 张`);
-  
+
   setTimeout(() => {
     addLog('模型加载完成，开始自动标注...');
     startLabeling(unlabeledImages);
@@ -478,7 +452,7 @@ const startAutoLabel = () => {
 const startLabeling = (unlabeledImages) => {
   const total = unlabeledImages.length;
   let current = 0;
-  
+
   autoLabelInterval = setInterval(() => {
     if (current >= total) {
       clearInterval(autoLabelInterval);
@@ -488,7 +462,7 @@ const startLabeling = (unlabeledImages) => {
       ElMessage.success(`自动标注完成！共标注 ${total} 张图片`);
       return;
     }
-    
+
     const batchSize = Math.min(2, total - current);
     for (let i = 0; i < batchSize; i++) {
       const img = unlabeledImages[current + i];
@@ -497,13 +471,13 @@ const startLabeling = (unlabeledImages) => {
         const randomPest = pestTypes[Math.floor(Math.random() * pestTypes.length)];
         img.pestType = randomPest;
         img.autoLabeled = true;
-        
+
         const crop = cropTypes[Math.floor(Math.random() * cropTypes.length)];
         const weed = weedTypes[Math.floor(Math.random() * weedTypes.length)];
         addLog(`[${new Date().toLocaleTimeString()}] 正在标注 ${img.name}：识别到 ${crop} 与杂草 ${weed} → 标注为 ${randomPest}`);
       }
     }
-    
+
     current += batchSize;
     labeledCount.value = current;
     autoLabelProgress.value = Math.round((current / total) * 100);
@@ -597,7 +571,7 @@ onMounted(async () => {
   gap: 12px;
   font-size: 16px;
   color: #666;
-  
+
   .el-icon {
     font-size: 24px;
   }
@@ -630,12 +604,12 @@ onMounted(async () => {
     display: flex;
     align-items: center;
     gap: 15px;
-    
+
     .total-count {
       font-size: 14px;
       color: #666;
     }
-    
+
     .update-btn {
       display: flex;
       align-items: center;
@@ -651,7 +625,7 @@ onMounted(async () => {
   border-radius: 8px;
   margin-bottom: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  
+
   .progress-info {
     display: flex;
     justify-content: space-between;
@@ -720,7 +694,7 @@ onMounted(async () => {
           font-weight: 500;
         }
       }
-      
+
       .auto-label-badge {
         position: absolute;
         bottom: 10px;
@@ -735,17 +709,17 @@ onMounted(async () => {
         gap: 4px;
       }
     }
-    
+
     .image-info {
       padding: 12px;
-      
+
       .image-name {
         font-size: 14px;
         font-weight: 500;
         color: #333;
         margin-bottom: 4px;
       }
-      
+
       .image-date {
         font-size: 12px;
         color: #999;
@@ -769,18 +743,18 @@ onMounted(async () => {
   background-color: #f5f5f5;
   padding: 12px;
   border-radius: 4px;
-  
+
   .log-item {
     font-family: monospace;
     font-size: 13px;
     padding: 4px 0;
     border-bottom: 1px solid #e0e0e0;
-    
+
     .log-time {
       color: #999;
       margin-right: 12px;
     }
-    
+
     .log-message {
       color: #333;
     }
@@ -809,7 +783,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 15px;
-  
+
   .orchard-info {
     display: flex;
     align-items: center;
@@ -819,18 +793,19 @@ onMounted(async () => {
     background-color: #f0f9eb;
     padding: 4px 12px;
     border-radius: 16px;
-    
+
     .el-icon {
       font-size: 14px;
     }
   }
-  
+
   .total-count {
     font-size: 14px;
     color: #666;
   }
-  
-  .update-btn, .auto-label-btn {
+
+  .update-btn,
+  .auto-label-btn {
     display: flex;
     align-items: center;
     gap: 4px;
@@ -845,7 +820,11 @@ onMounted(async () => {
 
 .page-header {
   margin-bottom: 20px;
-  
+  // 新增：让header变成弹性布局，两端对齐
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end; // 让按钮和标题底部对齐，更美观
+
   .page-title {
     font-size: 24px;
     font-weight: 600;
@@ -855,8 +834,13 @@ onMounted(async () => {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+
+    .train-btn {
+      background: linear-gradient(135deg, #409eff 0%, #66b1ff 100%);
+      border: none;
+    }
   }
-  
+
   .page-subtitle {
     font-size: 14px;
     color: #999;

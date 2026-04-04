@@ -658,15 +658,11 @@ const handleDataUpdate = () => {
   }
 }
 
-// 刷新仪表盘数据（5个卡片 数据不动 + 无动画，其他保留动画）
+// 刷新仪表盘数据（添加渐进式更新效果）
 const refreshDashboardData = () => {
   const healthyIndices = generateHealthySpectralIndices()
-
-  // ================== 5 个卡片：数据完全不改变！无动画！==================
-  // 这里什么都不做！数据保持原样！
-  // ====================================================================
-
-  // 下面所有内容 100% 保留原来动画
+  
+  // 逐步更新图表数据，让用户看到变化过程
   setTimeout(() => {
     viChartData.value = [
       { label: 'NDVI', value: healthyIndices.ndvi, height: healthyIndices.ndvi * 100, colorClass: 'n' },
@@ -678,65 +674,89 @@ const refreshDashboardData = () => {
       { label: 'NDWI', value: healthyIndices.ndwi, height: healthyIndices.ndwi * 100, colorClass: 'water' }
     ]
   }, 0)
-
+  
   setTimeout(() => {
     viStats.value = [
       { label: '均值', value: healthyIndices.ndvi.toFixed(2) },
       { label: '中位数', value: (healthyIndices.ndvi - 0.02 + Math.random() * 0.04).toFixed(2) },
-      { label: '标准差', value: generateHealthyRandom(0.06, 0.12, 2).toFixed(2) },
-      { label: '最小值', value: (healthyIndices.ndvi - 0.12).toFixed(2) },
-      { label: '最大值', value: (healthyIndices.ndvi + 0.10).toFixed(2) }
+      { label: '标准差', value: generateHealthyRandom(0.08, 0.15, 2).toFixed(2) },
+      { label: '最小值', value: (healthyIndices.ndvi - 0.15).toFixed(2) },
+      { label: '最大值', value: (healthyIndices.ndvi + 0.15).toFixed(2) }
     ]
   }, 100)
-
+  
   setTimeout(() => {
     ndreStats.value = {
       mean: healthyIndices.ndre,
-      std: generateHealthyRandom(0.03, 0.06, 3),
-      min: (healthyIndices.ndre - 0.08).toFixed(2),
-      max: (healthyIndices.ndre + 0.09).toFixed(2)
+      std: generateHealthyRandom(0.03, 0.07, 3),
+      min: (healthyIndices.ndre - 0.1).toFixed(2),
+      max: (healthyIndices.ndre + 0.1).toFixed(2)
     }
   }, 200)
-
+  
   setTimeout(() => {
     ndwiStats.value = {
       mean: healthyIndices.ndwi,
-      std: generateHealthyRandom(0.04, 0.07, 3),
-      min: (healthyIndices.ndwi - 0.10).toFixed(2),
-      max: (healthyIndices.ndwi + 0.11).toFixed(2)
+      std: generateHealthyRandom(0.04, 0.08, 3),
+      min: (healthyIndices.ndwi - 0.12).toFixed(2),
+      max: (healthyIndices.ndwi + 0.12).toFixed(2)
     }
   }, 300)
-
+  
   setTimeout(() => {
     correlations.value = [
-      { name: 'NDRE', value: generateHealthyRandom(0.70, 0.85, 2) },
-      { name: 'OSAVI', value: generateHealthyRandom(0.85, 0.95, 2) },
-      { name: 'NDPI', value: generateHealthyRandom(0.50, 0.68, 2) },
-      { name: 'NDWI', value: generateHealthyRandom(-0.35, -0.15, 2) }
+      { name: 'NDRE', value: generateHealthyRandom(0.65, 0.85, 2) },
+      { name: 'OSAVI', value: generateHealthyRandom(0.88, 0.96, 2) },
+      { name: 'NDPI', value: generateHealthyRandom(0.55, 0.7, 2) },
+      { name: 'NDWI', value: generateHealthyRandom(-0.3, -0.1, 2) }
     ]
   }, 400)
-
+  
+  setTimeout(() => {
+    const healthyCounts = {
+      n: Math.floor(Math.random() * 20) + 5,
+      p: Math.floor(Math.random() * 15) + 3,
+      k: Math.floor(Math.random() * 18) + 4,
+      water: Math.floor(Math.random() * 12) + 2,
+      other: Math.floor(Math.random() * 8) + 1
+    }
+    
+    nutrientCounts.n = healthyCounts.n
+    nutrientCounts.p = healthyCounts.p
+    nutrientCounts.k = healthyCounts.k
+    nutrientCounts.water = healthyCounts.water
+    nutrientCounts.other = healthyCounts.other
+    
+    deficitData.value = [
+      { type: 'n', icon: 'fas fa-flask', label: '缺氮株数', count: healthyCounts.n, unit: '株', percentage: `占比 ${((healthyCounts.n / totalSamples) * 100).toFixed(1)}%` },
+      { type: 'p', icon: 'fas fa-flask', label: '缺磷株数', count: healthyCounts.p, unit: '株', percentage: `占比 ${((healthyCounts.p / totalSamples) * 100).toFixed(1)}%` },
+      { type: 'k', icon: 'fas fa-flask', label: '缺钾株数', count: healthyCounts.k, unit: '株', percentage: `占比 ${((healthyCounts.k / totalSamples) * 100).toFixed(1)}%` },
+      { type: 'water', icon: 'fas fa-tint', label: '缺水株数', count: healthyCounts.water, unit: '株', percentage: `占比 ${((healthyCounts.water / totalSamples) * 100).toFixed(1)}%` },
+      { type: 'other', icon: 'fas fa-seedling', label: '其他缺失', count: healthyCounts.other, unit: '株', percentage: '缺硼/锌/钙' }
+    ]
+  }, 500)
+  
   setTimeout(() => {
     const remainingSamples = totalSamples - (nutrientCounts.n + nutrientCounts.p + nutrientCounts.k + nutrientCounts.water + nutrientCounts.other)
     const healthySamples = Math.floor(remainingSamples * 0.85)
-
+    
     nutrientStats.value = [
-      { label: '严重缺乏', count: Math.floor(nutrientCounts.n * 0.25), color: '#c45d32' },
-      { label: '缺乏', count: Math.floor(nutrientCounts.n * 0.35 + nutrientCounts.p * 0.35), color: '#e1ad5d' },
+      { label: '严重缺乏', count: Math.floor(nutrientCounts.n * 0.2), color: '#c45d32' },
+      { label: '缺乏', count: Math.floor(nutrientCounts.n * 0.3 + nutrientCounts.p * 0.3), color: '#e1ad5d' },
       { label: '偏少', count: Math.floor(nutrientCounts.p * 0.3 + nutrientCounts.k * 0.3), color: '#5f9ea0' },
-      { label: '适中', count: Math.floor(healthySamples * 0.65), color: '#4794b3' },
-      { label: '充足', count: Math.floor(healthySamples * 0.35), color: '#328f55' }
+      { label: '适中', count: Math.floor(healthySamples * 0.6), color: '#4794b3' },
+      { label: '充足', count: Math.floor(healthySamples * 0.4), color: '#328f55' }
     ]
   }, 600)
-
+  
   setTimeout(() => {
     const adviceLocations = ['地块 1-A', '地块 2-C', '地块 3-B', '地块 4-D', '地块 5-E']
     const adviceTypes = [
-      { suggestion: '平衡水溶肥 2～3kg/亩 · 促梢壮叶', status: '推荐执行', color: '#256f45' },
-      { suggestion: '叶面喷施磷酸二氢钾 0.2% · 壮果', status: '建议执行', color: '#e68a3a' },
-      { suggestion: '滴灌补水 15～20m³/亩 · 提升湿度', status: '今日执行', color: '#256f45' }
+      { suggestion: '平衡水溶肥 3kg/亩 · 促生长', status: '推荐执行', color: '#256f45' },
+      { suggestion: '叶面喷施磷酸二氢钾 · 壮秆', status: '建议执行', color: '#e68a3a' },
+      { suggestion: '滴灌补充水分 · 20m³/亩', status: '今日执行', color: '#256f45' }
     ]
-
+    
     adviceData.value = []
     for (let i = 0; i < 3; i++) {
       adviceData.value.push({
@@ -747,17 +767,17 @@ const refreshDashboardData = () => {
       })
     }
   }, 700)
-
+  
   setTimeout(() => {
     for (let i = 0; i < plotBlocks.value.length; i++) {
       const rand = Math.random()
-      let status = rand < 0.65 ? 'executed' : (rand < 0.92 ? 'pending' : 'warning')
+      let status = rand < 0.6 ? 'executed' : (rand < 0.9 ? 'pending' : 'warning')
       plotBlocks.value[i].status = status
     }
   }, 800)
-
+  
   setTimeout(() => {
-    saveCost.value = 4100 + Math.floor(Math.random() * 400) + 100
+    saveCost.value = 4260 + Math.floor(Math.random() * 500) + 200
   }, 900)
 }
 
@@ -790,14 +810,14 @@ const generateHealthySpectralIndices = () => {
 //1、在水肥分析页面中编写了 fetchPlotAnalysisData 函数
 const fetchPlotAnalysisData = async (blockId) => {
   try {
-    //定义areaID
-    const areaId = blockId.split('-')[0] || regionInfo.value.regionId
-    //定义当前的orchardId
-    const currentOrchardId = orchardId.value
+    //定义传参
+    const areaId=blockId.value
+    const currentOrchardId=orchardId.value
     
-    //3、通过 axios 自动向后端发送GET 请求，获取该地块的多光谱分析报告数据
+
+    //2、通过 axios 自动向后端发送GET 请求，获取该地块的多光谱分析报告数据
     const apiUrl = `/api/AI/getAnalyze/${currentOrchardId}/${areaId}`
-    
+
     const response = await axios.get(apiUrl, {
       timeout: 30000
     })
@@ -821,7 +841,7 @@ const fetchPlotAnalysisData = async (blockId) => {
         const dataList = resultData.data
         
         if (!dataList || (Array.isArray(dataList) && dataList.length === 0)) {
-          console.warn('没有找到数据')
+          // console.warn('没有找到数据')
           return generateDefaultAnalysisData(blockId)
         }
         
@@ -847,39 +867,6 @@ const fetchPlotAnalysisData = async (blockId) => {
   }
 }
 
-
-
-/**
- * 提取图片URL - 优先使用PNG格式，避免TIFF浏览器不支持问题
- */
-const extractImageUrls = (analysisItem) => {
-  const urls = []
-  
-  if (analysisItem.analysisImage && typeof analysisItem.analysisImage === 'string') {
-    const url = analysisItem.analysisImage.trim()
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      urls.push(url)
-      console.log('✅ 添加PNG图片，长度:', url.length)
-    }
-  }
-  
-  if (urls.length === 0 && analysisItem.mergeImage && typeof analysisItem.mergeImage === 'string') {
-    const url = analysisItem.mergeImage.trim()
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      urls.push(url)
-      console.log('⚠️ 添加TIFF图片（可能不被浏览器支持），长度:', url.length)
-    }
-  }
-  
-  if (urls.length === 0) {
-    console.warn('没有找到可显示的图片，使用默认图片')
-    urls.push('https://picsum.photos/id/104/800/450')
-    urls.push('https://picsum.photos/id/10/800/450')
-  }
-  
-  return urls
-}
-
 /**
  * 格式化接口返回的数据
  */
@@ -892,6 +879,7 @@ const formatAnalysisData = (apiData, blockId) => {
     return generateDefaultAnalysisData(blockId)
   }
   
+  //将数据格式化
   let analysisItem = apiData
   
   if (Array.isArray(apiData)) {
@@ -900,7 +888,7 @@ const formatAnalysisData = (apiData, blockId) => {
     }
     analysisItem = apiData[0]
   }
-  
+ 
   if (apiData.data && Array.isArray(apiData.data)) {
     if (apiData.data.length === 0) {
       return generateDefaultAnalysisData(blockId)
@@ -912,6 +900,7 @@ const formatAnalysisData = (apiData, blockId) => {
   
   const imageUrls = extractImageUrls(analysisItem)
   
+  //将格式化的数据渲染到页面当中
   let suggestion = analysisItem.analyzeSuggestion || ''
   if (!suggestion || suggestion.trim() === '' || 
       suggestion.includes('.png') || suggestion.includes('.jpg') || 
@@ -946,6 +935,38 @@ const formatAnalysisData = (apiData, blockId) => {
 }
 
 /**
+ * 提取图片URL - 优先使用PNG格式，避免TIFF浏览器不支持问题
+ */
+const extractImageUrls = (analysisItem) => {
+  const urls = []
+
+  if (analysisItem.analysisImage && typeof analysisItem.analysisImage === 'string') {
+    const url = analysisItem.analysisImage.trim()
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      urls.push(url)
+      console.log('✅ 添加PNG图片，长度:', url.length)
+    }
+  }
+
+  if (urls.length === 0 && analysisItem.mergeImage && typeof analysisItem.mergeImage === 'string') {
+    const url = analysisItem.mergeImage.trim()
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      urls.push(url)
+      console.log('⚠️ 添加TIFF图片（可能不被浏览器支持），长度:', url.length)
+    }
+  }
+
+  //如果图片没有加载出来，用默认图片进行占位
+  if (urls.length === 0) {
+    console.warn('没有找到可显示的图片，使用默认图片')
+    urls.push('https://picsum.photos/id/104/800/450')
+    urls.push('https://picsum.photos/id/10/800/450')
+  }
+
+  return urls
+}
+
+/**
  * 根据营养状态生成建议
  */
 const generateSuggestionByStatus = (nutritionStatus, blockId) => {
@@ -953,7 +974,7 @@ const generateSuggestionByStatus = (nutritionStatus, blockId) => {
   const status = block?.status || 'executed'
   
   const suggestions = {
-    'executed': `💡 水肥建议：
+    'executed': `水肥建议：
   水分管理：正常，土壤湿度65%
   氮素管理：保持当前水平
   磷钾管理：维持现有方案
@@ -962,7 +983,7 @@ const generateSuggestionByStatus = (nutritionStatus, blockId) => {
   - 保持土壤湿度60-70%
   - 分2次施用效果更佳`,
     
-    'pending': `💡 水肥建议：
+    'pending': `水肥建议：
   水分管理：需增加灌溉，当前湿度52%
   氮素管理：建议补充尿素
   磷钾管理：适量增加磷钾肥
@@ -971,7 +992,7 @@ const generateSuggestionByStatus = (nutritionStatus, blockId) => {
   - 增加滴灌频次至每天2次
   - 3天后复测指数`,
     
-    'warning': `💡 水肥建议：
+    'warning': ` 水肥建议：
   水分管理：严重缺水，当前湿度38%
   氮素管理：明显缺氮
   磷钾管理：需紧急补充
@@ -1061,15 +1082,13 @@ const handleCloseModal = () => {
   showResultModal.value = false
 }
 
-//++++++++++
-//自动发布任务
 const handleApply = (analysisData) => {
   const suggestion = analysisData.analyzeSuggestion || '';
 
-  // 1. 通过字符串分割提取每条建议里的【操作】部分(展示)
+  // 1. 提取每条建议里的【操作】部分(展示)
   const lines = suggestion.split('\n').map(line => line.trim());
 
-  // 拆分建议并筛选含“建议，需，应”的操作语句
+  // 只保留“建议xxx”的动作语句，去掉标题、项目符号
   const actions = lines
     .filter(line => /建议|需|应/.test(line))       // 只留含操作指令的行
     .map(line =>
@@ -1080,15 +1099,14 @@ const handleApply = (analysisData) => {
     )
     .filter(line => line.length > 0);
 
-  // 拼接成干净任务内容
+  // 拼接成干净任务内容（只保留干什么）
   const taskContent = actions.join(' ');
 
-  // 2. 根据建议内容自动判断任务类型（3跳转）
+  // 2. 自动判断任务类型（3跳转）
   let taskType = '施肥';
   if (/浇水|排水沟|水分|积水/.test(suggestion)) taskType = '浇水';
   if (/尿素|氮|磷钾|硫酸钾|过磷酸钙|叶面肥/.test(suggestion)) taskType = '施肥';
 
- 
  
 };
 
