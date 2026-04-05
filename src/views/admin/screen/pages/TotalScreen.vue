@@ -448,7 +448,8 @@ const viStats = {
   }
 }
 
-// 营养状态统计（从Excel简化状态字段估算）
+// 营养状态统计
+//这里也要改
 const nutrientCounts = {
   n: 44,
   p: 16,

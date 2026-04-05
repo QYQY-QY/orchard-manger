@@ -199,9 +199,9 @@
             <span v-for="n in 7" :key="n" class="scatter-dot" :style="{ background: scatterColors[n - 1] }"></span>
           </div>
           <div class="correl-stats">
-            <span>🌿 NDVI μ={{viStats.find(s => s.label === '均值')?.value}}</span>
-            <span>📊 NDRE μ={{ ndreStats.mean.toFixed(2) }}</span>
-            <span>💧 NDWI μ={{ ndwiStats.mean.toFixed(2) }}</span>
+            <span>NDVI μ={{viStats.find(s => s.label === '均值')?.value}}</span>
+            <span>NDRE μ={{ ndreStats.mean.toFixed(2) }}</span>
+            <span>NDWI μ={{ ndwiStats.mean.toFixed(2) }}</span>
           </div>
           <div class="correl-footer">
             多光谱反演精度 94% · 采样点 {{ totalSamples }}个
@@ -220,12 +220,12 @@
     <div class="micro-data">
       <span>🌱 缺氮{{ nutrientCounts.n }} 缺磷{{ nutrientCounts.p }} 缺钾{{ nutrientCounts.k }} 缺水{{ nutrientCounts.water }}
         其他{{ nutrientCounts.other }}</span>
-      <span>📊 NDVI: {{viStats.find(s => s.label === '均值')?.value}} ±{{viStats.find(s => s.label === '标准差')?.value}}</span>
-      <span>🧾 采样点: {{ totalSamples }}个</span>
-      <span>📈 NDRE: {{ ndreStats.mean.toFixed(2) }}</span>
-      <span>📉 NDWI: {{ ndwiStats.mean.toFixed(2) }}</span>
-      <span>💰 节本增效 ¥{{ saveCost }}</span>
-      <span>📎 NDVI-NDRE r={{(Number(correlations.find(c => c.name === 'NDRE')?.value) || 0.68).toFixed(2)}}</span>
+      <span>NDVI: {{viStats.find(s => s.label === '均值')?.value}} ±{{viStats.find(s => s.label === '标准差')?.value}}</span>
+      <span>采样点: {{ totalSamples }}个</span>
+      <span>NDRE: {{ ndreStats.mean.toFixed(2) }}</span>
+      <span>NDWI: {{ ndwiStats.mean.toFixed(2) }}</span>
+      <span>节本增效 ¥{{ saveCost }}</span>
+      <span>NDVI-NDRE r={{(Number(correlations.find(c => c.name === 'NDRE')?.value) || 0.68).toFixed(2)}}</span>
     </div>
 
     <!-- 水肥分析结果弹窗 -->
@@ -663,7 +663,7 @@ const refreshDashboardData = () => {
   const healthyIndices = generateHealthySpectralIndices()
 
   // ================== 5 个卡片：数据完全不改变！无动画！==================
-  // 这里什么都不做！数据保持原样！
+  
   // ====================================================================
 
   // 下面所有内容 100% 保留原来动画
@@ -1093,38 +1093,56 @@ const handleApply = (analysisData) => {
 };
 
 
+// 自动解析水肥建议 → 发布任务（已兼容你给的新格式）
 const handleApplySuggestion = (analysisData) => {
   const suggestion = analysisData.analyzeSuggestion || '';
 
-  // 1. 提取每条建议里的【操作】部分(展示)
-  const lines = suggestion.split('\n').map(line => line.trim());
+  // ======================
+  // 核心增强：兼容你给的新格式
+  // ======================
+  const lines = suggestion
+    .replace(/•/g, '')          // 去掉圆点
+    .split('\n')                // 按行拆分
+    .map(line => line.trim())   // 去空格
+    .filter(line => line);      // 去掉空行
 
-  // 只保留“建议xxx”的动作语句，去掉标题、项目符号
-  const actions = lines
-    .filter(line => /建议|需|应/.test(line))       // 只留含操作指令的行
-    .map(line =>
-      line
-        .replace(/^[•\-]\s*/, '')                 // 去掉 • - 等符号
-        .replace(/水分管理|氮素管理|磷钾管理|综合措施：?/g, '') // 去掉标题
-        .trim()
-    )
-    .filter(line => line.length > 0);
+  // 提取所有带“- ”的操作项（你的新格式专用）
+  const actionLines = lines.filter(line => line.startsWith('- '));
 
-  // 拼接成干净任务内容（只保留干什么）
+  let actions = [];
+  if (actionLines.length > 0) {
+    // 新格式：直接提取 - 开头的任务
+    actions = actionLines.map(line =>
+      line.replace(/^-\s*/, '').trim()
+    );
+  } else {
+    // 旧格式：保留你原来的逻辑
+    actions = lines
+      .filter(line => /建议|需|应/.test(line))
+      .map(line =>
+        line
+          .replace(/^[•\-]\s*/, '')
+          .replace(/水分管理|氮素管理|磷钾管理|综合措施：?/g, '')
+          .trim()
+      )
+      .filter(line => line.length > 0);
+  }
+
+  // 拼接任务内容
   const taskContent = actions.join(' ');
 
-  // 2. 自动判断任务类型
+  // 自动判断任务类型（不变）
   let taskType = '施肥';
-  if (/浇水|排水沟|水分|积水/.test(suggestion)) taskType = '浇水';
-  if (/尿素|氮|磷钾|硫酸钾|过磷酸钙|叶面肥/.test(suggestion)) taskType = '施肥';
+  if (/浇水|排水沟|水分|积水|湿度/.test(suggestion)) taskType = '浇水';
+  if (/尿素|氮|磷钾|硫酸钾|复合肥|过磷酸钙|叶面肥/.test(suggestion)) taskType = '施肥';
 
-  // 3. 跳转发布任务弹窗
+  // 跳转发布任务
   router.push({
-    path: '/adminMission', // 任务路由
+    path: '/adminMission',
     query: {
       action: 'publish',
       taskType,
-      content: taskContent, // 只有操作，无任何区域
+      content: taskContent,
       areaId: currentRegionInfo.value.regionId || '',
       areaName: selectedBlockId.value || ''
     }
@@ -1140,6 +1158,7 @@ const nutrientStats = ref([
   { label: '充足', count: 67, color: '#328f55' }
 ])
 
+//这里要修改44-->45
 const nutrientCounts = ref({ n: 44, p: 16, k: 31, water: 19, other: 8 })
 
 const deficitData = ref([
