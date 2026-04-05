@@ -279,7 +279,7 @@ const handlePublishTask = async (row) => {
   const query = {
     action: "publish",
     taskType: '施肥' || taskType,
-    content: "请巡检果园，为果园果树施肥" || row.content,
+    content: "施氮磷钾复合肥20g" || row.content,
     reportId: row.id, // 传递上报 ID，用于后续更新状态
   };
 
