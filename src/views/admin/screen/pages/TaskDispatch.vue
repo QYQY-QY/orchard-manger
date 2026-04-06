@@ -148,7 +148,7 @@ const goBack = () => {
 }
 
 // 区域负责人
-const regionManager = ref('汤村负责人 - 张齐')
+// const regionManager = ref('汤村负责人 - 张齐')
 
 // 实时时间
 const currentTime = ref('')

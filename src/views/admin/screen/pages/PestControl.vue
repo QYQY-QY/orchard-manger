@@ -119,12 +119,12 @@
 
     <!-- 微型数据标注 -->
     <div class="micro-data">
-      <span>🐞 红蜘蛛{{ redSpiderCount }}株 黄龙病{{ huanglongbingCount }}株 炭疽{{ anthracnoseCount }}株</span>
-      <span>🌡️ 诱捕器{{ trapValue }}头/日</span>
-      <span>⚠️ 重灾地块{{ severeAreas.length }}个</span>
-      <span>📋 防治任务{{ taskDispatched }}/{{ taskCompleted }}/{{ taskRemaining }}</span>
-      <span>🧪 {{ chemicalSummary }}</span>
-      <span>📉 减退率{{ reductionRate }}% 砍除{{ removedTrees }}株</span>
+      <span> 红蜘蛛{{ redSpiderCount }}株 黄龙病{{ huanglongbingCount }}株 炭疽{{ anthracnoseCount }}株</span>
+      <span> 诱捕器{{ trapValue }}头/日</span>
+      <span> 重灾地块{{ severeAreas.length }}个</span>
+      <span>防治任务{{ taskDispatched }}/{{ taskCompleted }}/{{ taskRemaining }}</span>
+      <span>{{ chemicalSummary }}</span>
+      <span>减退率{{ reductionRate }}% 砍除{{ removedTrees }}株</span>
     </div>
   </div>
 </template>
@@ -139,10 +139,10 @@ const router = useRouter()
 const route = useRoute()
 
 // 区域负责人映射
-const REGION_MANAGERS = { 1: '张齐', 2: '李昀', 3: '王钿' }
+const REGION_MANAGERS = { 1: '**', 2: '**', 3: '**' }
 const REGION_NAMES = { 1: '汤村', 2: '莲村', 3: '桂村' }
 
-const regionManager = ref('汤村负责人 - 张齐')
+// const regionManager = ref('汤村负责人 - 张齐')
 
 // 实时时间
 const currentTime = ref('')
@@ -230,18 +230,18 @@ const feedbackStats = computed(() => [
 // 热力图数据（保持静态）
 const heatmapData = ref([
   { label: 'A1', class: 'pest-green', title: '健康' }, { label: 'A2', class: 'pest-green', title: '健康' },
-  { label: 'A3⚠️', class: 'pest-red', title: '红蜘蛛' }, { label: 'A4⚠️', class: 'pest-red', title: '红蜘蛛' },
+  { label: 'A3', class: 'pest-red', title: '红蜘蛛' }, { label: 'A4', class: 'pest-red', title: '红蜘蛛' },
   { label: 'A5', class: 'pest-orange', title: '' }, { label: 'A6', class: 'pest-green', title: '健康' },
   { label: 'A7', class: 'pest-green', title: '健康' }, { label: 'A8', class: 'pest-yellow', title: '' },
-  { label: 'B1', class: 'pest-green', title: '健康' }, { label: 'B2🔶', class: 'pest-orange', title: '黄龙病' },
-  { label: 'B3🔶', class: 'pest-orange', title: '黄龙病' }, { label: 'B4⚠️', class: 'pest-red', title: '' },
+  { label: 'B1', class: 'pest-green', title: '健康' }, { label: 'B2', class: 'pest-orange', title: '黄龙病' },
+  { label: 'B3', class: 'pest-orange', title: '黄龙病' }, { label: 'B4', class: 'pest-red', title: '' },
   { label: 'B5', class: 'pest-green', title: '健康' }, { label: 'B6', class: 'pest-green', title: '健康' },
   { label: 'B7', class: 'pest-yellow', title: '' }, { label: 'B8', class: 'pest-yellow', title: '' },
   { label: 'C1', class: 'pest-green', title: '健康' }, { label: 'C2', class: 'pest-green', title: '健康' },
-  { label: 'C3', class: 'pest-green', title: '健康' }, { label: 'C4🔶', class: 'pest-orange', title: '' },
-  { label: 'C5🔶', class: 'pest-orange', title: '' }, { label: 'C6⚠️', class: 'pest-red', title: '红蜘蛛' },
+  { label: 'C3', class: 'pest-green', title: '健康' }, { label: 'C', class: 'pest-orange', title: '' },
+  { label: 'C5', class: 'pest-orange', title: '' }, { label: 'C6', class: 'pest-red', title: '红蜘蛛' },
   { label: 'C7', class: 'pest-green', title: '健康' }, { label: 'C8', class: 'pest-green', title: '健康' },
-  { label: 'D1⚠️', class: 'pest-red', title: '' }, { label: 'D2⚠️', class: 'pest-red', title: '' },
+  { label: 'D1', class: 'pest-red', title: '' }, { label: 'D', class: 'pest-red', title: '' },
   { label: 'D3', class: 'pest-yellow', title: '' }, { label: 'D4', class: 'pest-green', title: '健康' }
 ])
 

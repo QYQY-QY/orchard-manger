@@ -164,7 +164,7 @@ const REGION_MANAGERS = { 1: '张齐', 2: '李昀', 3: '王钿' }
 const REGION_NAMES = { 1: '汤村', 2: '莲村', 3: '桂村' }
 
 // 区域负责人
-const regionManager = ref('汤村负责人 - 张齐')
+// const regionManager = ref('汤村负责人 - 张齐')
 
 // 获取当前年份和月份
 const today = new Date()

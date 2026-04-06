@@ -59,8 +59,8 @@
           <div class="legend">
             <span><span class="legend-color high"></span> 茂盛(>0.75)</span>
             <span><span class="legend-color mid"></span> 中等(0.5-0.75)</span>
-            <span><span class="legend-color low"></span> 低值(<0.5)</span>
-            <span><span class="legend-color" :style="{ background: '#cf5f4a' }"></span> 异常株</span>
+            <span><span class="legend-color low"></span> 低值(小于0.5)</span>
+                <span><span class="legend-color" :style="{ background: '#cf5f4a' }"></span> 异常株</span>
           </div>
         </div>
         <!-- 模拟地块网格 -->
@@ -84,7 +84,8 @@
         <div class="alert-card">
           <div class="alert-header"><i class="fas fa-exclamation-circle"></i> 高危预警 · 待处理</div>
           <div class="alert-list">
-            <div v-for="(alert, index) in alertList" :key="index" class="alert-item" :style="{ borderLeftColor: alert.color }">
+            <div v-for="(alert, index) in alertList" :key="index" class="alert-item"
+              :style="{ borderLeftColor: alert.color }">
               <span class="blink-dot" :style="{ background: alert.dotColor }"></span>
               <span style="font-weight:600;">{{ alert.title }}</span>
               <span>{{ alert.locations }}</span>
@@ -106,7 +107,8 @@
 
     <!-- 微标注 -->
     <div class="data-footer">
-      <i class="fas fa-clipboard-list"></i> 数据依据: 总株{{ kpiData.totalTrees }} · 覆盖率{{ kpiData.coverageRate }}% · 健康{{ kpiData.healthRate }}% · 异常{{ kpiData.abnormalTrees }} · 预警{{ kpiData.todayAlerts }} · 周均0.7% · NDVI热力·预警闪烁
+      <i class="fas fa-clipboard-list"></i> 数据依据: 总株{{ kpiData.totalTrees }} · 覆盖率{{ kpiData.coverageRate }}% · 健康{{
+        kpiData.healthRate }}% · 异常{{ kpiData.abnormalTrees }} · 预警{{ kpiData.todayAlerts }} · 周均0.7% · NDVI热力·预警闪烁
     </div>
   </div>
 </template>
@@ -122,9 +124,9 @@ const route = useRoute()
 
 // 区域负责人映射（与OrchardScene保持一致）
 const REGION_MANAGERS = {
-  1: '张齐',
-  2: '李昀',
-  3: '王钿'
+  1: '**',
+  2: '**',
+  3: '**'
 }
 
 const REGION_NAMES = {
@@ -192,7 +194,7 @@ const getRegionInfo = () => {
   const region = route.query.region
   const regionName = route.query.regionName
   const regionId = route.query.regionId
-  
+
   if (region && REGION_MANAGERS[region]) {
     regionInfo.value = {
       manager: REGION_MANAGERS[region],
@@ -223,16 +225,16 @@ const getRegionInfo = () => {
 const fetchFruitTreeHealth = async () => {
   try {
     console.log('========== 开始获取果树健康统计数据 ==========')
-    
+
     const apiPaths = [
       '/api/fruitTree/countIllness',
       '/fruitTree/countIllness',
       '/api/fruitTree/countIllness/'
     ]
-    
+
     let response = null
     let successPath = null
-    
+
     for (const path of apiPaths) {
       try {
         console.log(`尝试路径: ${path}`)
@@ -241,7 +243,7 @@ const fetchFruitTreeHealth = async () => {
           headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
           timeout: 10000
         })
-        
+
         if (response.status === 200 && response.data) {
           if (typeof response.data === 'string' && response.data.includes('<!DOCTYPE html>')) {
             console.log(`路径 ${path} 返回HTML，跳过`)
@@ -256,15 +258,15 @@ const fetchFruitTreeHealth = async () => {
         continue
       }
     }
-    
+
     if (!response || !successPath) {
       throw new Error('所有路径都失败')
     }
-    
+
     console.log('果树健康接口响应:', response.data)
-    
+
     let healthData = null
-    
+
     if (response.data && response.data.code === 200 && response.data.data) {
       healthData = response.data.data
     } else if (response.data && response.data.data && response.data.data.healthTree !== undefined) {
@@ -272,11 +274,11 @@ const fetchFruitTreeHealth = async () => {
     } else if (response.data && response.data.healthTree !== undefined) {
       healthData = response.data
     }
-    
+
     if (healthData && (healthData.healthTree !== undefined || healthData.health !== undefined)) {
       const totalTrees = (healthData.healthTree || 0) + (healthData.disasterTree || 0)
       const abnormalTrees = healthData.disasterTree || 0
-      
+
       // 计算健康株占比
       let healthPercent = 0
       if (totalTrees > 0) {
@@ -284,11 +286,11 @@ const fetchFruitTreeHealth = async () => {
       } else {
         healthPercent = healthData.health || 0
       }
-      
+
       kpiData.value.totalTrees = totalTrees
       kpiData.value.healthRate = parseFloat(healthPercent)
       kpiData.value.abnormalTrees = abnormalTrees
-      
+
       console.log('果树健康数据加载成功:', {
         totalTrees,
         healthRate: healthPercent,
@@ -311,16 +313,16 @@ const fetchFruitTreeHealth = async () => {
 const fetchDisasterCount = async () => {
   try {
     console.log('========== 开始获取病虫害统计数据 ==========')
-    
+
     const apiPaths = [
       '/api/disaster/getDisasterCount',
       '/disaster/getDisasterCount',
       '/api/disaster/getDisasterCount/'
     ]
-    
+
     let response = null
     let successPath = null
-    
+
     for (const path of apiPaths) {
       try {
         console.log(`尝试路径: ${path}`)
@@ -329,7 +331,7 @@ const fetchDisasterCount = async () => {
           headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
           timeout: 10000
         })
-        
+
         if (response.status === 200 && response.data) {
           if (typeof response.data === 'string' && response.data.includes('<!DOCTYPE html>')) {
             console.log(`路径 ${path} 返回HTML，跳过`)
@@ -344,15 +346,15 @@ const fetchDisasterCount = async () => {
         continue
       }
     }
-    
+
     if (!response || !successPath) {
       throw new Error('所有路径都失败')
     }
-    
+
     console.log('病虫害接口响应:', response.data)
-    
+
     let disasterMap = null
-    
+
     if (response.data && response.data.code === 200 && response.data.data) {
       disasterMap = response.data.data
     } else if (response.data && typeof response.data === 'object' && !response.data.code) {
@@ -360,7 +362,7 @@ const fetchDisasterCount = async () => {
     } else if (response.data && response.data.data) {
       disasterMap = response.data.data
     }
-    
+
     if (disasterMap && typeof disasterMap === 'object') {
       // 获取各类病虫害数量
       const huanglongbingCount = disasterMap['黄龙病'] || 0
@@ -368,18 +370,18 @@ const fetchDisasterCount = async () => {
       const anthracnoseCount = disasterMap['炭疽病'] || 0
       const aphidCount = disasterMap['蚜虫'] || 0
       const cankerCount = disasterMap['溃疡病'] || 0
-      
+
       // 更新预警列表
       alertList.value[0].locations = huanglongbingCount + '株'
       alertList.value[1].locations = redSpiderCount + '株'
-      
+
       // 计算待处理总数（所有病虫害总和）
       const totalDisasters = huanglongbingCount + redSpiderCount + anthracnoseCount + aphidCount + cankerCount
       pendingCount.value = totalDisasters
-      
+
       // 更新当日预警数（使用病虫害总数作为预警数）
       kpiData.value.todayAlerts = totalDisasters
-      
+
       console.log('病虫害数据加载成功:', {
         huanglongbing: huanglongbingCount,
         redSpider: redSpiderCount,
@@ -403,16 +405,16 @@ const fetchDisasterCount = async () => {
 const fetchTaskStats = async () => {
   try {
     console.log('========== 开始获取任务统计数据 ==========')
-    
+
     const apiPaths = [
       '/api/task/countByStatus',
       '/task/countByStatus',
       '/api/task/countByStatus/'
     ]
-    
+
     let response = null
     let successPath = null
-    
+
     for (const path of apiPaths) {
       try {
         console.log(`尝试路径: ${path}`)
@@ -421,7 +423,7 @@ const fetchTaskStats = async () => {
           headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
           timeout: 10000
         })
-        
+
         if (response.status === 200 && response.data) {
           if (typeof response.data === 'string' && response.data.includes('<!DOCTYPE html>')) {
             console.log(`路径 ${path} 返回HTML，跳过`)
@@ -436,15 +438,15 @@ const fetchTaskStats = async () => {
         continue
       }
     }
-    
+
     if (!response || !successPath) {
       throw new Error('所有路径都失败')
     }
-    
+
     console.log('任务统计接口响应:', response.data)
-    
+
     let statsData = null
-    
+
     if (response.data && response.data.code === 200 && response.data.data) {
       statsData = response.data.data
     } else if (response.data && typeof response.data === 'object' && !response.data.code) {
@@ -452,11 +454,11 @@ const fetchTaskStats = async () => {
     } else if (response.data && response.data.data) {
       statsData = response.data.data
     }
-    
+
     if (statsData) {
       // 待处理任务数 = 待派发 + 待执行
       const pendingTasks = (statsData.pendingDispatchCount || 0) + (statsData.pendingExecuteCount || 0)
-      
+
       // 如果已经有病虫害数据，则合并显示
       if (pendingCount.value > 0) {
         // 保持原有逻辑，不做覆盖
@@ -491,7 +493,7 @@ const updateTime = () => {
   const day = String(now.getDate()).padStart(2, '0')
   const hours = String(now.getHours()).padStart(2, '0')
   const minutes = String(now.getMinutes()).padStart(2, '0')
-  
+
   currentTime.value = `${year}-${month}-${day} ${hours}:${minutes}`
 }
 
@@ -544,20 +546,20 @@ const getPlotLabel = (index) => {
 onMounted(async () => {
   // 获取区域负责人信息
   getRegionInfo()
-  
+
   // 立即更新一次时间
   updateTime()
-  
+
   // 每分钟更新一次时间（只显示到分钟，不需要秒）
   timeInterval = setInterval(updateTime, 60000)
-  
+
   // 并行加载所有数据
   await Promise.all([
     fetchFruitTreeHealth(),
     fetchDisasterCount(),
     fetchTaskStats()
   ])
-  
+
   // 启动自动刷新
   startAutoRefresh()
 })
@@ -752,8 +754,13 @@ body {
   gap: 5px;
 }
 
-.trend.up { color: #2f9e5a; }
-.trend.down { color: #c95b3f; }
+.trend.up {
+  color: #2f9e5a;
+}
+
+.trend.down {
+  color: #c95b3f;
+}
 
 .sub-value {
   font-size: 1rem;
@@ -808,9 +815,17 @@ body {
   background: #348c5c;
 }
 
-.legend-color.low { background: #d47b48; }
-.legend-color.mid { background: #e9b35f; }
-.legend-color.high { background: #359f6d; }
+.legend-color.low {
+  background: #d47b48;
+}
+
+.legend-color.mid {
+  background: #e9b35f;
+}
+
+.legend-color.high {
+  background: #359f6d;
+}
 
 .orchard-map {
   display: grid;
@@ -824,7 +839,7 @@ body {
   border-radius: 8px;
   background: #8fc6a7;
   transition: 0.1s;
-  border: 1px solid rgba(255,255,255,0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   font-size: 0.55rem;
   display: flex;
   align-items: center;
@@ -834,11 +849,25 @@ body {
   text-shadow: 0 0 4px white;
 }
 
-.ndvi-high { background: #2b864e; }
-.ndvi-mid { background: #b5c96b; }
-.ndvi-low { background: #cb8b52; }
-.ndvi-water { background: #4794b3; }
-.ndvi-warning { background: #cf5f4a; }
+.ndvi-high {
+  background: #2b864e;
+}
+
+.ndvi-mid {
+  background: #b5c96b;
+}
+
+.ndvi-low {
+  background: #cb8b52;
+}
+
+.ndvi-water {
+  background: #4794b3;
+}
+
+.ndvi-warning {
+  background: #cf5f4a;
+}
 
 .plot-label {
   display: flex;
@@ -925,9 +954,17 @@ body {
 }
 
 @keyframes blink {
-  0%{opacity:1;}
-  50%{opacity:0.3;}
-  100%{opacity:1;}
+  0% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.3;
+  }
+
+  100% {
+    opacity: 1;
+  }
 }
 
 .alert-footer {
@@ -977,11 +1014,11 @@ body {
   .kpi-row {
     grid-template-columns: repeat(3, 1fr);
   }
-  
+
   .main-panel {
     grid-template-columns: 1fr;
   }
-  
+
   .title-with-back {
     flex-direction: column;
     align-items: flex-start;
@@ -992,12 +1029,12 @@ body {
   .kpi-row {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .header {
     flex-direction: column;
     align-items: flex-start;
   }
-  
+
   .time-weather {
     align-self: flex-start;
   }

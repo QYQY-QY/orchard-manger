@@ -94,8 +94,8 @@ const REGION_NAMES = {
 
 //负责人信息
 const REGION_MANAGERS = {
-  1: '张齐',
-  2: '李昀',
+  1: '**',
+  2: '**昀',
   3: '王钿'
 };
 

@@ -218,7 +218,7 @@
 
     <!-- 微型数据清单 -->
     <div class="micro-data">
-      <span>🌱 缺氮{{ nutrientCounts.n }} 缺磷{{ nutrientCounts.p }} 缺钾{{ nutrientCounts.k }} 缺水{{ nutrientCounts.water }}
+      <span>缺氮{{ nutrientCounts.n }} 缺磷{{ nutrientCounts.p }} 缺钾{{ nutrientCounts.k }} 缺水{{ nutrientCounts.water }}
         其他{{ nutrientCounts.other }}</span>
       <span>NDVI: {{viStats.find(s => s.label === '均值')?.value}} ±{{viStats.find(s => s.label === '标准差')?.value}}</span>
       <span>采样点: {{ totalSamples }}个</span>
@@ -1097,9 +1097,6 @@ const handleApply = (analysisData) => {
 const handleApplySuggestion = (analysisData) => {
   const suggestion = analysisData.analyzeSuggestion || '';
 
-  // ======================
-  // 核心增强：兼容你给的新格式
-  // ======================
   const lines = suggestion
     .replace(/•/g, '')          // 去掉圆点
     .split('\n')                // 按行拆分
