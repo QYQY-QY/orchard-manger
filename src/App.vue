@@ -3,7 +3,7 @@ import '@/assets/font/fonts.css'
 </script>
 
 <template>
- <router-view />
+ <router-view :key="$route.fullPath" />
 </template>
 
 <style>

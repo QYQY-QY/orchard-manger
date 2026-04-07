@@ -451,7 +451,7 @@ const viStats = {
 // 营养状态统计
 //这里也要改
 const nutrientCounts = {
-  n: 44,
+  n: 45,
   p: 16,
   k: 31,
   water: 19,

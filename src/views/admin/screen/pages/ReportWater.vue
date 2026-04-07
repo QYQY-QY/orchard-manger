@@ -302,7 +302,7 @@ const plotBlocks = ref([])
 // 散点图颜色
 const scatterColors = ['#1b7b44', '#3ba363', '#308254', '#56a06b', '#71ba83', '#c45d32', '#7ac48a']
 
-// ====================== 生命周期：页面加载后执行 ======================
+// 生命周期：页面加载后执行
 onMounted(() => {
   // 初始化时间
   analysisDate.value = getCurrentTime()
@@ -317,7 +317,7 @@ onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
 })
 
-// ====================== 工具函数 ======================
+//工具函数
 // 获取当前时间
 function getCurrentTime() {
   const now = new Date()
@@ -349,13 +349,12 @@ async function loadAllData() {
 const loadDeficitData = async () => {
   try {
     isAnalyzing.value = true
+    
     // 发起请求
-    const res = await axios.get('/api/water/deficit', {
-      params: {
-        regionId: regionInfo.value.regionId,
-        orchardId: orchardId.value
-      }
+    const res = await axios.get('/api', {
+      params: {  }
     })
+
     // 请求成功，赋值渲染
     if (res.data.code === 200) {
       deficitData.value = res.data.data
@@ -374,11 +373,11 @@ const loadDeficitData = async () => {
 const loadSpectralData = async () => {
   try {
     isAnalyzing.value = true
+
     // 发起请求
-    const res = await axios.get('/api/water/spectral', {
+    const res = await axios.get('/api', {
       params: {
-        regionId: regionInfo.value.regionId,
-        orchardId: orchardId.value
+        
       }
     })
 
@@ -428,7 +427,7 @@ const handlePlotClick = async (block) => {
     modalTitle.value = `${block.id} 多光谱分析结果`
 
     // 请求后端接口获取地块分析数据
-    const res = await axios.get(`/AI/analyzePlus/${block.id}`)
+    const res = await axios.get(`/api`)
 
     if (res.data.code === 200) {
       const data = res.data.data
@@ -475,9 +474,26 @@ const handleCloseModal = () => {
 
 // 应用建议 → 自动发布任务
 const handleApplySuggestion = (analysisData) => {
-  const taskContent = analysisData.analyzeSuggestion || ''
+  // 1. 通过字符串分割提取每条建议里的【操作】部分
+  const lines = suggestion.split('\n').map(line => line.trim());
+
+  // 拆分建议并筛选含“建议，需，应”的操作语句
+  const actions = lines
+    .filter(line => /建议|需|应/.test(line))       // 只留含操作指令的行
+    .map(line =>
+      line
+        .replace(/^[•\-]\s*/, '')                 // 去掉 • - 等符号
+        .replace(/水分管理|氮素管理|磷钾管理|综合措施：?/g, '') // 去掉标题
+        .trim()
+    )
+    .filter(line => line.length > 0);
+
+  // 拼接成干净任务内容
+  const taskContent = actions.join(' ');
+
   //判断任务类型
   let taskType = /浇水|水分/.test(taskContent) ? '浇水' : '施肥'
+
   //自动填充任务内容+路由跳转
   router.push({
     path: '/adminMission',
