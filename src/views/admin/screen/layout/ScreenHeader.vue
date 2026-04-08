@@ -14,7 +14,7 @@
     <div class="header-left"></div>
 
     <div class="header-title">
-      <span class="title-chinese">一树一码智慧管理平台</span>
+      <span class="title-chinese">单株精准智能决策平台</span>
     </div>
 
     <div class="header-right">

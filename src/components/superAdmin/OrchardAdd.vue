@@ -58,7 +58,7 @@
             border-radius="6px"
           />
         </el-form-item>
-        <el-form-item label="果园管理员">
+        <el-form-item label="管理员">
           <el-select
             v-model="form.empId"
             placeholder="请选择管理员"

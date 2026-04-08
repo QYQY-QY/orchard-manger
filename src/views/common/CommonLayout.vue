@@ -6,8 +6,8 @@
       <!-- <div class="el-aside__logo"></div> -->
       <!-- <img src="@/assets/images/logo.png" alt="一树一码——果园管理平台" style="width: 200px; height: auto" /> -->
       <!-- <img src="@/assets/images/logo.png" alt="一树一码——果园管理平台" style="width: 200px; height: auto; margin-top: 10px;" /> -->
-      <div style="height:180px; display:flex; align-items:center; padding-left:8px;">
-        <img src="@/assets/images/logo.png" alt="一树一码——果园管理平台" style="width:180px; margin-top:60px;" />
+      <div style="height:105px; display:flex; align-items:center; padding-left:8px;">
+        <img src="@/assets/images/logo.png" alt="单株精准智能决策平台" style="width:180px; margin-top:20px;" />
       </div>
       <!-- 核心：default-active 绑定当前路由path + unique-opened 保证高亮唯一 -->
       <el-menu active-text-color="#ffd04b" background-color="#000000" :default-active="activeMenuPath" text-color="#fff"

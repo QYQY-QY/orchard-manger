@@ -8,7 +8,7 @@
 
     <h1>
       <i class="fas fa-tree" style="color: #256b43;"></i>
-      {{ region }}号果园 · 山地果园AI单株精准管理
+        单株精准智能决策平台
       <span class="region-badge" :style="{ backgroundColor: regionColor }">
         {{ regionName }}
       </span>
