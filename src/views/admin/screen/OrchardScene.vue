@@ -95,8 +95,8 @@ const REGION_NAMES = {
 //负责人信息
 const REGION_MANAGERS = {
   1: '**',
-  2: '**昀',
-  3: '王钿'
+  2: '**',
+  3: '**'
 };
 
 //标签偏移位置
