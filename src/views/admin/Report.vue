@@ -249,6 +249,8 @@ const filteredReportList = computed(() => {
     });
   }
 
+  // 时间倒序排序（最新的排在最上面）
+  list.sort((a, b) => new Date(b.createTime) - new Date(a.createTime));
   return list;
 });
 // 筛选

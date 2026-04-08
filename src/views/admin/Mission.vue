@@ -417,6 +417,9 @@ const filteredTaskList = computed(() => {
     });
   }
 
+  // 任务倒序（最新的在最上面）
+  list.sort((a, b) => new Date(b.createTime) - new Date(a.createTime));
+
   return list;
 });
 const resetFilter = () => {

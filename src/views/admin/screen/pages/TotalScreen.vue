@@ -449,7 +449,7 @@ const viStats = {
 }
 
 // 营养状态统计
-//这里也要改
+//这里也要改,数据要统一
 const nutrientCounts = {
   n: 45,
   p: 16,

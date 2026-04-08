@@ -905,30 +905,37 @@ onMounted(async () => {
 
 .page-header {
   margin-bottom: 20px;
-  // 新增：让header变成弹性布局，两端对齐
   display: flex;
   justify-content: space-between;
-  align-items: flex-end; // 让按钮和标题底部对齐，更美观
+  align-items: center;
+  /* 改成 center，不要用 flex-end */
+  position: relative;
+  z-index: 99;
+  /* 提高层级，保证能点到 */
 
   .page-title {
     font-size: 24px;
     font-weight: 600;
     color: #333;
-    margin: 0 0 8px 0;
+    margin: 0;
     background: linear-gradient(135deg, #000003 0%, #764ba2 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+  }
 
-    .train-btn {
-      background: linear-gradient(135deg, #409eff 0%, #66b1ff 100%);
-      border: none;
-    }
+  .train-btn {
+    background: linear-gradient(135deg, #409eff 0%, #66b1ff 100%);
+    border: none;
+    pointer-events: auto !important;
+    /* 强制开启点击 */
+    cursor: pointer !important;
   }
 
   .page-subtitle {
     font-size: 14px;
     color: #999;
+    margin-top: 4px;
   }
 }
 </style>

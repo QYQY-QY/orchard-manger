@@ -367,7 +367,7 @@ const loadDeficitData = async () => {
 }
 
 // ==============================================
-// 作用：获取多光谱数据 → 渲染NDVI图表、地块、状态、颜色
+// 作用：获取多光谱数据 → 渲染NDVI图表、地块的状态和颜色
 // 参数：regionId 合作社ID、orchardId 果园ID
 // ==============================================
 const loadSpectralData = async () => {
@@ -375,12 +375,11 @@ const loadSpectralData = async () => {
     isAnalyzing.value = true
 
     // 发起请求
-    const res = await axios.get('/api', {
-      params: {
-        
-      }
+    const res = await axios.get('/api/AI/water/spectral', {
+      params: { regionid:regionInfo.value }
     })
 
+    //数据格式化，对可能为空值的数据进行默认处理，防止空值报错
     if (res.data.code === 200) {
       const data = res.data.data
       // 接收有图表、地块、统计数据，并格式化
@@ -396,7 +395,7 @@ const loadSpectralData = async () => {
       plotBlocks.value = data.plotBlocks || []
       totalSamples.value = data.totalSamples || 0
       saveCost.value = data.saveCost || 0
-      //通过 Vue 模板语法，把这些处理好的数据统一渲染到页面当中
+      //通过 Vue 模板语法，把这些处理好的数据统一渲染到提前搭建好的页面当中
     }
   } catch (err) {
     console.error('多光谱数据加载失败', err)
@@ -427,7 +426,7 @@ const handlePlotClick = async (block) => {
     modalTitle.value = `${block.id} 多光谱分析结果`
 
     // 请求后端接口获取地块分析数据
-    const res = await axios.get(`/api`)
+    const res = await axios.get(`/api/AI/getAnalyzeRegion/${block.id}`)
 
     if (res.data.code === 200) {
       const data = res.data.data
