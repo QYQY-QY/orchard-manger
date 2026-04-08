@@ -61,7 +61,7 @@
             <span :style="{ color: person.timeColor }">{{ person.time }}</span>
           </div>
           <div class="rank-footer">
-            <i class="fas fa-chart-line"></i> 今日人均效率 ↑6% · 最快王*海
+            <i class="fas fa-chart-line"></i> 今日人均效率 ↑6% · 最快 王*海
           </div>
         </div>
       </div>
