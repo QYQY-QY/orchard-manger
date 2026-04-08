@@ -250,7 +250,7 @@ const fetchFruitTreeHealth = async () => {
             continue
           }
           successPath = path
-          console.log(`✅ 成功路径: ${path}`)
+          console.log(`成功路径: ${path}`)
           break
         }
       } catch (e) {

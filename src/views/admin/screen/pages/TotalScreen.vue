@@ -532,7 +532,7 @@ const formatNumber = (num) => {
 const regionData = computed(() => {
   const baseData = {
     '1': {
-      totalTrees: 12850,
+      totalTrees: 7747,
       coverage: 98,
       healthRate: 94,
       abnormalTrees: 87,
