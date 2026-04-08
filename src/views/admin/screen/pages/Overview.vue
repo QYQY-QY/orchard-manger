@@ -13,7 +13,7 @@
           </h1>
         </div>
         <div class="role-tag">
-          <i class="fas fa-user-tie"></i>{{ regionInfo.name }}负责人 · {{ regionInfo.manager }}
+          <i class="fas fa-user-tie"></i>{{ regionInfo.name }}负责人 : {{ regionInfo.manager }}
         </div>
       </div>
       <div class="time-weather">

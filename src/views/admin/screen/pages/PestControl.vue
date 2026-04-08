@@ -349,7 +349,7 @@ const fetchTaskStats = async () => {
 const getRegionInfo = () => {
   const region = route.query.region
   if (region && REGION_MANAGERS[region]) {
-    regionManager.value = `${REGION_NAMES[region]}负责人 - ${REGION_MANAGERS[region]}`
+    regionManager.value = `${REGION_NAMES[region]}负责人 : ${REGION_MANAGERS[region]}`
   }
 }
 
