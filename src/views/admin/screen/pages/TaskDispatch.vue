@@ -148,7 +148,7 @@ const goBack = () => {
 }
 
 // 区域负责人
-// const regionManager = ref('汤村负责人 - 张齐')
+// const regionManager = ref('汤村负责人 : 张齐')
 
 // 实时时间
 const currentTime = ref('')
@@ -340,9 +340,9 @@ const progressData = ref([
 
 // 逾期数据
 const overdueData = ref([
-  { name: '采摘 B3', desc: '逾期2天 · 责任人张茂', level: '高亮', badgeColor: '#cf5f4a' },
-  { name: '防控 E5', desc: '逾期1天 · 责任人赵欣', level: '中', badgeColor: '#e68a3a' },
-  { name: '施肥 F2', desc: '逾期6h · 责任人李国', level: '中', badgeColor: '#e68a3a' }
+  { name: '采摘 B3', desc: '逾期2天 · 责任人张*茂', level: '高亮', badgeColor: '#cf5f4a' },
+  { name: '防控 E5', desc: '逾期1天 · 责任人赵*欣', level: '中', badgeColor: '#e68a3a' },
+  { name: '施肥 F2', desc: '逾期6h · 责任人李*国', level: '中', badgeColor: '#e68a3a' }
 ])
 
 onMounted(() => {

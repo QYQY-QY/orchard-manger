@@ -165,10 +165,10 @@ const router = useRouter()
 const route = useRoute()
 
 // 区域负责人映射
-const REGION_MANAGERS = { 1: '张齐', 2: '李昀', 3: '王钿' }
+const REGION_MANAGERS = { 1: '张*齐', 2: '李*昀', 3: '王*钿' }
 const REGION_NAMES = { 1: '汤村', 2: '莲村', 3: '桂村' }
 
-const regionManager = ref('汤村负责人 - 张齐')
+const regionManager = ref('汤村负责人 : 张*齐')
 
 // 获取当前日期时间
 const today = new Date()

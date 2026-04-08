@@ -147,7 +147,7 @@ const route = useRoute()
 const REGION_MANAGERS = { 1: '**', 2: '**', 3: '**' }
 const REGION_NAMES = { 1: '汤村', 2: '莲村', 3: '桂村' }
 
-const regionManager = ref('汤村负责人 - **')
+const regionManager = ref('汤村负责人 : **')
 
 // 实时时间
 const currentTime = ref('')
