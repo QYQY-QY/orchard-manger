@@ -1,7 +1,7 @@
 <template>
   <div class="login-container">
     <div class="login-box">
-      <h2>果树单株精准管理平台</h2>
+      <h2>单株精准智能决策系统</h2>
 
       <!-- 账号输入框 + 自动消失的错误提示 -->
       <div class="form-item">
