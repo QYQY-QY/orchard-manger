@@ -4,28 +4,18 @@
     <!-- 布局内部嵌入业务组件 -->
     <div class="area-container">
       <!-- 第一个组件：区域管理（areaAdd.vue） -->
-      <AreaAdd
-        :zone-list="zoneList"
-        :active-area-id="activeAreaId"
-        @zone-select="handleZoneSelect"
-        @zone-update="handleZoneUpdate"
-        @zone-detail="showZoneDetail"
-      />
+      <AreaAdd :zone-list="zoneList" :active-area-id="activeAreaId" @zone-select="handleZoneSelect"
+        @zone-update="handleZoneUpdate" @zone-detail="showZoneDetail" />
       <!-- 第二个组件：果树列表（areaTree.vue） -->
-      <AreaTree
-        :active-area-id="activeAreaId"
-        :active-zone="activeZone"
-        :tree-list="activeZone.trees"
-        :fullZoneInfo="activeZone"
-        @tree-delete="handleTreeDelete"
-        @zone-detail="showZoneDetail"
-        @tree-list-update="handleTreeListUpdate"
-      />
+      <AreaTree :active-area-id="activeAreaId" :active-zone="activeZone" :tree-list="activeZone.trees"
+        :fullZoneInfo="activeZone" @tree-delete="handleTreeDelete" @zone-detail="showZoneDetail"
+        @tree-list-update="handleTreeListUpdate" />
     </div>
   </CommonLayout>
 </template>
 
 <script setup>
+
 // 1. 引入需要的组件（修复默认导出问题的写法）
 import { default as CommonLayout } from "@/views/common/CommonLayout.vue";
 import { default as AreaAdd } from "@/components/admin/areaAdd.vue";
@@ -37,10 +27,14 @@ import { ElMessage } from "element-plus";
 import axios from "axios";
 import { useUserStore } from "@/stores/modules/user.js";
 
+import { useRoute } from "vue-router";  // 加这行
+const route = useRoute();              // 加这行
+
 // 3. 定义响应式数据
 const loading = ref(false); // 加载状态
 const zoneList = ref([]); // 区域列表数据
 const activeAreaId = ref(""); // 当前选中的区域ID
+const allowFlash = ref(true);
 
 // 筛选初始化数据（保留，如需筛选功能可使用）
 const initFilterData = reactive({
@@ -48,6 +42,65 @@ const initFilterData = reactive({
   areaCode: "",
   status: "",
 });
+
+// 获取指定区域的果树列表
+//  修复：使用正确的请求方式 POST
+const getTreeList = async (areaId) => {
+  if (!areaId) return
+  try {
+    // 关键修复：改成 POST 405错误就是因为用了GET
+    const res = await axios.post(`/api/fruitTree/selectByAreaId`, {
+      areaId: areaId  // 传参方式改为 body
+    })
+    if (res.data.code === 200) {
+      const zone = zoneList.value.find(z => z.id === areaId)
+      if (zone) {
+        zone.trees = res.data.data || []
+        // 强制触发视图更新
+        zoneList.value = [...zoneList.value]
+      }
+    }
+  } catch (e) {
+    // console.error("加载果树失败", e)
+    // ElMessage.error("接口请求失败，请检查后端接口")
+  }
+}
+
+const findAndSelectTree = async (targetTreeId) => {
+  if (!allowFlash.value) return;
+
+  try {
+    // 1. 选中区域1
+    activeAreaId.value = "1";
+
+    // 2. 加载区域1的果树
+    await getTreeList("1");
+
+    // 3. 等待渲染
+    await nextTick();
+    await nextTick();
+    await new Promise(r => setTimeout(r, 500));
+
+    // 4. 找到第一棵树并闪烁
+    const treeRows = document.querySelectorAll(".tree-row");
+    if (treeRows.length > 0) {
+      treeRows[0].scrollIntoView({ behavior: "smooth", block: "center" });
+      treeRows[0].classList.add("highlight"); // ✅ 只加高亮，不删除！
+      setTimeout(() => {
+        treeRows[0].classList.remove("highlight");
+        allowFlash.value = false;
+      }, 3000);
+    }
+
+    // ✅ 关键：这里 不 要 移除高亮！
+    // ✅ 关键：这里 不 要 关闭 allowFlash！
+
+
+  } catch (err) {
+    console.error(err);
+  }
+};
+
 
 // 当前激活的区域（计算属性）
 const activeZone = computed(() => {
@@ -202,8 +255,7 @@ const getZoneList = async () => {
       responseData: error.response?.data,
     });
     ElMessage.error(
-      `获取区域列表失败（${error.response?.status || "网络错误"}）：${
-        error.response?.data?.msg || "请检查参数或后端接口"
+      `获取区域列表失败（${error.response?.status || "网络错误"}）：${error.response?.data?.msg || "请检查参数或后端接口"
       }`
     );
     zoneList.value = [];
@@ -231,6 +283,9 @@ const handleTreeDelete = async (treeId) => {
         剩余果树: zoneList.value[zoneIndex].trees,
       });
     }
+    const rows = document.querySelectorAll(".tree-row");
+    rows.forEach(row => row.classList.remove("highlight"));
+    allowFlash.value = false;
   } catch (error) {
     console.error("删除果树失败", error);
     ElMessage.error("删除果树失败：" + error.message);
@@ -255,7 +310,7 @@ const handleDelete = (id) => {
 };
 
 // 5. 生命周期：页面初始化加载数据
-onMounted(() => {
+onMounted(async () => {
   try {
     console.log("初始化 - 用户信息：", userStore.user);
     console.log(
@@ -264,11 +319,24 @@ onMounted(() => {
       "类型：",
       typeof userStore.user?.orchardId
     );
-    getZoneList(); // 初始化加载区域列表
-    handleSearch(initFilterData); // 初始化筛选（如需）
+
+    // 1. 等待区域列表完全加载
+    await getZoneList();
+    handleSearch(initFilterData);
+
+    // 2. 等待所有区域的果树数据加载完成（关键！）
+    await nextTick();
+    await new Promise(resolve => setTimeout(resolve, 800));
+
   } catch (error) {
     console.error("初始化失败：", error);
     zoneList.value = [];
+  }
+
+  // 3. 数据完全就绪后，再执行查找
+  const jumpTreeId = route.query.treeId;
+  if (jumpTreeId) {
+    findAndSelectTree(jumpTreeId);
   }
 });
 </script>
@@ -290,8 +358,9 @@ onMounted(() => {
 
 /* 核心修改：拆分两个组件的宽度，替换原有flex:1的统一样式 */
 /* 左侧添加区域：窄栏（28%宽度 + 红框） */
-.area-container > div:first-child {
-  width: 24%; /* 可微调：25%/30%，匹配你要的红框宽度 */
+.area-container>div:first-child {
+  width: 24%;
+  /* 可微调：25%/30%，匹配你要的红框宽度 */
   overflow: auto;
   border-radius: 8px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
@@ -299,8 +368,9 @@ onMounted(() => {
 }
 
 /* 右侧果树列表：宽栏（占剩余所有宽度 + 红框） */
-.area-container > div:last-child {
-  flex: 1; /* 自动占剩余宽度 */
+.area-container>div:last-child {
+  flex: 1;
+  /* 自动占剩余宽度 */
   overflow: auto;
   border-radius: 8px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);

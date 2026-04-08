@@ -59,6 +59,7 @@
         style="width: 100%; margin-top: 20px"
         :header-cell-style="{ backgroundColor: '#f8f9fa' }"
         :empty-text="`该区域暂无果树数据`"
+        row-class-name="tree-row"
       >
         <!-- 果树编号 -->
         <el-table-column label="果树编号" min-width="120">
@@ -789,10 +790,10 @@ const batchDownloadQRCode = async () => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const blob = await res.blob();
       zip.file(`果树${tree.id}_二维码.png`, blob);
-      console.log(`✅ 果树${tree.id}下载成功`);
+      console.log(`果树${tree.id}下载成功`);
       return true;
     } catch (e) {
-      console.error(`❌ 果树${tree.id}下载失败：`, e.message);
+      console.error(`果树${tree.id}下载失败：`, e.message);
       return false;
     }
   });
@@ -802,7 +803,7 @@ const batchDownloadQRCode = async () => {
     // 等待所有下载完成
     const results = await Promise.all(downloadPromises);
     const successCount = results.filter(Boolean).length;
-    console.log(`📊 下载完成：成功${successCount}/${trees.length}`);
+    console.log(`下载完成：成功${successCount}/${trees.length}`);
 
     // 生成ZIP并下载（改用原生API，放弃file-saver）
     const zipBlob = await zip.generateAsync({ type: "blob" });
@@ -1016,6 +1017,28 @@ const getRateValue = (score) => {
 </script>
 
 <style scoped>
+/* 高亮闪烁 */
+/* 永久高亮闪烁 —— 超级慢、超级明显 */
+/* 无限闪烁动画 —— 永久生效 */
+/* 无限闪烁动画（不影响你任何现有效果） */
+:deep(.tree-row.highlight) {
+  animation: flash 1s infinite !important;
+}
+
+@keyframes flash {
+  0% {
+    background: #f7eece;
+  }
+
+  50% {
+    background: #fff29f;
+  }
+
+  100% {
+    background: #f5efd7;
+  }
+}
+
 .zone-main {
   flex: 1;
   border-radius: 8px;

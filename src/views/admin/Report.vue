@@ -83,6 +83,15 @@
           <el-descriptions-item label="上报类型">
             {{ getReportTypeName(currentReport.typeId) }}
           </el-descriptions-item>
+          <el-descriptions-item label="果树ID">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span>{{ currentReport.treeId }}</span>
+              <!-- 👇 这里必须绑定 @click="goToTreeDetail(currentReport.treeId)" -->
+              <el-button type="primary" size="small" @click="goToTreeDetail(currentReport.treeId)">
+                查看果树详情
+              </el-button>
+            </div>
+          </el-descriptions-item>
           <el-descriptions-item label="报告内容">
             {{ currentReport.content }}
           </el-descriptions-item>
@@ -233,6 +242,8 @@ const filteredReportList = computed(() => {
     });
   }
 
+  
+
   // 时间范围筛选
   if (
     filterParams.value.dateRange &&
@@ -253,6 +264,28 @@ const filteredReportList = computed(() => {
   list.sort((a, b) => new Date(b.createTime) - new Date(a.createTime));
   return list;
 });
+
+// 查看果树详情 —— 正确路由跳转
+// 查看果树详情 —— 最终调试版
+const goToTreeDetail = (treeId) => {
+  console.log("=======================")
+  console.log("按钮点击成功！treeId =", treeId)
+  console.log("跳转目标：/adminarea")
+  console.log("=======================")
+
+  if (!treeId) {
+    ElMessage.warning('果树ID不存在')
+    return
+  }
+
+  ElMessage.success("即将跳转到果树详情：" + treeId)
+
+  router.push({
+    path: '/adminarea',
+    query: { treeId: treeId }
+  })
+}
+
 // 筛选
 const handleFilter = () => {
   getReportList();
