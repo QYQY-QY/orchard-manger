@@ -276,7 +276,7 @@ const useMockData = () => {
         {
             id: 1,
             name: "水肥识别_缺氮_001",
-            url: "/public/images/water/d2.webp",
+            url: "/images/water/d2.webp",
             date: "2026-03-15",
             hasAnnotation: false,
             severity: null,
@@ -285,7 +285,7 @@ const useMockData = () => {
         {
             id: 2,
             name: "水肥识别_缺氮_002",
-            url: "/public/images/water/d3.jpg",
+            url: "/images/water/d3.jpg",
             date: "2026-03-15",
             hasAnnotation: false,
             severity: 3,
@@ -294,7 +294,7 @@ const useMockData = () => {
         {
             id: 3,
             name: "水肥识别_缺氮_003",
-            url: "/public/images/water/s1.webp",
+            url: "/images/water/s1.webp",
             date: "2026-03-16",
             hasAnnotation: true,
             severity: 2,
@@ -303,7 +303,7 @@ const useMockData = () => {
         {
             id: 4,
             name: "水肥识别_缺磷_001",
-            url: "/public/images/water/l1.webp",
+            url: "/images/water/l1.webp",
             date: "2026-03-16",
             hasAnnotation: false,
             severity: null,
@@ -312,7 +312,7 @@ const useMockData = () => {
         {
             id: 5,
             name: "水肥识别_缺氮_004",
-            url: "/public/images/water/d4.jpg",
+            url: "/images/water/d4.jpg",
             date: "2026-03-17",
             hasAnnotation: false,
             severity: null,
@@ -321,7 +321,7 @@ const useMockData = () => {
         {
             id: 6,
             name: "水肥识别_缺镁_001",
-            url: "/public/images/water/m1.webp",
+            url: "/images/water/m1.webp",
             date: "2026-03-17",
             hasAnnotation: false,
             severity: null,

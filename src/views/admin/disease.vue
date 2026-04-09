@@ -275,7 +275,7 @@ const useMockData = () => {
     {
       id: 1,
       name: "病害识别_炭疽病_001",
-      url: "/public/images/bing/炭2.webp",
+      url: "/images/bing/炭2.webp",
       date: "2026-03-15",
       hasAnnotation: false,
       severity: null,
@@ -284,7 +284,7 @@ const useMockData = () => {
     {
       id: 2,
       name: "病害识别_黄龙病_002",
-      url: "/public/images/bing/黄龙病.jpg",
+      url: "/images/bing/黄龙病.jpg",
       date: "2026-03-15",
       hasAnnotation: false,
       severity: null,
@@ -293,7 +293,7 @@ const useMockData = () => {
     {
       id: 3,
       name: "病害识别_炭疽病_003",
-      url: "/public/images/bing/炭.jpg",
+      url: "/images/bing/炭.jpg",
       date: "2026-03-16",
       hasAnnotation: true,
       severity: 4,
@@ -302,7 +302,7 @@ const useMockData = () => {
     {
       id: 4,
       name: "病害识别_溃疡病_004",
-      url: "/public/images/bing/溃疡病.jpg",
+      url: "/images/bing/溃疡病.jpg",
       date: "2026-03-16",
       hasAnnotation: false,
       severity: null,
@@ -311,7 +311,7 @@ const useMockData = () => {
     {
       id: 5,
       name: "病害识别_树脂病_003",
-      url: "/public/images/bing/树脂病.webp",
+      url: "/images/bing/树脂病.webp",
       date: "2026-03-17",
       hasAnnotation: false,
       severity: null,
@@ -320,7 +320,7 @@ const useMockData = () => {
     {
       id: 6,
       name: "病害识别_脂点黄斑病_006",
-      url: "/public/images/bing/指点黄斑病.jpg",
+      url: "/images/bing/指点黄斑病.jpg",
       date: "2026-03-17",
       hasAnnotation: false,
       severity: null,

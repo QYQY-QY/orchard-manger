@@ -323,7 +323,7 @@ const useMockData = () => {
     {
       id: 1,
       name: "虫害识别_蚜虫_001",
-      url: "/public/images/chong/蚜虫1.jpg",
+      url: "/images/chong/蚜虫1.jpg",
       date: "2026-03-15",
       pestType: "蚜虫",
       autoLabeled: false,
@@ -331,7 +331,7 @@ const useMockData = () => {
     {
       id: 2,
       name: "虫害识别_红蜘蛛_002",
-      url: "/public/images/chong/红蜘蛛.jpg",
+      url: "/images/chong/红蜘蛛.jpg",
       date: "2026-03-15",
       pestType: "红蜘蛛",
       autoLabeled: false,
@@ -339,7 +339,7 @@ const useMockData = () => {
     {
       id: 3,
       name: "虫害识别_蚜虫_003",
-      url: "/public/images/chong/蚜虫2.jpg",
+      url: "/images/chong/蚜虫2.jpg",
       date: "2026-03-16",
       pestType: "蚜虫",
       autoLabeled: true,
@@ -347,7 +347,7 @@ const useMockData = () => {
     {
       id: 4,
       name: "虫害识别_蚜虫_003",
-      url: "/public/images/chong/蚜虫4.jpg",
+      url: "/images/chong/蚜虫4.jpg",
       date: "2026-03-16",
       pestType: "蚜虫",
       autoLabeled: false,
@@ -355,7 +355,7 @@ const useMockData = () => {
     {
       id: 5,
       name: "虫害识别_木虱_005",
-      url: "/public/images/chong/木虱.jpg",
+      url: "/images/chong/木虱.jpg",
       date: "2026-03-17",
       pestType: "木虱",
       autoLabeled: false,
@@ -363,7 +363,7 @@ const useMockData = () => {
     {
       id: 6,
       name: "水肥识别_红蜘蛛_006",
-      url: "/public/images/chong/红蜘蛛2.jpg",
+      url: "/images/chong/红蜘蛛2.jpg",
       date: "2026-03-17",
       pestType: "红蜘蛛",
       autoLabeled: false,
@@ -371,7 +371,7 @@ const useMockData = () => {
     {
       id: 7,
       name: "水肥识别_红蜘蛛_007",
-      url: "/public/images/chong/红蜘蛛8.jpg",
+      url: "/images/chong/红蜘蛛8.jpg",
       date: "2026-03-18",
       pestType: "红蜘蛛",
       autoLabeled: false,
@@ -379,7 +379,7 @@ const useMockData = () => {
     {
       id: 8,
       name: "水肥识别_红蜘蛛_007",
-      url: "/public/images/chong/红蜘蛛5.jpg",
+      url: "/images/chong/红蜘蛛5.jpg",
       date: "2026-03-18",
       pestType: "红蜘蛛",
       autoLabeled: false,
@@ -387,7 +387,7 @@ const useMockData = () => {
     {
       id: 9,
       name: "虫害识别_蚜虫_009",
-      url: "/public/images/chong/蚜虫7.jpg",
+      url: "/images/chong/蚜虫7.jpg",
       date: "2026-03-19",
       pestType: "蚜虫",
       autoLabeled: false,
