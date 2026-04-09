@@ -1136,10 +1136,10 @@ const nutrientStats = ref([
 ])
 
 //这里要修改44-->45
-const nutrientCounts = ref({ n: 44, p: 16, k: 31, water: 19, other: 8 })
+const nutrientCounts = ref({ n: 46, p: 16, k: 31, water: 19, other: 8 })
 
 const deficitData = ref([
-  { type: 'n', icon: 'fas fa-flask', label: '缺氮株数', count: 44, unit: '株', percentage: '占比 5.3%' },
+  { type: 'n', icon: 'fas fa-flask', label: '缺氮株数', count: 46, unit: '株', percentage: '占比 5.3%' },
   { type: 'p', icon: 'fas fa-flask', label: '缺磷株数', count: 16, unit: '株', percentage: '占比 1.9%' },
   { type: 'k', icon: 'fas fa-flask', label: '缺钾株数', count: 31, unit: '株', percentage: '占比 3.7%' },
   { type: 'water', icon: 'fas fa-tint', label: '缺水株数', count: 19, unit: '株', percentage: '占比 2.3%' },

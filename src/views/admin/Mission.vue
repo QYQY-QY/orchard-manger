@@ -82,12 +82,12 @@
           <el-table-column prop="status" label="任务状态" width="120px">
             <template #default="{ row }">
               <el-tag :type="row.status === 0
-                  ? 'primary'
-                  : row.status === 1
-                    ? 'warning'
-                    : row.status === 3
-                      ? 'success'
-                      : 'danger'
+                ? 'primary'
+                : row.status === 1
+                  ? 'warning'
+                  : row.status === 3
+                    ? 'success'
+                    : 'danger'
                 ">
                 {{
                   row.status === 0
@@ -222,12 +222,12 @@
               </el-descriptions-item> -->
               <el-descriptions-item label="任务状态">
                 <el-tag :type="currentTask.status === 0
-                    ? 'primary'
-                    : currentTask.status === 1
-                      ? 'warning'
-                      : currentTask.status === 3
-                        ? 'success'
-                        : 'danger'
+                  ? 'primary'
+                  : currentTask.status === 1
+                    ? 'warning'
+                    : currentTask.status === 3
+                      ? 'success'
+                      : 'danger'
                   ">
                   {{
                     currentTask.status === 0
@@ -264,11 +264,11 @@
             </el-descriptions>
           </div>
 
-          <div class="detail-images" v-if="currentTask.imgsURL && currentTask.imgsURL.length > 0">
+          <div class="detail-images" v-if="currentTask.reportVo.urlList && currentTask.reportVo.urlList.length > 0">
             <h4 style="margin-bottom: 10px; color: #333">任务相关图片：</h4>
             <div class="image-grid">
-              <div class="image-item" v-for="(img, index) in currentTask.imgsURL" :key="index">
-                <el-image :src="img" :preview-src-list="currentTask.imgsURL" fit="cover"
+              <div class="image-item" v-for="(img, index) in currentTask.reportVo.urlList" :key="index">
+                <el-image :src="img" :preview-src-list="currentTask.reportVo.urlList" fit="cover"
                   style="width: 200px; height: 150px; border-radius: 4px">
                   <template #error>
                     <div class="image-error">图片加载失败</div>
