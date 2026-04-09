@@ -1148,7 +1148,7 @@ const checkRouteParams = () => {
       // ✅ 延迟清空路由参数（确保已经保存 reportId）
       setTimeout(() => {
         console.log("清空路由参数");
-        router.replace({ query: {} });
+        // router.replace({ query: {} });
       }, 100);
     }, 200);
   }

@@ -1075,26 +1075,25 @@ const handleApply = (analysisData) => {
 
 
 // 自动解析水肥建议 → 发布任务（已兼容你给的新格式）
+// 自动解析水肥建议 → 自动填充表单（不自动发布，手动发布）
 const handleApplySuggestion = (analysisData) => {
   const suggestion = analysisData.analyzeSuggestion || '';
 
   const lines = suggestion
-    .replace(/•/g, '')          // 去掉圆点
-    .split('\n')                // 按行拆分
-    .map(line => line.trim())   // 去空格
-    .filter(line => line);      // 去掉空行
+    .replace(/•/g, '')
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line);
 
-  // 提取所有带“- ”的操作项（你的新格式专用）
+  // 提取所有带“- ”的操作项
   const actionLines = lines.filter(line => line.startsWith('- '));
 
   let actions = [];
   if (actionLines.length > 0) {
-    // 新格式：直接提取 - 开头的任务
     actions = actionLines.map(line =>
       line.replace(/^-\s*/, '').trim()
     );
   } else {
-    // 旧格式：保留你原来的逻辑
     actions = lines
       .filter(line => /建议|需|应/.test(line))
       .map(line =>
@@ -1109,18 +1108,18 @@ const handleApplySuggestion = (analysisData) => {
   // 拼接任务内容
   const taskContent = actions.join(' ');
 
-  // 自动判断任务类型（不变）
+  // 自动判断任务类型
   let taskType = '施肥';
   if (/浇水|排水沟|水分|积水|湿度/.test(suggestion)) taskType = '浇水';
   if (/尿素|氮|磷钾|硫酸钾|复合肥|过磷酸钙|叶面肥/.test(suggestion)) taskType = '施肥';
 
-  // 跳转发布任务
+  // ✅ 关键：只跳转 + 自动填充，不发布！
   router.push({
     path: '/adminMission',
     query: {
-      action: 'publish',
-      taskType,
-      content: taskContent,
+      action: 'publish',    // 进入发布页面
+      taskType,             // 自动填类型
+      content: taskContent, // 自动填内容
       areaId: currentRegionInfo.value.regionId || '',
       areaName: selectedBlockId.value || ''
     }
@@ -1137,10 +1136,10 @@ const nutrientStats = ref([
 ])
 
 //这里要修改44-->45
-const nutrientCounts = ref({ n: 45, p: 16, k: 31, water: 19, other: 8 })
+const nutrientCounts = ref({ n: 44, p: 16, k: 31, water: 19, other: 8 })
 
 const deficitData = ref([
-  { type: 'n', icon: 'fas fa-flask', label: '缺氮株数', count: 45, unit: '株', percentage: '占比 5.3%' },
+  { type: 'n', icon: 'fas fa-flask', label: '缺氮株数', count: 44, unit: '株', percentage: '占比 5.3%' },
   { type: 'p', icon: 'fas fa-flask', label: '缺磷株数', count: 16, unit: '株', percentage: '占比 1.9%' },
   { type: 'k', icon: 'fas fa-flask', label: '缺钾株数', count: 31, unit: '株', percentage: '占比 3.7%' },
   { type: 'water', icon: 'fas fa-tint', label: '缺水株数', count: 19, unit: '株', percentage: '占比 2.3%' },

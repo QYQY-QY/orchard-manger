@@ -376,7 +376,7 @@ const loadSpectralData = async () => {
 
     // 发起请求
     const res = await axios.get('/api/AI/water/spectral', {
-      params: { regionid:regionInfo.value }
+      params: { regionId:regionInfo.value }
     })
 
     //数据格式化，对可能为空值的数据进行默认处理，防止空值报错
