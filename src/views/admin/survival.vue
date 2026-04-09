@@ -812,9 +812,9 @@ const startTraining = () => {
   const estimatedTrainTime = Math.round(trainStats.value.totalEpochs * (TRAINING_INTERVAL / 1000));
   addTrainingLog(`开始第 ${trainingCount.value} 次训练...`);
   addTrainingLog(`训练数据量：${trainStats.value.totalData} 张图片`);
-  addTrainingLog(`当前图片数量：${totalImages.value} 张（与训练数据量一致）`);
+  addTrainingLog(`当前图片数量：${totalImages.value} 张`);
   addTrainingLog(`训练轮数：${trainStats.value.totalEpochs} 轮，每轮约 ${TRAINING_INTERVAL / 1000} 秒`);
-  addTrainingLog(`⏱️ 预计训练总时长：约 ${estimatedTrainTime} 秒`);
+  addTrainingLog(`预计训练总时长：约 ${estimatedTrainTime} 秒`);
   addTrainingLog('开始加载桔园杂草数据集...');
   addTrainingLog('数据集加载完成：共 ' + trainStats.value.totalData + ' 张图片（桔树/杂草两类）');
   addTrainingLog('开始模型训练...');
@@ -832,8 +832,8 @@ const startTraining = () => {
       trainStats.value.mapValue = afterMetrics.value.mapValue;
       trainCompleted.value = true;
       totalElapsedSeconds.value = elapsedSeconds.value;
-      addTrainingLog('✅ 训练完成！最终 mAP@0.5: ' + afterMetrics.value.mapValue + '%');
-      addTrainingLog(`⏱️ 总训练耗时：${totalTrainingTime.value}`);
+      addTrainingLog('训练完成！最终 mAP@0.5: ' + afterMetrics.value.mapValue + '%');
+      addTrainingLog(`总训练耗时：${totalTrainingTime.value}`);
 
       ElMessage.success(`第 ${trainingCount.value} 次模型训练完成！总耗时 ${totalTrainingTime.value}`);
       return;
