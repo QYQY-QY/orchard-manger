@@ -3,7 +3,7 @@
     <div class="page-container">
       <div class="page-header">
         <h1 class="page-title">自动训练系统-训练</h1>
-        <div class="page-subtitle">病害识别与标注管理</div>
+        <div class="page-subtitle">杂草识别与标注管理</div>
       </div>
       <!-- 顶部筛选区域 -->
       <div class="filter-container">
@@ -117,7 +117,7 @@
             <el-button link @click="showAnnotationLogsDialog = true">查看详情</el-button>
           </div>
           <div class="log-preview fixed-height annotation-log-preview">
-            <div v-for="log in annotationLogs.slice(-3)" :key="log.time" class="log-line annotation-log-line">
+            <div v-for="log in annotationLogs.slice(-3)" :key="log.time" class="log-line">
               {{ log.time }} - {{ log.message }}
             </div>
           </div>
@@ -165,9 +165,6 @@
               </el-icon>
               <span>待标注</span>
             </div>
-            <!-- <div v-if="image.annotated && image.weedType" class="weed-tag">
-            <span class="tag">{{ image.weedType }}</span>
-          </div> -->
             <div v-if="image.annotated && image.confidence" class="confidence-badge">
               <span>置信度: {{ image.confidence }}%</span>
             </div>
@@ -431,12 +428,12 @@ import {
   SuccessFilled, Timer
 } from "@element-plus/icons-vue";
 
-// ========== 时间参数配置 ==========
-// 训练每个 Epoch 的间隔时间（毫秒）
-const TRAINING_INTERVAL = 600; // 0.6秒
+// ========== 时间参数配置 - 已修改为真实合理速度 ==========
+// 训练每个 Epoch 的间隔时间（毫秒）→ 大幅延长：10秒/轮
+const TRAINING_INTERVAL = 10000; 
 
-// 标注每张图片的间隔时间（毫秒）
-const ANNOTATION_INTERVAL = 1500; // 1.5秒
+// 标注每张图片的间隔时间（毫秒）→ 大幅加快：0.5秒/张
+const ANNOTATION_INTERVAL = 500; 
 
 // 筛选参数
 const filterParams = ref({
@@ -851,7 +848,7 @@ const startTraining = () => {
 
     const remainingEpochs = trainStats.value.totalEpochs - epoch;
     const remainingTime = Math.round(remainingEpochs * (TRAINING_INTERVAL / 1000));
-    addTrainingLog(`Epoch ${epoch}/${trainStats.value.totalEpochs} | Box Loss: ${trainStats.value.boxLoss} | Cls Loss: ${trainStats.value.clsLoss} | mAP@0.5: ${trainStats.value.mapValue}% | 剩余约 ${remainingTime} 秒`);
+    addTrainingLog(`Epoch ${epoch}/${trainStats.value.totalEpochs} | Box Loss: ${trainStats.value.boxLoss} | Cls Loss: ${trainStats.value.clsLoss} | mAP@0.5: ${trainStats.mapValue}% | 剩余约 ${remainingTime} 秒`);
   }, TRAINING_INTERVAL);
 };
 

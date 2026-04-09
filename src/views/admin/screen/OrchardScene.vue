@@ -462,7 +462,7 @@ const addRegionLabels = () => {
         ${REGION_NAMES[region]}
       </div>
       <div style="color: #ffaa00; font-size: 22px; font-weight: bold; margin: 4px 0;">
-        📍 负责人：${manager}
+        负责人 ：${manager}
       </div>
     `;
 

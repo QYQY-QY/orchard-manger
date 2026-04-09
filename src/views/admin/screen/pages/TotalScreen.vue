@@ -548,9 +548,9 @@ const regionData = computed(() => {
       deviceOnlineRate: 97,
       collectTime: '2026-03-08 10:23',
       pest: {
-        spiderMite: 35,
-        huanglongbing: 12,
-        anthracnose: 21,
+        spiderMite: 6,
+        huanglongbing: 5,
+        anthracnose: 3,
         trapPeak: 186,
         warningArea: '地块A2 🔴红蜘蛛 · 地块C5 🟡黄龙病',
         disasterArea: 3,

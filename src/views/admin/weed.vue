@@ -3,7 +3,7 @@
     <div class="page-container">
       <div class="page-header">
         <h1 class="page-title">自动训练系统-杂草</h1>
-        <div class="page-subtitle">病害识别与标注管理</div>
+        <div class="page-subtitle">杂草识别与标注管理</div>
         <!-- 按钮，跳转到自动训练页面 -->
         <el-button type="primary" size="large" @click="handleTrainClick" class="train-btn">
           <el-icon>
