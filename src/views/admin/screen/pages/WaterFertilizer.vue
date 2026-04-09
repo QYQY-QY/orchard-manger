@@ -20,7 +20,7 @@
         <!-- 数据更新按钮 - 直接点击弹出文件夹选择 -->
         <!-- 数据更新按钮 - 只根据 isAnalyzing 状态变化 -->
         <button class="analyze-btn" @click="handleDataUpdate" :disabled="isAnalyzing">
-          <span class="btn-icon">{{ isAnalyzing ? '⏳' : '📊' }}</span>
+          <span class="btn-icon">{{ isAnalyzing ? '···' : '' }}</span>
           {{ isAnalyzing ? '更新中...' : '数据更新' }}
         </button>
 
@@ -88,7 +88,7 @@
             <span class="status-badge" v-for="(status, index) in nutrientStats" :key="index">
               {{ status.label }}: {{ status.count }}
             </span>
-            <span class="heat-badge">🌡️ {{ totalSamples }}个采样点</span>
+            <span class="heat-badge">{{ totalSamples }}个采样点</span>
           </div>
         </div>
 
